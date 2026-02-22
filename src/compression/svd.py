@@ -95,9 +95,89 @@ def get_target_layer_names(model: nn.Module) -> list[str]:
     return names
 
 
+def filter_layer_names(
+    layer_names: list[str],
+    component: str | None = None,
+    layers: list[int] | None = None,
+) -> list[str]:
+    """Filter layer names by component type and/or encoder layer index.
+
+    Parameters
+    ----------
+    layer_names : list[str]
+        Full list of layer names (from get_target_layer_names).
+    component : str | None
+        Filter by component type.  Supported values:
+        "query", "key", "value", "attention_output", "intermediate", "ffn_output",
+        "attention" (all 4 attention components), "ffn" (intermediate + ffn_output).
+    layers : list[int] | None
+        Filter by encoder layer indices (0-11).  None means all layers.
+    """
+    COMPONENT_PATTERNS = {
+        "query": ["attention.self.query"],
+        "key": ["attention.self.key"],
+        "value": ["attention.self.value"],
+        "attention_output": ["attention.output.dense"],
+        "intermediate": ["intermediate.dense"],
+        "ffn_output": ["output.dense"],
+        "attention": [
+            "attention.self.query",
+            "attention.self.key",
+            "attention.self.value",
+            "attention.output.dense",
+        ],
+        "ffn": ["intermediate.dense", "output.dense"],
+    }
+
+    filtered = layer_names
+
+    if component is not None:
+        patterns = COMPONENT_PATTERNS[component]
+        filtered = [
+            n for n in filtered
+            if any(p in n for p in patterns)
+            and (component != "ffn" or "attention" not in n)
+        ]
+
+    if layers is not None:
+        layer_set = set(layers)
+        filtered = [
+            n for n in filtered
+            if int(n.split(".")[3]) in layer_set  # bert.encoder.layer.X
+        ]
+
+    return filtered
+
+
+def compute_adaptive_ranks(
+    energy_info: dict,
+    energy_threshold: float = 0.95,
+) -> dict[str, int]:
+    """Compute per-layer ranks to retain a given fraction of singular value energy.
+
+    Parameters
+    ----------
+    energy_info : dict
+        Output of compute_singular_value_energy().
+    energy_threshold : float
+        Fraction of energy to retain (e.g. 0.95 for 95%).
+
+    Returns
+    -------
+    dict[str, int]
+        Mapping from layer name to the minimum rank needed.
+    """
+    ranks = {}
+    for name, info in energy_info.items():
+        cumulative = info["cumulative_energy"]
+        idx = int((cumulative >= energy_threshold).nonzero(as_tuple=True)[0][0].item())
+        ranks[name] = idx + 1
+    return ranks
+
+
 def apply_svd_compression(
     model: nn.Module,
-    rank: int,
+    rank: int | dict[str, int],
     layer_names: list[str] | None = None,
     inplace: bool = False,
 ) -> nn.Module:
@@ -107,8 +187,10 @@ def apply_svd_compression(
     ----------
     model : nn.Module
         The original (fine-tuned) model.
-    rank : int
-        Truncated rank for the SVD decomposition.
+    rank : int | dict[str, int]
+        Truncated rank for the SVD decomposition.  If int, the same rank is
+        applied to all target layers.  If dict, maps layer name -> rank,
+        allowing per-layer rank assignment.
     layer_names : list[str] | None
         Which layers to compress.  Defaults to all encoder Linear layers.
     inplace : bool
@@ -125,11 +207,15 @@ def apply_svd_compression(
     if layer_names is None:
         layer_names = get_target_layer_names(model)
 
+    rank_map = rank if isinstance(rank, dict) else {n: rank for n in layer_names}
+
     for name in layer_names:
+        if name not in rank_map:
+            continue
         linear = _get_module_by_name(model, name)
         if not isinstance(linear, nn.Linear):
             continue
-        svd_linear = decompose_linear(linear, rank)
+        svd_linear = decompose_linear(linear, rank_map[name])
         _set_module_by_name(model, name, svd_linear)
 
     return model
