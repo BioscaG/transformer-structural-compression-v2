@@ -1,0 +1,32 @@
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Model checkpoints and large files
+results/bert-goemotions/
+results/bert-goemotions-final/
+*.bin
+*.safetensors
+
+# Environment variables
+.env
