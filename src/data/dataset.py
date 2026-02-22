@@ -48,4 +48,10 @@ def load_goemotions(tokenizer_name=MODEL_NAME, max_length=MAX_LENGTH):
     encoded = dataset.map(preprocess, batched=True, remove_columns=columns_to_remove)
     encoded.set_format("torch")
 
+    # Cast labels to float32 — BCEWithLogitsLoss requires float, not long
+    for split in encoded:
+        encoded[split] = encoded[split].map(
+            lambda x: {"labels": x["labels"].float()}, batched=False
+        )
+
     return encoded["train"], encoded["validation"], encoded["test"], EMOTION_NAMES
