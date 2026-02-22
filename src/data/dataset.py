@@ -1,6 +1,6 @@
 import torch
 from datasets import load_dataset
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, DefaultDataCollator
 
 NUM_LABELS = 28
 MODEL_NAME = "bert-base-uncased"
@@ -16,14 +16,23 @@ EMOTION_NAMES = [
 ]
 
 
+class MultiLabelDataCollator(DefaultDataCollator):
+    """Data collator that casts labels to float32 for BCEWithLogitsLoss."""
+
+    def __call__(self, features, return_tensors=None):
+        batch = super().__call__(features, return_tensors=return_tensors)
+        if "labels" in batch:
+            batch["labels"] = batch["labels"].float()
+        return batch
+
+
 def load_goemotions(tokenizer_name=MODEL_NAME, max_length=MAX_LENGTH):
     """Load GoEmotions dataset, tokenize, and convert labels to multi-hot format.
 
     Uses the simplified config which has train/validation/test splits.
     Labels come as a list of label IDs and are converted to multi-hot vectors.
 
-    Returns train, validation, and test splits as HuggingFace Datasets
-    compatible with the Trainer API.
+    Returns train, validation, test splits, emotion names, and a data collator.
     """
     dataset = load_dataset("go_emotions", "simplified")
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
@@ -48,10 +57,6 @@ def load_goemotions(tokenizer_name=MODEL_NAME, max_length=MAX_LENGTH):
     encoded = dataset.map(preprocess, batched=True, remove_columns=columns_to_remove)
     encoded.set_format("torch")
 
-    # Cast labels to float32 — BCEWithLogitsLoss requires float, not long
-    for split in encoded:
-        encoded[split] = encoded[split].map(
-            lambda x: {"labels": x["labels"].float()}, batched=False
-        )
+    collator = MultiLabelDataCollator()
 
-    return encoded["train"], encoded["validation"], encoded["test"], EMOTION_NAMES
+    return encoded["train"], encoded["validation"], encoded["test"], EMOTION_NAMES, collator
