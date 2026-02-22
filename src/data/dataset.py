@@ -6,24 +6,27 @@ NUM_LABELS = 28
 MODEL_NAME = "bert-base-uncased"
 MAX_LENGTH = 128
 
+EMOTION_NAMES = [
+    "admiration", "amusement", "anger", "annoyance", "approval",
+    "caring", "confusion", "curiosity", "desire", "disappointment",
+    "disapproval", "disgust", "embarrassment", "excitement", "fear",
+    "gratitude", "grief", "joy", "love", "nervousness",
+    "optimism", "pride", "realization", "relief", "remorse",
+    "sadness", "surprise", "neutral",
+]
+
 
 def load_goemotions(tokenizer_name=MODEL_NAME, max_length=MAX_LENGTH):
     """Load GoEmotions dataset, tokenize, and convert labels to multi-hot format.
 
+    Uses the simplified config which has train/validation/test splits.
+    Labels come as a list of label IDs and are converted to multi-hot vectors.
+
     Returns train, validation, and test splits as HuggingFace Datasets
     compatible with the Trainer API.
     """
-    dataset = load_dataset("go_emotions", "raw")
+    dataset = load_dataset("go_emotions", "simplified")
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
-
-    emotion_columns = [
-        "admiration", "amusement", "anger", "annoyance", "approval",
-        "caring", "confusion", "curiosity", "desire", "disappointment",
-        "disapproval", "disgust", "embarrassment", "excitement", "fear",
-        "gratitude", "grief", "joy", "love", "nervousness",
-        "optimism", "pride", "realization", "relief", "remorse",
-        "sadness", "surprise", "neutral",
-    ]
 
     def preprocess(examples):
         tokenized = tokenizer(
@@ -33,8 +36,10 @@ def load_goemotions(tokenizer_name=MODEL_NAME, max_length=MAX_LENGTH):
             max_length=max_length,
         )
         labels = []
-        for i in range(len(examples["text"])):
-            multi_hot = [float(examples[col][i]) for col in emotion_columns]
+        for label_ids in examples["labels"]:
+            multi_hot = [0.0] * NUM_LABELS
+            for lid in label_ids:
+                multi_hot[lid] = 1.0
             labels.append(multi_hot)
         tokenized["labels"] = labels
         return tokenized
@@ -43,4 +48,4 @@ def load_goemotions(tokenizer_name=MODEL_NAME, max_length=MAX_LENGTH):
     encoded = dataset.map(preprocess, batched=True, remove_columns=columns_to_remove)
     encoded.set_format("torch")
 
-    return encoded["train"], encoded["validation"], encoded["test"], emotion_columns
+    return encoded["train"], encoded["validation"], encoded["test"], EMOTION_NAMES
