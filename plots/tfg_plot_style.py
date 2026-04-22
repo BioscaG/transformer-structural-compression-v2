@@ -123,9 +123,9 @@ L = LABELS_ES
 # COLOR SYSTEM
 # ═════════════════════════════════════════════════════════════
 
-BG        = "#FAFAF7"
-BG_FIGURE = "#FAFAF7"
-GRID      = "#E5E4DF"
+BG        = "#FFFFFF"
+BG_FIGURE = "#FFFFFF"
+GRID      = "#EBEBEB"
 
 INK       = "#1A1A1A"
 INK_2     = "#4A4A4A"
