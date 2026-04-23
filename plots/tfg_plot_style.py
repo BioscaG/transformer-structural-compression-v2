@@ -67,6 +67,20 @@ LABELS_ES = {
     "early":              "Early\n(0–3)",
     "middle":             "Middle\n(4–7)",
     "late":               "Late\n(8–11)",
+
+    # Cap 5 — interpretability
+    "probe_f1":              "F1 del probe",
+    "crystal_layer":         "Capa de cristalización",
+    "max_probe_f1":          "F1 máximo del probe",
+    "info_gain":             "Ganancia informativa $\\Delta$F1",
+    "mean_probe_f1":         "F1 medio del probe",
+    "dataset_freq":          "Frecuencia en el dataset",
+    "head_count":            "Nº de cabezas",
+    "head_proportion":       "Proporción de cabezas",
+    "critical_specialists":  "Especialistas críticas",
+    "critical_generalists":  "Generalistas críticas",
+    "minor_specialists":     "Especialistas menores",
+    "dispensable":           "Prescindibles",
 }
 
 LABELS_EN = {
@@ -113,6 +127,20 @@ LABELS_EN = {
     "early":              "Early\n(0–3)",
     "middle":             "Middle\n(4–7)",
     "late":               "Late\n(8–11)",
+
+    # Cap 5 — interpretability
+    "probe_f1":              "Probe F1",
+    "crystal_layer":         "Crystallization layer",
+    "max_probe_f1":          "Max probe F1",
+    "info_gain":             "Information gain $\\Delta$F1",
+    "mean_probe_f1":         "Mean probe F1",
+    "dataset_freq":          "Dataset frequency",
+    "head_count":            "Head count",
+    "head_proportion":       "Head proportion",
+    "critical_specialists":  "Critical specialists",
+    "critical_generalists":  "Critical generalists",
+    "minor_specialists":     "Minor specialists",
+    "dispensable":           "Dispensable",
 }
 
 # Active label dict — set by apply()
