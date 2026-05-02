@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Anatomía Emocional · Guido Biosca</title>
+<meta name="description" content="Compresión selectiva e interpretabilidad mecánica de BERT-base sobre GoEmotions. TFG de Guido Biosca, FIB-UPC 2026." />
+<meta property="og:title" content="Anatomía emocional de un transformer" />
+<meta property="og:description" content="TFG de Guido Biosca. Compresión selectiva e interpretabilidad mecánica de BERT-base." />
+<meta property="og:type" content="website" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'&gt;&lt;rect width='32' height='32' rx='4' fill='%23F7F6F2'/&gt;&lt;circle cx='16' cy='16' r='5' fill='%231F4E6C'/&gt;&lt;/svg&gt;" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,30..100&family=Geist:wght@300..700&family=Geist+Mono:wght@300..600&display=swap" rel="stylesheet" />
+
+<style>
+  :root {
+    --bg:        #F7F6F2;
+    --bg-2:      #FFFFFF;
+    --bg-3:      #EFEEE9;
+    --ink:       #141413;
+    --ink-2:     #4A4A47;
+    --ink-3:     #8A8A82;
+    --ink-4:     #B8B8B0;
+    --line:      #D8D7D1;
+    --line-2:    #E8E7E2;
+    --accent:    #1F4E6C;
+    --accent-d:  #163D55;
+    --accent-l:  #3A7AA0;
+
+    --serif:  "Fraunces", "Iowan Old Style", "Palatino", serif;
+    --sans:   "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono:   "Geist Mono", "JetBrains Mono", "SF Mono", Menlo, monospace;
+
+    --max-narrow: 680px;
+    --max-wide:   1320px;
+    --pad-x:      max(28px, 5vw);
+    --easing:     cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16.5px;
+    line-height: 1.6;
+    font-feature-settings: "ss01", "ss02", "cv01";
+    text-rendering: optimizeLegibility;
+  }
+  ::selection { background: var(--accent); color: var(--bg-2); }
+
+  /* ─── NAV ───────────────────────────────────────────────────────── */
+  nav.top {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px var(--pad-x);
+    background: rgba(247,246,242,0.78);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border-bottom: 0.5px solid var(--line);
+    z-index: 50;
+    transition: transform 0.32s var(--easing);
+  }
+  nav.top.hidden { transform: translateY(-100%); }
+  nav.top .brand {
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.08em; color: var(--ink);
+    text-decoration: none; text-transform: uppercase;
+  }
+  nav.top .brand .dot {
+    display: inline-block; width: 5px; height: 5px;
+    background: var(--accent); border-radius: 50%;
+    margin-right: 10px; transform: translateY(-1px);
+  }
+  nav.top ul.nav-links {
+    display: flex; gap: 22px; list-style: none; padding: 0; margin: 0;
+  }
+  nav.top a.link {
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.05em;
+    color: var(--ink-2); text-decoration: none;
+    transition: color 0.18s var(--easing);
+    text-transform: uppercase;
+  }
+  nav.top a.link:hover { color: var(--accent); }
+  nav.top button.toc-btn {
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.05em;
+    color: var(--ink); background: transparent;
+    border: 0.5px solid var(--line);
+    padding: 7px 12px; border-radius: 1px; cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s var(--easing);
+  }
+  nav.top button.toc-btn:hover {
+    border-color: var(--accent); color: var(--accent);
+    background: var(--bg-2);
+  }
+
+  #progress {
+    position: fixed; top: 0; left: 0; height: 1.5px;
+    background: var(--accent);
+    width: var(--scroll, 0%);
+    z-index: 60;
+    transition: width 0.05s linear;
+  }
+
+  /* ─── TOC PANEL (slide-out) ─────────────────────────────────────── */
+  aside.toc-panel {
+    position: fixed; top: 0; right: -480px;
+    width: 460px; max-width: 90vw; height: 100vh;
+    background: var(--bg-2);
+    border-left: 0.5px solid var(--line);
+    box-shadow: -20px 0 60px -30px rgba(20,20,19,0.18);
+    z-index: 70;
+    transition: right 0.4s var(--easing);
+    overflow-y: auto;
+    padding: 24px 32px 60px 32px;
+  }
+  aside.toc-panel.open { right: 0; }
+  .toc-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 18px; border-bottom: 0.5px solid var(--line);
+    margin-bottom: 22px;
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);
+  }
+  #toc-close {
+    background: transparent; border: 0; cursor: pointer;
+    font-size: 26px; line-height: 1; color: var(--ink-2);
+    padding: 0 6px;
+  }
+  #toc-close:hover { color: var(--accent); }
+  .toc-part { margin-bottom: 26px; }
+  .toc-part-title {
+    display: block; text-decoration: none;
+    font-family: var(--serif); font-size: 19px;
+    color: var(--ink); margin-bottom: 10px;
+    font-variation-settings: "opsz" 36, "SOFT" 60;
+    line-height: 1.2;
+  }
+  .toc-num {
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.1em; color: var(--accent);
+    margin-right: 8px; text-transform: uppercase;
+    display: block; margin-bottom: 2px;
+  }
+  .toc-part ul {
+    list-style: none; padding: 0; margin: 0 0 0 18px;
+    border-left: 0.5px solid var(--line-2);
+  }
+  .toc-part ul li a {
+    display: flex; gap: 14px;
+    padding: 7px 0 7px 14px;
+    font-family: var(--sans); font-size: 14px;
+    color: var(--ink-2); text-decoration: none;
+    transition: color 0.18s var(--easing);
+    line-height: 1.3;
+  }
+  .toc-part ul li a:hover { color: var(--accent); }
+  .toc-fig {
+    font-family: var(--mono); font-size: 10.5px;
+    color: var(--ink-3); flex-shrink: 0; padding-top: 1px;
+  }
+  #toc-overlay {
+    position: fixed; inset: 0;
+    background: rgba(20,20,19,0.18);
+    backdrop-filter: blur(4px);
+    z-index: 65;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.35s var(--easing);
+  }
+  #toc-overlay.show { opacity: 1; pointer-events: auto; }
+
+  /* ─── HERO ─────────────────────────────────────────────────────── */
+  section.hero {
+    min-height: 100vh;
+    padding: 14vh var(--pad-x) 6vh var(--pad-x);
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    position: relative;
+    overflow: hidden;
+  }
+  section.hero::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(to right, var(--line-2) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--line-2) 1px, transparent 1px);
+    background-size: 88px 88px;
+    background-position: -1px -1px;
+    mask-image: radial-gradient(ellipse 90% 70% at 50% 45%, #000 30%, transparent 78%);
+    -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 45%, #000 30%, transparent 78%);
+    opacity: 0.85;
+    pointer-events: none;
+  }
+  .hero-meta {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+    color: var(--ink-3); text-transform: uppercase;
+    z-index: 2;
+  }
+  .hero-meta .left, .hero-meta .right { line-height: 1.7; }
+  .hero-meta .right { text-align: right; }
+  .hero-meta strong { color: var(--ink-2); font-weight: 500; }
+  .hero-content { align-self: center; max-width: 1200px; z-index: 2; }
+  .hero-tag {
+    font-family: var(--mono); font-size: 11.5px;
+    color: var(--accent); letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    display: inline-flex; align-items: center; gap: 12px;
+  }
+  .hero-tag::before {
+    content: ""; display: inline-block;
+    width: 28px; height: 1px; background: var(--accent);
+  }
+  .hero-title {
+    font-family: var(--serif);
+    font-weight: 280;
+    font-size: clamp(48px, 7.5vw, 108px);
+    line-height: 0.96;
+    letter-spacing: -0.025em;
+    margin: 0;
+    font-variation-settings: "opsz" 144, "SOFT" 30;
+    color: var(--ink);
+  }
+  .hero-title em {
+    font-style: italic; font-weight: 280; color: var(--accent);
+    font-variation-settings: "opsz" 144, "SOFT" 100;
+  }
+  .hero-title .small {
+    display: block;
+    font-size: 0.42em; color: var(--ink-2);
+    font-weight: 320; margin-top: 22px;
+    letter-spacing: -0.01em; line-height: 1.32;
+    max-width: 720px;
+    font-variation-settings: "opsz" 72, "SOFT" 100;
+  }
+  .hero-stats {
+    display: flex; gap: 56px;
+    margin-top: 60px; flex-wrap: wrap;
+  }
+  .hero-stats .stat {
+    border-left: 0.5px solid var(--line);
+    padding-left: 16px;
+  }
+  .hero-stats .stat .num {
+    font-family: var(--serif); font-size: 32px;
+    font-weight: 350; color: var(--ink);
+    letter-spacing: -0.02em; line-height: 1;
+    display: block;
+    font-feature-settings: "tnum";
+    font-variation-settings: "opsz" 36, "SOFT" 80;
+  }
+  .hero-stats .stat .label {
+    font-family: var(--mono); font-size: 10.5px;
+    color: var(--ink-3); letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 9px; display: block;
+  }
+  .hero-foot {
+    display: flex; justify-content: space-between;
+    align-items: flex-end;
+    font-family: var(--mono); font-size: 11px;
+    color: var(--ink-3); letter-spacing: 0.06em;
+    text-transform: uppercase; z-index: 2;
+  }
+  .hero-foot .scroll-cue {
+    display: flex; align-items: center; gap: 12px;
+    color: var(--ink-2);
+  }
+  .hero-foot .scroll-cue .arrow {
+    width: 1px; height: 28px; background: var(--ink-2);
+    position: relative;
+  }
+  .hero-foot .scroll-cue .arrow::after {
+    content: ""; position: absolute;
+    left: -3px; bottom: -1px;
+    width: 7px; height: 7px;
+    border-right: 1px solid var(--ink-2);
+    border-bottom: 1px solid var(--ink-2);
+    transform: rotate(45deg) translate(-1px,-1px);
+  }
+  .hero-foot a {
+    color: var(--ink-2); text-decoration: none;
+    transition: color 0.2s var(--easing);
+  }
+  .hero-foot a:hover { color: var(--accent); }
+
+  /* ─── PART DIVIDER ─────────────────────────────────────────────── */
+  section.part {
+    padding: 22vh var(--pad-x) 14vh var(--pad-x);
+    text-align: left;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .part-meta {
+    font-family: var(--mono); font-size: 11.5px;
+    color: var(--accent); letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    display: inline-flex; align-items: center; gap: 14px;
+  }
+  .part-meta::before {
+    content: ""; display: inline-block;
+    width: 36px; height: 1px; background: var(--accent);
+  }
+  .part-title {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(48px, 6.5vw, 88px);
+    line-height: 1.0;
+    letter-spacing: -0.025em;
+    margin: 0 0 32px 0;
+    color: var(--ink);
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+  }
+  .part-intro {
+    max-width: 660px;
+  }
+  .part-intro p {
+    font-family: var(--serif);
+    font-size: clamp(19px, 1.8vw, 23px);
+    line-height: 1.45;
+    color: var(--ink-2);
+    margin: 0 0 18px 0;
+    font-style: italic;
+    font-weight: 350;
+    font-variation-settings: "opsz" 36, "SOFT" 80;
+  }
+
+  /* ─── CHAPTER (figure section) ─────────────────────────────────── */
+  section.chapter {
+    padding: 14vh var(--pad-x) 8vh var(--pad-x);
+    position: relative;
+  }
+  .ch-head { max-width: var(--max-wide); margin: 0 auto 64px auto; }
+  .ch-num {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--accent); letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    display: inline-flex; align-items: center; gap: 12px;
+  }
+  .ch-num::before {
+    content: ""; display: inline-block;
+    width: 36px; height: 0.5px; background: var(--accent);
+  }
+  .ch-title {
+    font-family: var(--serif);
+    font-weight: 320;
+    font-size: clamp(36px, 4.5vw, 64px);
+    line-height: 1.02;
+    letter-spacing: -0.022em;
+    margin: 0 0 18px 0;
+    color: var(--ink);
+    max-width: 980px;
+    font-variation-settings: "opsz" 96, "SOFT" 50;
+  }
+  .ch-title em {
+    font-style: italic; font-weight: 320; color: var(--ink);
+    font-variation-settings: "opsz" 96, "SOFT" 100;
+  }
+  .ch-sub {
+    font-family: var(--serif);
+    font-size: clamp(18px, 1.8vw, 22px);
+    font-style: italic;
+    font-weight: 350;
+    color: var(--ink-2);
+    margin: 0; max-width: 780px;
+    line-height: 1.4;
+    font-variation-settings: "opsz" 36, "SOFT" 70;
+  }
+  .ch-body {
+    max-width: var(--max-narrow);
+    margin: 0 auto;
+    color: var(--ink-2);
+  }
+  .ch-body p {
+    margin: 0 0 22px 0; font-size: 17px; line-height: 1.65;
+    hyphens: auto;
+  }
+  .ch-body > p:first-of-type::first-letter {
+    font-family: var(--serif);
+    font-size: 4.6em; line-height: 0.9;
+    float: left; color: var(--ink);
+    padding: 6px 12px 0 0;
+    font-weight: 320;
+    font-variation-settings: "opsz" 144, "SOFT" 30;
+  }
+  .ch-body > p:first-of-type { color: var(--ink); }
+  .ch-body strong { color: var(--ink); font-weight: 500; }
+  .ch-body em { font-style: italic; color: var(--ink-2); }
+  .ch-body code {
+    font-family: var(--mono); font-size: 0.86em;
+    background: var(--bg-3); padding: 2px 6px;
+    border-radius: 1px; color: var(--ink);
+    border: 0.5px solid var(--line);
+  }
+  .ch-body a {
+    color: var(--accent); text-decoration: none;
+    border-bottom: 0.5px solid var(--accent-l);
+    padding-bottom: 1px;
+    transition: opacity 0.2s var(--easing);
+  }
+  .ch-body a:hover { opacity: 0.7; }
+
+  /* Pull quote */
+  .pull {
+    max-width: 1080px; margin: 84px auto 56px auto;
+    border-top: 0.5px solid var(--line);
+    border-bottom: 0.5px solid var(--line);
+    padding: 42px 0;
+    font-family: var(--serif);
+    font-size: clamp(24px, 2.4vw, 34px);
+    font-style: italic;
+    line-height: 1.25;
+    color: var(--ink);
+    font-weight: 320;
+    letter-spacing: -0.012em;
+    font-variation-settings: "opsz" 60, "SOFT" 100;
+    text-align: left;
+  }
+  .pull::before {
+    content: "\201C"; color: var(--accent);
+    font-size: 1.4em; line-height: 0;
+    vertical-align: -0.18em; margin-right: 4px;
+  }
+  .pull::after {
+    content: "\201D"; color: var(--accent);
+    font-size: 1.4em; line-height: 0;
+    vertical-align: -0.18em; margin-left: 2px;
+  }
+
+  /* Figure */
+  .figure { max-width: var(--max-wide); margin: 56px auto 0 auto; }
+  .figure-wrap {
+    position: relative;
+    background: var(--bg-2);
+    border-radius: 3px;
+    padding: 32px;
+    overflow: hidden;
+    border: 0.5px solid var(--line-2);
+    box-shadow:
+      0 1px 0 rgba(20,20,19,0.02),
+      0 12px 32px -16px rgba(20,20,19,0.10),
+      0 36px 80px -40px rgba(20,20,19,0.10);
+    transition: height 0.45s var(--easing),
+                box-shadow 0.4s var(--easing),
+                transform 0.4s var(--easing);
+  }
+  .figure-wrap:hover {
+    box-shadow:
+      0 1px 0 rgba(20,20,19,0.03),
+      0 16px 40px -16px rgba(20,20,19,0.14),
+      0 48px 100px -40px rgba(20,20,19,0.14);
+    transform: translateY(-1px);
+  }
+  .figure-wrap iframe {
+    width: 100%; height: 100%;
+    border: none; display: block; background: transparent;
+  }
+  .figure-wrap::before {
+    content: "Cargando figura\2026";
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-2); color: var(--ink-3);
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    z-index: 0; transition: opacity 0.4s var(--easing);
+  }
+  .figure-wrap.loaded::before { opacity: 0; pointer-events: none; }
+
+  .figure-meta {
+    display: flex; justify-content: space-between;
+    align-items: flex-start; gap: 32px;
+    margin-top: 18px; padding: 0 4px;
+  }
+  .figure-meta .caption {
+    flex: 1; max-width: 720px;
+    font-family: var(--mono); font-size: 11.5px;
+    line-height: 1.55; color: var(--ink-2);
+    letter-spacing: 0.01em;
+  }
+  .figure-meta .id {
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-3); white-space: nowrap;
+  }
+  .figure-meta .id strong { color: var(--accent); font-weight: 500; }
+
+  /* ─── OUTRO ────────────────────────────────────────────────────── */
+  section.outro {
+    padding: 14vh var(--pad-x) 8vh var(--pad-x);
+  }
+  section.outro .ch-num,
+  section.outro .ch-title,
+  section.outro .ch-sub,
+  section.outro .ch-body {
+    max-width: var(--max-narrow);
+    margin-left: auto; margin-right: auto;
+  }
+  section.outro .ch-num { display: inline-flex; }
+
+  /* ─── REVEAL ────────────────────────────────────────────────────── */
+  .reveal {
+    opacity: 0; transform: translateY(14px);
+    transition: opacity 0.85s var(--easing), transform 0.85s var(--easing);
+    transition-delay: var(--delay, 0ms);
+  }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+
+  /* ─── FOOTER ────────────────────────────────────────────────────── */
+  footer.foot {
+    margin-top: 18vh;
+    padding: 80px var(--pad-x) 52px var(--pad-x);
+    border-top: 0.5px solid var(--line);
+    background: var(--bg);
+  }
+  .foot-grid {
+    max-width: var(--max-wide); margin: 0 auto;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 56px; align-items: start;
+  }
+  .foot-grid h3 {
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.12em; color: var(--ink-3);
+    text-transform: uppercase;
+    margin: 0 0 18px 0; font-weight: 500;
+  }
+  .foot-grid p {
+    font-family: var(--sans); font-size: 13.5px;
+    color: var(--ink-2); margin: 0 0 8px 0;
+    line-height: 1.55;
+  }
+  .foot-grid a {
+    display: block;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--ink); text-decoration: none;
+    margin-bottom: 8px;
+    border-bottom: 0.5px solid transparent;
+    width: fit-content; padding-bottom: 1px;
+    transition: all 0.2s var(--easing);
+  }
+  .foot-grid a:hover {
+    color: var(--accent); border-bottom-color: var(--accent);
+  }
+  .foot-grid .brand-cell h2 {
+    font-family: var(--serif); font-weight: 350;
+    font-size: 24px; margin: 0 0 14px 0;
+    color: var(--ink); letter-spacing: -0.012em;
+    line-height: 1.15;
+    font-variation-settings: "opsz" 36, "SOFT" 80;
+  }
+  .foot-grid .brand-cell em {
+    font-style: italic; color: var(--accent);
+  }
+  .foot-bottom {
+    max-width: var(--max-wide);
+    margin: 56px auto 0 auto;
+    padding-top: 24px;
+    border-top: 0.5px solid var(--line-2);
+    display: flex; justify-content: space-between;
+    align-items: center; gap: 24px;
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.06em; color: var(--ink-3);
+    text-transform: uppercase;
+  }
+
+  /* ─── MOBILE ────────────────────────────────────────────────────── */
+  @media (max-width: 980px) {
+    nav.top ul.nav-links { display: none; }
+    .hero-stats { gap: 32px; }
+    .hero-foot { flex-direction: column; gap: 24px; align-items: flex-start; }
+    .foot-grid { grid-template-columns: 1fr 1fr; gap: 40px 32px; }
+    .ch-body > p:first-of-type::first-letter {
+      font-size: 3.6em; padding: 4px 10px 0 0;
+    }
+    section.part { padding: 14vh var(--pad-x) 8vh var(--pad-x); }
+  }
+  @media (max-width: 620px) {
+    .foot-grid { grid-template-columns: 1fr; }
+    .hero-meta { font-size: 10px; }
+    .pull { font-size: 22px; padding: 28px 0; margin: 56px auto; }
+    .figure-meta { flex-direction: column; gap: 12px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    nav.top { transition: none; }
+  }
+</style>
+
+</head>
+<body>
+
+<div id="progress"></div>
+
+
+<nav class="top" id="topnav">
+  <a href="#top" class="brand"><span class="dot"></span>Anatomía Emocional</a>
+  <ul class="nav-links">
+    <li><a class="link" href="#parte-1">Capítulos</a></li>
+    <li><a class="link" href="#cierre">Datos</a></li>
+    <li><a class="link" href="sobre.html">Sobre</a></li>
+  </ul>
+  <button class="toc-btn" id="toc-btn">Índice</button>
+</nav>
+
+<aside id="toc-panel" class="toc-panel">
+  <div class="toc-head">
+    <span>Índice</span>
+    <button id="toc-close" aria-label="Cerrar">×</button>
+  </div>
+  <div class="toc-body">
+    <div class="toc-part"><a href="#parte-1" class="toc-part-title"><span class="toc-num">Parte 01</span> El sujeto</a><ul><li><a href="#arquitectura"><span class="toc-fig">01.1</span> BERT entero, en 3D</a></li><li><a href="#lex2sem"><span class="toc-fig">01.2</span> De diccionario a clasificador</a></li></ul></div><div class="toc-part"><a href="#parte-2" class="toc-part-title"><span class="toc-num">Parte 02</span> El cuerpo en pedazos</a><ul><li><a href="#internal-compression"><span class="toc-fig">02.1</span> El modelo se comprime a sí mismo</a></li><li><a href="#pareto"><span class="toc-fig">02.2</span> 22 estrategias, una transición de fase</a></li><li><a href="#spectral-landscape"><span class="toc-fig">02.3</span> La asimetría espectral, hecha topografía</a></li><li><a href="#spectral-flowers"><span class="toc-fig">02.4</span> 72 flores espectrales</a></li><li><a href="#decay"><span class="toc-fig">02.5</span> La galaxia se deshace</a></li><li><a href="#ft-diff"><span class="toc-fig">02.6</span> Qué cambió el fine-tuning</a></li></ul></div><div class="toc-part"><a href="#parte-3" class="toc-part-title"><span class="toc-num">Parte 03</span> Dónde viven las emociones</a><ul><li><a href="#crystallization"><span class="toc-fig">03.1</span> Cristalización por capas</a></li><li><a href="#galaxy"><span class="toc-fig">03.2</span> Galaxy formation</a></li><li><a href="#tokens"><span class="toc-fig">03.3</span> Token trajectories</a></li><li><a href="#iterative"><span class="toc-fig">03.4</span> La curva en U</a></li><li><a href="#lens-vs-probe"><span class="toc-fig">03.5</span> Lo que sabe vs lo que sabe leer</a></li><li><a href="#fingerprint"><span class="toc-fig">03.6</span> Decision fingerprint</a></li></ul></div><div class="toc-part"><a href="#parte-4" class="toc-part-title"><span class="toc-num">Parte 04</span> 144 cabezas</a><ul><li><a href="#heads"><span class="toc-fig">04.1</span> Las 144 cabezas</a></li><li><a href="#atlas"><span class="toc-fig">04.2</span> Attention atlas</a></li><li><a href="#constellations"><span class="toc-fig">04.3</span> Las 23 emociones como direcciones</a></li><li><a href="#circuit"><span class="toc-fig">04.4</span> El circuito compartido</a></li></ul></div><div class="toc-part"><a href="#parte-5" class="toc-part-title"><span class="toc-num">Parte 05</span> Causalidad</a><ul><li><a href="#lesion"><span class="toc-fig">05.1</span> Lesion theater</a></li><li><a href="#neurons"><span class="toc-fig">05.2</span> Las 80 neuronas más selectivas</a></li><li><a href="#conf-evolution"><span class="toc-fig">05.3</span> Confusion matrix evolution</a></li><li><a href="#conf-volume"><span class="toc-fig">05.4</span> Confusion volume</a></li></ul></div><div class="toc-part"><a href="#parte-6" class="toc-part-title"><span class="toc-num">Parte 06</span> Síntesis</a><ul><li><a href="#clusters"><span class="toc-fig">06.1</span> Seis clusters que aparecen solos</a></li><li><a href="#landscape"><span class="toc-fig">06.2</span> El paisaje emocional</a></li><li><a href="#trajectory"><span class="toc-fig">06.3</span> Una frase, cuatro vistas</a></li><li><a href="#greedy"><span class="toc-fig">06.4</span> Greedy en acción</a></li><li><a href="#sandbox"><span class="toc-fig">06.5</span> Diseña tu propia compresión</a></li><li><a href="#cards"><span class="toc-fig">06.6</span> Trading cards</a></li></ul></div>
+  </div>
+</aside>
+<div id="toc-overlay"></div>
+
+
+<main>
+
+<section class="hero" id="top">
+  <div class="hero-meta reveal">
+    <div class="left">
+      <strong>TFG · 2026</strong><br>
+      Universitat Politècnica<br>
+      de Catalunya · FIB
+    </div>
+    <div class="right">
+      <strong>Vol. 01</strong><br>
+      Compresión selectiva<br>
+      Interpretabilidad mecánica
+    </div>
+  </div>
+
+  <div class="hero-content reveal" style="--delay: 120ms">
+    <div class="hero-tag">Trabajo de fin de grado · 2026</div>
+    <h1 class="hero-title">
+      Anatomía<br>
+      emocional<br>
+      <em>de un transformer</em>
+      <span class="small">
+        Compresión selectiva e interpretabilidad mecánica
+        de BERT-base sobre GoEmotions. Un manual visual para
+        desarmar el modelo capa por capa.
+      </span>
+    </h1>
+
+    <div class="hero-stats">
+      <div class="stat">
+        <span class="num">12 × 144</span>
+        <span class="label">capas × cabezas</span>
+      </div>
+      <div class="stat">
+        <span class="num">36 864</span>
+        <span class="label">neuronas FFN</span>
+      </div>
+      <div class="stat">
+        <span class="num">23</span>
+        <span class="label">emociones, multi-label</span>
+      </div>
+      <div class="stat">
+        <span class="num">27</span>
+        <span class="label">visualizaciones</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-foot reveal" style="--delay: 240ms">
+    <div class="scroll-cue">
+      <span class="arrow"></span>
+      <span>Scroll · Empezar el recorrido</span>
+    </div>
+    <div>
+      <a href="sobre.html">Guido Biosca Lasa</a> · Director: Lluís Padró Cirera
+    </div>
+  </div>
+</section>
+
+<section class="part" id="parte-1">
+  <div class="part-meta reveal">Parte 01</div>
+  <h2 class="part-title reveal" style="--delay: 100ms">El sujeto</h2>
+  <div class="part-intro reveal" style="--delay: 200ms">
+    <p>El objeto de estudio es BERT-base. 12 capas. 144 cabezas de atención. 36 864 neuronas en los bloques FFN. 109 millones de parámetros.</p>
+    <p>Sobre eso, un fine-tuning en GoEmotions: 23 emociones con etiquetado multi-label. Cada frase puede llevar varias a la vez.</p>
+    <p>Antes de operar nada, primero hay que conocer al sujeto.</p>
+  </div>
+</section>
+
+
+<section class="chapter" id="arquitectura">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 01.1 · Arquitectura</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">BERT entero, en 3D</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">12 capas apiladas, cada una con 12 cabezas de atención y un bloque FFN.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">12 capas. Cada capa tiene 12 cabezas (las esferas) y un bloque FFN (el anillo turquesa). Por el centro pasa el residual stream, la columna por la que viaja el [CLS] desde abajo hasta el classifier de arriba.</p>
+    <p class="reveal">El color de cada esfera es su categoría funcional según el ablation study del notebook 6. Roja: Critical Specialist. Azul: Critical Generalist. Amarilla: Minor. Gris: Dispensable. El tamaño codifica importancia agregada.</p>
+    <p class="reveal">Mira la capa 11. Casi todo rojo y azul. Mira la capa 0. Casi todo gris. Es la primera pista de que el trabajo emocional no está distribuido uniformemente.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 944px">
+      <iframe data-src="figures/bert_architecture.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">Esferas: cabezas de atención. Anillos: bloques FFN. Columna central punteada: residual stream. Diamante rojo abajo: token [CLS]. Cuadrado verde arriba: classifier de 23 emociones. Datos: head_categories.csv.</div>
+      <div class="id">Fig. <strong>01.1</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="lex2sem">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 01.2 · Base teórica</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">De diccionario a clasificador</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Cómo BERT olvida palabras y aprende emociones.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">Cuando una palabra entra en BERT, al salir ya no es esa palabra. Lo es a la entrada, claro. Pero el modelo sustituye "qué palabra es" por "qué papel juega" capa a capa. Es un fenómeno conocido (Tenney 2019, Ethayarajh 2019).</p>
+    <p class="reveal">Tres curvas miden la transición desde tres ángulos. La azul: retención léxica, cuánto del embedding original queda en cada capa. La amarilla: anisotropía, cuán parecidos son los tokens entre sí (al final convergen todos al mismo vector). La roja: F1 del probe lineal de emoción, cuánta info de la etiqueta es extraíble.</p>
+    <p class="reveal">Las tres se cruzan en L8-L9. Ese es el punto de bisagra. Antes, fase léxica. Después, fase semántica.</p>
+    <p class="reveal">Las cuatro mini-matrices de abajo lo hacen visceral. Cada celda es la similitud coseno del token a su embedding inicial. Filas tempranas: colores variados, cada token preserva identidad. Filas tardías: monocromas, todos los tokens han colapsado al mismo vector contextual.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 1004px">
+      <iframe data-src="figures/lexical_to_semantic.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">Tres curvas sobre 46 frases del test set. Heatmaps de cuatro frases ejemplo: cos(hidden[L,t], hidden[0,t]). Bibliografía: Tenney et al. ACL 2019; Ethayarajh EMNLP 2019.</div>
+      <div class="id">Fig. <strong>01.2</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="part" id="parte-2">
+  <div class="part-meta reveal">Parte 02</div>
+  <h2 class="part-title reveal" style="--delay: 100ms">El cuerpo en pedazos</h2>
+  <div class="part-intro reveal" style="--delay: 200ms">
+    <p>El plan: aplicar SVD a las matrices de pesos del modelo, quedarte con los k mayores valores singulares, y ver qué tanto cae el F1.</p>
+    <p>La sorpresa: el modelo ya está comprimiendo por dentro. Los tokens al final viven en un subespacio de baja dimensión. La SVD no introduce compresión donde no la había. Materializa la que ya existe.</p>
+  </div>
+</section>
+
+
+<section class="chapter" id="internal-compression">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 02.1 · El puente</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">El modelo se comprime <em>a sí mismo</em></h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Antes de aplicar SVD, la red ya está reduciendo dimensión.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">Tomamos las representaciones de tokens en cada capa, las apilamos en una matriz de 469 × 768, y le hacemos SVD. La pregunta: cuántas dimensiones está usando realmente el modelo en cada capa.</p>
+    <p class="reveal">Arriba, dos cosas. Las curvas azules son la norma euclídea de los vectores. Crecen con la profundidad (Kobayashi 2021). Las rojas son rango efectivo y k95: cuántos valores singulares cubren el 95% de la varianza. Caen brutalmente. De ~130 dimensiones en las capas tempranas a 22 en L12. El k95 baja a 35.</p>
+    <p class="reveal">De 768 dimensiones posibles, el modelo termina usando un 5%.</p>
+    <p class="reveal">El heatmap de abajo es la prueba completa. Para cada capa, qué fracción de varianza cubren los k mejores valores. La línea negra es el k95 capa por capa. Esa frontera se desplaza a la izquierda en L9-L12.</p>
+  </div>
+
+  <blockquote class="pull reveal">Si la representación interna en L12 vive en 22 de 768 dimensiones, las matrices que la producen son low-rank-aproximables. La SVD no introduce compresión donde no la había. Materializa la que ya existe.</blockquote>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 1004px">
+      <iframe data-src="figures/internal_compression.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">Norma media de hidden states (azul) vs rango efectivo y k95 (terra). Heatmap de energía espectral acumulada. Datos: 46 frases del split de test sobre 23emo-final. Refs: Kobayashi EMNLP 2021; Dong et al. ICML 2021.</div>
+      <div class="id">Fig. <strong>02.1</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="pareto">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 02.2 · El acantilado</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">22 estrategias, una transición de fase</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Aplicas SVD uniforme a todas las capas. Entre rango 384 y 256, el F1 se desploma.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">El gráfico de la derecha es una superficie F1 sobre el plano (rango × profundidad). Cada celda es una configuración de compresión. Color = retención de F1.</p>
+    <p class="reveal">Las capas tardías (8-11) caen al vacío antes que las tempranas. Esa asimetría es lo que motiva la compresión informada del capítulo 6.</p>
+    <p class="reveal">El algoritmo greedy domina la frontera de Pareto en 8 de 9 puntos óptimos. La estrategia greedy_90 retiene un 93% del F1 con un 14% menos de parámetros.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 684px">
+      <iframe data-src="figures/pareto_3d.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">Frontera de Pareto: 22 estrategias evaluadas. Datos: compression_comparison.csv. Eje rango uniforme, eje profundidad de capa, color F1 macro.</div>
+      <div class="id">Fig. <strong>02.2</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="spectral-landscape">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 02.3 · 3D</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">La asimetría espectral, hecha topografía</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Las 72 matrices del modelo apiladas como filas de un terreno.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">Cada fila del relieve es una matriz de pesos del modelo. Eje X: índice del valor singular. Eje Z: magnitud normalizada σᵢ/σ₁.</p>
+    <p class="reveal">Lo que ves: las matrices Q y K forman picos abruptos. Pocos valores singulares dominan, espectro concentrado, rango efectivo bajo, comprimibles. Las FFN forman mesetas casi planas. Espectro distribuido, cada dimensión aporta, frágiles bajo SVD.</p>
+    <p class="reveal">Los diamantes marcan k95 por matriz. Q/K cerca de 395. FFN cerca de 620. Es la Tabla 6 de la memoria, pero en relieve.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 944px">
+      <iframe data-src="figures/spectral_landscape.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">SVD computada sobre el checkpoint 23emo-final. 72 matrices = 12 capas × 6 componentes (Q, K, V, Attn-O, FFN-i, FFN-o).</div>
+      <div class="id">Fig. <strong>02.3</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="spectral-flowers">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 02.4 · Iconográfico</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">72 flores espectrales</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Una matriz, una flor. Forma del pétalo = compresibilidad.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">Cada flor es una matriz. Cada pétalo es un valor singular σᵢ, normalizado a σ₁. 32 pétalos por flor.</p>
+    <p class="reveal">Las columnas Q y K son flores con 2-3 pétalos enormes que dominan, el resto diminutos. Eso es espectro concentrado. Rango efectivo bajo. Buenas para comprimir.</p>
+    <p class="reveal">Las columnas FFN son flores rellenas, casi circulares. Todos los pétalos comparables. Espectro plano. Cada dimensión aporta. Frágiles bajo SVD.</p>
+    <p class="reveal">La forma de la flor predice cuánto aguanta cada matriz.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 1304px">
+      <iframe data-src="figures/spectral_flowers.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">Una flor por cada una de las 72 matrices del encoder. Pasa el ratón por encima para ver el k95 exacto.</div>
+      <div class="id">Fig. <strong>02.4</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="decay">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 02.5 · Animación</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">La galaxia se deshace</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Misma proyección que galaxy formation, ahora con la SVD activa.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">Las mismas 588 frases en L12, proyectadas con LDA. Las vemos en seis configuraciones de compresión: rangos 768 (sin tocar), 512, 384, 256, 128, 64.</p>
+    <p class="reveal">A r=512 todo casi igual. Entre r=384 y r=256 está el acantilado. Los clusters se difuminan. A r=128 la geometría desaparece. A r=64 los embeddings colapsan a un blob.</p>
+    <p class="reveal">La gráfica de la derecha cuantifica: silhouette en azul, retención de F1 en terra. Las dos curvas caen juntas a partir de r=384. La transición de fase, vista como geometría que se deshace.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 884px">
+      <iframe data-src="figures/compression_decay.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">588 frases del test set, L12, LDA-3D fija. SVD aplicada uniformemente. Slider o Play.</div>
+      <div class="id">Fig. <strong>02.5</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="ft-diff">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 02.6 · Pre vs post</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">Qué cambió el fine-tuning</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Diff Frobenius entre bert-base-uncased y 23emo-final.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">Cargo los dos modelos. Para cada una de las 72 matrices, calculo el cambio relativo: ‖W_ft − W_pre‖ / ‖W_pre‖. Cuánto se ha movido cada matriz durante el fine-tuning.</p>
+    <p class="reveal">La predicción de §5.5 era simple. El gradiente fluye más fuerte hacia las capas finales. Las tardías deberían cambiar mucho. Las tempranas, ya buenas en el pre-entrenamiento, deberían quedarse casi igual.</p>
+    <p class="reveal">El heatmap lo confirma. Los valores en capas 8-11 son claramente más altos. Es evidencia empírica directa de la arquitectura de dos fases.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 984px">
+      <iframe data-src="figures/finetuning_diff.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">Norma Frobenius del cambio relativo, 72 matrices del encoder. bert-base-uncased vs 23emo-final.</div>
+      <div class="id">Fig. <strong>02.6</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="part" id="parte-3">
+  <div class="part-meta reveal">Parte 03</div>
+  <h2 class="part-title reveal" style="--delay: 100ms">Dónde viven las emociones</h2>
+  <div class="part-intro reveal" style="--delay: 200ms">
+    <p>Si las capas tardías son las que más cambian con el fine-tuning, y las que más rango efectivo pierden, también deberían ser donde se decide qué emoción detectar.</p>
+    <p>Probing por capa, geometría 3D, logit lens. Tres maneras distintas de decir lo mismo.</p>
+  </div>
+</section>
+
+
+<section class="chapter" id="crystallization">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 03.1 · Probing</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">Cristalización por capas</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Cuándo aparece cada emoción dentro del modelo.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">Para cada capa, entrenas un clasificador lineal sobre el [CLS]. Te dice cuánta información de cada emoción es linealmente extraíble en ese punto.</p>
+    <p class="reveal">Gratitude sale ya en L0. Tiene vocabulario obvio ("thanks", "thank you"). Realization aguanta hasta L11. Necesita contexto entero.</p>
+    <p class="reveal">La frecuencia en el dataset NO predice la profundidad. Annoyance tiene 3× más ejemplos que disgust. Cristaliza 6 capas más tarde. Lo que importa es la complejidad semántica, no el volumen de datos.</p>
+    <p class="reveal">Los diamantes marcan la capa de cristalización: donde el F1 alcanza el 80% de su máximo. El ribbon de la izquierda es el cluster psicológico de cada emoción.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 844px">
+      <iframe data-src="figures/crystallization.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">Probing lineal por capa, 23 emociones × 13 capas. Datos: probe_results.csv del notebook 4.</div>
+      <div class="id">Fig. <strong>03.1</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="galaxy">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 03.2 · Geometría</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">Galaxy formation</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">23 emociones cristalizando en el espacio LDA, capa por capa.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">Tomamos el [CLS] de cada capa. Le aplicamos el pooler real del modelo (Linear + tanh). Proyectamos con LDA supervisada, ajustada en L12. Los tres ejes son las direcciones que mejor separan las 23 emociones.</p>
+    <p class="reveal">En L0 los 23 diamantes (los centroides de cada emoción) están casi superpuestos en el origen. En L11 ocupan regiones distintas, cerca de las frases que les corresponden.</p>
+    <p class="reveal">Cuantitativo: separation ratio de 4.3 (los centroides están 4× más separados que la dispersión interna). 40% de accuracy por nearest-centroid contra 4% de random.</p>
+    <p class="reveal">Click en la leyenda para aislar una emoción.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 944px">
+      <iframe data-src="figures/galaxy_formation.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">2300 frases del test set. Pooler aplicado, LDA-3D fija ajustada en L12. Mismas coordenadas para todas las capas.</div>
+      <div class="id">Fig. <strong>03.2</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="tokens">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 03.3 · Geometría · extendida</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">Token trajectories</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">No sólo el [CLS]. Todos los tokens viajando por el residual stream.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">La galaxia anterior muestra sólo el viaje del [CLS]. Pero cada token tiene su propia trayectoria a través de las 13 capas. Aquí los proyecto todos a la misma LDA-3D.</p>
+    <p class="reveal">El [CLS] (rojo, diamante grande) viaja muy lejos del origen, hacia el centroide de la emoción gold. Es el agregador en acción.</p>
+    <p class="reveal">Los tokens de contenido (azules) y las palabras función (grises) apenas se mueven. El residual stream les preserva la información local mientras el [CLS] integra el significado global.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 964px">
+      <iframe data-src="figures/token_trajectories.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">Hidden states completos para 46 frases. Cada token proyectado capa a capa con la misma LDA-3D que galaxy formation.</div>
+      <div class="id">Fig. <strong>03.3</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="iterative">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 03.4 · Logit lens</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">La curva en U</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Aplicar el classifier real a cada capa, no sólo a la última.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">Logit lens. La técnica es de Nostalgebraist (2020) y la refinan Belrose et al. (NeurIPS 2023). Aplicas el pooler + classifier reales del modelo a cada una de las 13 capas, no sólo a L12.</p>
+    <p class="reveal">Promediado sobre 2300 frases, el sigmoid medio traza una U. Capas 0-3: las estadísticas del [CLS] saturan el tanh del pooler. Muchas emociones disparan a la vez con magnitud media. Capas 4-9: el [CLS] está en transición. El tanh se queda cerca de cero. El modelo no decide nada. Capas 10-11: el [CLS] llega al régimen donde el classifier fue entrenado. Una emoción pega un salto.</p>
+    <p class="reveal">Eso explica por qué el activation patching de L11 recupera el 100% del F1. Restauras exactamente esta calibración.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 1044px">
+      <iframe data-src="figures/iterative_inference.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">Sigmoid promedio del pooler+classifier aplicado por capa. Top-1, gold, suma de las 23. 2300 frases.</div>
+      <div class="id">Fig. <strong>03.4</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="lens-vs-probe">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 03.5 · Comparación</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">Lo que sabe vs lo que <em>sabe leer</em></h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Probing y logit lens contestan preguntas distintas. La diferencia es informativa.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">Dos curvas, tres paneles. Las dos curvas miden información de emoción en cada capa. Las dos usan los mismos datos. Pero contestan a preguntas distintas.</p>
+    <p class="reveal">El probe lineal (rojo) es un clasificador nuevo entrenado sobre cada capa. Te dice cuánta info hay ahí, linealmente extraíble. Sube monótono. La información se acumula con la profundidad.</p>
+    <p class="reveal">El logit lens (verde) es la cabeza del modelo entrenada en L11, aplicada a cada capa. Te dice qué predeciría ese classifier si lo atornillas a una capa intermedia. Hace U porque solo sabe leer activaciones estilo L11. En las capas tempranas y medias lee mal, aunque la información esté ahí.</p>
+    <p class="reveal">La banda gris entre las dos curvas es la diferencia. Info que <strong>existe pero el modelo no usa</strong>. Eso explica por qué basta con restaurar L11 en el activation patching para recuperar el 100% del F1: no es que falte información en el resto del modelo, es que la cabeza solo sabe leerla en una capa concreta.</p>
+    <p class="reveal">Los tres paneles separan las emociones por su capa de cristalización. En tempranas (panel 1), el probe ya está alto en L0 pero el lens aún no decide: brecha máxima. En tardías (panel 3), el probe sube tarde y el lens también, casi juntos: brecha mínima.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 1024px">
+      <iframe data-src="figures/lens_vs_probe.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">Probe F1 macro de notebook 4 contra logit lens (pooler+classifier reales aplicados al [CLS] de cada capa) sobre 2300 frases del test set. Bandas de fase compartidas con la curva U.</div>
+      <div class="id">Fig. <strong>03.5</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="fingerprint">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 03.6 · Multi-label</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">Decision fingerprint</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Las métricas agregadas esconden la firma multi-label de cada frase.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">Multi-label significa que el modelo no produce una emoción. Produce un vector de 23 sigmoides, varias activas a la vez. Ese vector es la firma de la frase.</p>
+    <p class="reveal">Aplico el classifier real al [CLS] de cada capa. Cada pétalo del polar es una emoción. Su longitud es el sigmoid. El pétalo con borde negro es la emoción gold.</p>
+    <p class="reveal">Selecciona una frase y dale a Play. Vas viendo el fingerprint emerger desde el ruido (Emb) hasta la decisión cristalizada (L11). Cuando varios pétalos crecen juntos: el modelo cree que coexisten varias emociones. Eso es lo que la BCE multi-label produce y ningún heatmap promediado deja ver.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 844px">
+      <iframe data-src="figures/decision_fingerprint.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">Sigmoid de las 23 emociones por capa, vector polar. Aplicado al pooler+classifier real.</div>
+      <div class="id">Fig. <strong>03.6</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="part" id="parte-4">
+  <div class="part-meta reveal">Parte 04</div>
+  <h2 class="part-title reveal" style="--delay: 100ms">144 cabezas</h2>
+  <div class="part-intro reveal" style="--delay: 200ms">
+    <p>En cada capa hay 12 cabezas de atención. 12 × 12 = 144 en total. Cada una tiene su propio patrón de atención y su propia función.</p>
+    <p>No todas son iguales. No todas son críticas. No todas hacen lo mismo.</p>
+  </div>
+</section>
+
+
+<section class="chapter" id="heads">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 04.1 · Categorías</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">Las 144 cabezas</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Critical Specialist, Critical Generalist, Minor, Dispensable.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">Cada cabeza es una celda en una matriz 12×12. Color = categoría según el ablation study. La capa 11 (fila inferior) no contiene ni una cabeza prescindible. Sus 12 son críticas.</p>
+    <p class="reveal">Las estrellas blancas marcan las cabezas que cada emoción necesita específicamente, según la Tabla 19. L11-H6 aparece dos veces. La comparten sadness y realization.</p>
+    <p class="reveal">El 77% de las cabezas en capas 8-11 son críticas. En las capas 0-4 es sólo el 25%. Hay un gradiente que no aparece en arquitecturas no fine-tuneadas.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 804px">
+      <iframe data-src="figures/heads_matrix.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">12 capas × 12 cabezas = 144 celdas. Datos: head_categories.csv del notebook 6.</div>
+      <div class="id">Fig. <strong>04.1</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="atlas">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 04.2 · Patrones</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">Attention atlas</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Las 144 cabezas, todas a la vez, sobre una frase.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">Eliges una frase. El sistema te enseña los 144 patrones de atención simultáneamente. Bordes coloreados por la categoría funcional de cada cabeza.</p>
+    <p class="reveal">Patrones reconocibles. Las capas tempranas atienden diagonalmente: token a sí mismo, vecinos. Las tardías concentran atención sobre [CLS] o [SEP], rayas verticales. Es el patrón típico de las cabezas agregadoras.</p>
+    <p class="reveal">Click en cualquier cabeza para ampliar con etiquetas de tokens.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 1164px">
+      <iframe data-src="figures/attention_atlas.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">Pesos de atención reales sobre 46 frases del test set. 12 capas × 12 cabezas = 144 mini-mapas.</div>
+      <div class="id">Fig. <strong>04.2</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="constellations">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 04.3 · Superposition</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">Las 23 emociones como direcciones</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Los vectores de peso del classifier, proyectados a 3D.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">El classifier tiene 23 vectores de 768 dimensiones, uno por emoción. Esos vectores son las direcciones que el modelo usa para detectar cada emoción. Aquí los proyecto a PCA-3D y los pinto como flechas radiando del origen.</p>
+    <p class="reveal">Vectores casi-ortogonales: emociones que el modelo distingue limpiamente. Vectores casi-paralelos: emociones que el modelo confunde. Gratitude y love apuntan parecido.</p>
+    <p class="reveal">El heatmap de la derecha es la similitud coseno completa en 768-d, reordenada por cluster. Bloques diagonales: alta similitud dentro de un cluster.</p>
+    <p class="reveal">Esto es §2.7.5 (superposition) hecho geometría. El modelo codifica más conceptos que dimensiones tendría si fueran ortogonales puras.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 864px">
+      <iframe data-src="figures/probe_constellations.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">23 vectores del classifier proyectados con PCA fija. Heatmap de cosine similarity en 768 dimensiones, reordenado por cluster.</div>
+      <div class="id">Fig. <strong>04.3</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="circuit">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 04.4 · Circuitos</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">El circuito compartido</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Cuando dos emociones reutilizan la misma maquinaria.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">Aquí el grafo se construye en D3.js. Sin Plotly. Cada emoción a la izquierda. Cabezas críticas en el centro. Clusters psicológicos a la derecha.</p>
+    <p class="reveal">L11-H6 es el nodo rojo. Es la única cabeza compartida por más de una emoción. La usan sadness y realization. Probable circuito de "expectativa frustrada" que el fine-tuning reutiliza.</p>
+    <p class="reveal">Click en cualquier nodo para ver su entorno.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 824px">
+      <iframe data-src="figures/circuit_network.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">Grafo construido a partir de top_heads_per_emotion.csv. Nodos en rojo: cabezas compartidas.</div>
+      <div class="id">Fig. <strong>04.4</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="part" id="parte-5">
+  <div class="part-meta reveal">Parte 05</div>
+  <h2 class="part-title reveal" style="--delay: 100ms">Causalidad</h2>
+  <div class="part-intro reveal" style="--delay: 200ms">
+    <p>Hasta aquí: correlación. Saber que el F1 sube en una capa no demuestra que esa capa cause la decisión. Para eso, lesionar.</p>
+    <p>Apagar una capa. Apagar una neurona. Ver qué se rompe.</p>
+  </div>
+</section>
+
+
+<section class="chapter" id="lesion">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 05.1 · Lesion</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">Lesion theater</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Restaurar capa por capa, ver el modelo revivir.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">Empezamos con un modelo a F1 = 0. Todas las barras a cero. Cada etapa restaura los pesos originales de UNA capa más. 12 etapas en total.</p>
+    <p class="reveal">Las primeras 8 etapas no mueven nada. L8 enciende un destello. L9 empuja arriba a las emociones léxicas. L10 recupera la mitad. L11 hace explotar todas las barras al baseline simultáneamente.</p>
+    <p class="reveal">La capacidad emocional del modelo no está distribuida. Vive concentrada en las capas finales.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 964px">
+      <iframe data-src="figures/lesion_theater.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">Activation patching secuencial por capa. F1 macro y por emoción. 12 etapas + estado inicial.</div>
+      <div class="id">Fig. <strong>05.1</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="neurons">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 05.2 · Neuronas</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">Las 80 neuronas más selectivas</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Sus 5 frases más activantes, una al lado de otra.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">El notebook 7 documenta 36 864 neuronas FFN con scores de selectividad Cohen's d. Pero los números no cuentan la historia entera. Aquí ves QUÉ significa cada neurona.</p>
+    <p class="reveal">Cada tarjeta es una neurona: capa, índice, emoción dominante, selectividad Cohen's d, y las 5 frases que más la activan.</p>
+    <p class="reveal">La top-1 de admiration (L11 N944) se enciende con frases tipo elogio. Eso es el significado que el modelo asignó a esa neurona. Es lo más cerca que se llega a hablar el idioma de BERT.</p>
+    <p class="reveal">Filtra por emoción, capa o dirección (excitatoria vs inhibitoria).</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 1164px">
+      <iframe data-src="figures/neuron_gallery.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">80 neuronas con activaciones reales sobre 2300 frases. Selectividad calculada como Cohen's d (diferencia de medias normalizada por desviación estándar).</div>
+      <div class="id">Fig. <strong>05.2</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="conf-evolution">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 05.3 · Confusión</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">Confusion matrix evolution</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">23 × 23 confusiones a través de las 13 capas.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">Aplicamos el logit lens en bloque. Para cada par (gold, predicho), calculo el sigmoid medio. Animado por capa.</p>
+    <p class="reveal">L0: mush uniforme, todo emborronado. L7: el hueco del valle, casi negro. L11: diagonal limpia.</p>
+    <p class="reveal">Lo interesante son las celdas off-diagonal que sobreviven en L11. Pares que el modelo confunde incluso al final. Annoyance ↔ disapproval. Fear ↔ sadness. Approval ↔ realization. Justamente vecinos en los seis clusters emocionales. El modelo no los separa porque psicológicamente están cerca.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 984px">
+      <iframe data-src="figures/confusion_evolution.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">23 emociones × 23 emociones × 13 capas. Sigmoid medio por par sobre 2300 frases.</div>
+      <div class="id">Fig. <strong>05.3</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="conf-volume">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 05.4 · 3D</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">Confusion volume</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Las 13 confusion matrices apiladas como cubo.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">La animación anterior era 2D. Esta es la versión 3D estática y rotable. Las 13 matrices 23 × 23 apiladas verticalmente. Sólo las celdas con sigmoid > 0.15 que aparezcan en al menos 7 de 13 capas.</p>
+    <p class="reveal">Las celdas que persisten verticalmente son confusiones estructurales. Pares que NUNCA se separan completamente.</p>
+    <p class="reveal">Rota el cubo. Verás que algunos pares (annoyance ↔ disapproval, fear ↔ sadness) tienen columnas verticales tan altas como la diagonal. El modelo confunde estos pares en TODAS las capas.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 944px">
+      <iframe data-src="figures/confusion_volume.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">Sigmoid medio filtrado a > 0.15 con persistencia ≥ 7/13 capas. Las celdas verticales muestran confusiones estructurales.</div>
+      <div class="id">Fig. <strong>05.4</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="part" id="parte-6">
+  <div class="part-meta reveal">Parte 06</div>
+  <h2 class="part-title reveal" style="--delay: 100ms">Síntesis</h2>
+  <div class="part-intro reveal" style="--delay: 200ms">
+    <p>Una taxonomía emocional emergente, una compresión informada por interpretabilidad, y un dashboard que junta todo.</p>
+  </div>
+</section>
+
+
+<section class="chapter" id="clusters">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 06.1 · Taxonomía</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">Seis clusters que aparecen solos</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">El modelo redescubre la psicología sin que se la impongan.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">Sin pedirle nada, un clustering jerárquico sobre los vectores de selectividad neuronal produce seis grupos con coherencia psicológica reconocible. Positivas energéticas. Negativas reactivas. Internas. Epistémicas. Orientadas al otro. Baja especificidad.</p>
+    <p class="reveal">La barra de la derecha mide la norma de selectividad. Es el mejor predictor (ρ = 0.64, p = 0.001) de la caída de F1 bajo SVD. Las emociones "escritas en negrita" en los pesos del modelo son las más vulnerables.</p>
+    <p class="reveal">La SVD no ataca selectivamente las neuronas emocionales. La geometría espectral es ortogonal a la función. Pero las emociones que requieren más capacidad neuronal son más frágiles a CUALQUIER perturbación.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 744px">
+      <iframe data-src="figures/sunburst.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">Sunburst con 6 clusters, 23 emociones. Áreas proporcionales a frecuencia en train. Bibliografía: Russell 1980 (circumplex).</div>
+      <div class="id">Fig. <strong>06.1</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="landscape">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 06.2 · Mapa</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">El paisaje emocional</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Cada emoción en (cristalización × intensidad).</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">Las 23 emociones, posicionadas en un plano 2D. Eje X: capa de cristalización. Eje Y: norma de selectividad.</p>
+    <p class="reveal">Cuadrante superior izquierdo: gratitude, love. Tempranas e intensas. Cuadrante inferior derecho: realization, disappointment. Tardías y difusas.</p>
+    <p class="reveal">La línea punteada conecta sadness y realization. Las dos comparten L11-H6.</p>
+    <p class="reveal">Selecciona una emoción en el menú de la derecha y verás su huella radial: 6 dimensiones funcionales en una figura polar.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 784px">
+      <iframe data-src="figures/emotional_landscape.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">23 emociones sobre el plano (cristalización × norma de selectividad). Datos: crystallization_layers.csv y neuron_catalog.csv.</div>
+      <div class="id">Fig. <strong>06.2</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="trajectory">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 06.3 · Síntesis</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">Una frase, cuatro vistas</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">El experimento que se pide al inicio: ver BERT pensar.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">Aquí se juntan todas las viz en una sola experiencia. Eliges una frase. Arrastras el slider de capa. Los cuatro paneles se mueven sincronizados. Trayectoria 3D del [CLS]. Atención de las 3 cabezas más críticas. Sigmoides multi-label. Curva del gold.</p>
+    <p class="reveal">Pulsa Play. El [CLS] arranca cerca del origen y se desplaza hacia su centroide. Las cabezas críticas se activan capa a capa. Los pétalos saltan del valle a la cristalización. La curva del gold traza la U que ya conoces.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 1044px">
+      <iframe data-src="figures/sentence_trajectory.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">Cuatro paneles síncronos. Datos reales del modelo 23emo-final aplicado en vivo a la frase elegida.</div>
+      <div class="id">Fig. <strong>06.3</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="greedy">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 06.4 · Algoritmo</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">Greedy en acción</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">Cómo el algoritmo construye la compresión paso a paso.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">El greedy elige movimientos por eficiencia: parámetros ahorrados / coste F1. Aquí lo ves en acción. Empezamos con baseline (todo a rango 768) y avanzamos: greedy_95 → greedy_90 → … → greedy_50.</p>
+    <p class="reveal">La matriz 12 × 6 se va iluminando célula a célula. Las primeras decisiones son Q y K. Gratis, sin coste F1. Eso es exactamente lo que predice §4.3 sobre la inmunidad de Q/K. Después vienen FFN-output en capas tempranas. Las capas tardías (8-11) se mantienen intactas hasta el final.</p>
+    <p class="reveal">La línea derecha sigue el F1 vs ratio de compresión paso a paso. Es la prueba algorítmica de que el greedy reproduce los hallazgos de interpretabilidad sin acceso a ellos. Se entera sólo con datos empíricos de sensibilidad.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 884px">
+      <iframe data-src="figures/greedy_replay.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">Replay del algoritmo greedy_50, _60, …, _95. Datos: greedy_*_ranks.csv del notebook 9.</div>
+      <div class="id">Fig. <strong>06.4</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="sandbox">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 06.5 · Sandbox</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">Diseña tu propia compresión</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">18 sliders, una cuestión: ¿puedes vencer al greedy?</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">18 sliders. 6 componentes (Q, K, V, AttnOut, FFN-int, FFN-out) × 3 bandas de profundidad (early, middle, late). Cada slider es un rango SVD de 32 a 768.</p>
+    <p class="reveal">El simulador estima F1 macro y posición Pareto en tiempo real. Damage model fitado a las Tablas 9 y 10. Los presets te dan puntos de partida (uniform_r256, greedy_90).</p>
+    <p class="reveal">Reto: ¿puedes vencer al algoritmo greedy que retiene 93% del F1 con 14% menos de parámetros?</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 944px">
+      <iframe data-src="figures/compression_sandbox.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">Damage model interpolado a partir de la sensibilidad medida en notebook 3.</div>
+      <div class="id">Fig. <strong>06.5</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="cards">
+  <div class="ch-head">
+    <div class="ch-num reveal">§ 06.6 · Dashboard</div>
+    <h2 class="ch-title reveal" style="--delay: 80ms">Trading cards</h2>
+    <p class="ch-sub reveal" style="--delay: 160ms">23 emociones, 23 tarjetas, una por una.</p>
+  </div>
+
+  <div class="ch-body">
+    <p class="reveal">La síntesis ejecutiva. Cada emoción reducida a una tarjeta. Perfil completo: F1 baseline, F1 tras compresión, recuperación tras fine-tuning, capa de cristalización, cabeza crítica, neuronas significativas, selectividad neuronal, radar de 6 dimensiones funcionales.</p>
+    <p class="reveal">Las tarjetas se reordenan: por cluster (default), por F1, por capa de cristalización, por número de neuronas, por mejora con fine-tuning, alfabético. Cada vista ofrece una historia distinta.</p>
+    <p class="reveal">Es el dossier que abres cuando el tribunal pregunta sobre cualquier emoción concreta.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 1364px">
+      <iframe data-src="figures/emotion_cards.html" loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div class="caption">23 tarjetas con datos cruzados de los notebooks 3, 4, 6, 7, 8 y 9.</div>
+      <div class="id">Fig. <strong>06.6</strong></div>
+    </div>
+  </div>
+</section>
+
+<section class="outro" id="cierre">
+  <div class="ch-num reveal">Cierre</div>
+  <h2 class="ch-title reveal" style="--delay: 80ms">Cómo está hecho</h2>
+  <p class="ch-sub reveal" style="--delay: 160ms">Stack, datos y créditos.</p>
+
+  <div class="ch-body">
+    <p class="reveal">
+      Datos numéricos. Las visualizaciones se alimentan directamente
+      de los CSVs de los notebooks 2 al 9. Resultados reales del
+      fine-tune sobre BERT-base-uncased y 23 emociones de GoEmotions.
+      61 tablas exportadas: probing por capa, ablación de 144 cabezas,
+      especialización neuronal, activation patching, frontera de
+      Pareto completa con 22 estrategias evaluadas.
+    </p>
+    <p class="reveal">
+      Activaciones y geometría. Galaxy formation, sentence trajectory,
+      compression decay y spectral flowers se computan ejecutando el
+      checkpoint <code>23emo-final</code> (109.5M parámetros, 23
+      emociones) sobre frases del test set. Pooler y classifier
+      reales aplicados en cada paso. LDA fija ajustada en L12 para
+      coordenadas consistentes capa a capa.
+    </p>
+    <p class="reveal">
+      Visualización. 27 piezas: 19 estáticas en Plotly, 7
+      interactivas con HTML+JS custom, 1 grafo en D3.js puro. Cada
+      figura es un HTML autocontenido. La página que las une es
+      static HTML+CSS+JS. Sin frameworks, sin servidor, sin
+      backend.
+    </p>
+    <p class="reveal">
+      Memoria. Guido Biosca Lasa. Director: Lluís Padró Cirera.
+      FIB-UPC, 2026. <a href="sobre.html">Más sobre el proyecto</a>.
+    </p>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="foot-grid">
+    <div class="brand-cell">
+      <h2>Anatomía emocional<br><em>de un transformer.</em></h2>
+      <p>Trabajo de fin de grado.</p>
+      <p>Facultat d'Informàtica de Barcelona · 2026.</p>
+    </div>
+    <div>
+      <h3>Proyecto</h3>
+      <a href="#">Repositorio</a>
+      <a href="#">Memoria · PDF</a>
+      <a href="sobre.html">Cómo está hecho</a>
+    </div>
+    <div>
+      <h3>Autor</h3>
+      <a href="mailto:guido.biosca0@gmail.com">guido.biosca0@gmail.com</a>
+      <a href="#">LinkedIn</a>
+      <a href="#">GitHub</a>
+    </div>
+    <div>
+      <h3>Tribunal</h3>
+      <p>Director: Lluís Padró Cirera</p>
+      <p>FIB · UPC · 2026</p>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>© 2026 Guido Biosca Lasa</span>
+    <span>Built with Python · Plotly · D3 · no frameworks</span>
+  </div>
+</footer>
+
+</main>
+
+
+<script>
+  // Reading progress
+  function progress() {
+    const s = window.scrollY;
+    const t = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = Math.min(100, (s / Math.max(t, 1)) * 100);
+    document.documentElement.style.setProperty('--scroll', pct + '%');
+  }
+  window.addEventListener('scroll', progress, { passive: true });
+  progress();
+
+  // Hide nav on scroll-down
+  let lastY = 0;
+  const topnav = document.getElementById('topnav');
+  window.addEventListener('scroll', () => {
+    const y = window.scrollY;
+    if (y > 100 && y > lastY) topnav.classList.add('hidden');
+    else topnav.classList.remove('hidden');
+    lastY = y;
+  }, { passive: true });
+
+  // Reveal on scroll
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -8% 0px' });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // Lazy-load iframes
+  const figObserver = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const wrap = e.target;
+      const iframe = wrap.querySelector('iframe');
+      if (iframe && iframe.dataset.src && !iframe.src) {
+        iframe.src = iframe.dataset.src;
+        iframe.addEventListener('load', () => wrap.classList.add('loaded'),
+          { once: true });
+      }
+      figObserver.unobserve(wrap);
+    });
+  }, { rootMargin: '300px 0px' });
+  document.querySelectorAll('.figure-wrap').forEach(w => figObserver.observe(w));
+
+  // TOC toggle
+  const tocBtn     = document.getElementById('toc-btn');
+  const tocPanel   = document.getElementById('toc-panel');
+  const tocClose   = document.getElementById('toc-close');
+  const tocOverlay = document.getElementById('toc-overlay');
+  function openToc() {
+    tocPanel.classList.add('open');
+    tocOverlay.classList.add('show');
+  }
+  function closeToc() {
+    tocPanel.classList.remove('open');
+    tocOverlay.classList.remove('show');
+  }
+  tocBtn.addEventListener('click', openToc);
+  tocClose.addEventListener('click', closeToc);
+  tocOverlay.addEventListener('click', closeToc);
+  tocPanel.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => setTimeout(closeToc, 180));
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeToc();
+  });
+</script>
+
+
+</body>
+</html>

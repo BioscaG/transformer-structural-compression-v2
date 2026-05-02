@@ -1,0 +1,2 @@
+n_emotions,n_layers,n_probes_trained,mean_probe_f1_valid,max_probe_f1_global,top_info_gain_layer,top_info_gain_value,spearman_freq_vs_depth,spearman_depth_vs_f1,spearman_probe_vs_lesion
+23,13,276,0.4417189810916655,0.9221902017291066,L0,0.3486291971255317,-0.26451904605699883,-0.6725484252299876,-0.6083916083916086

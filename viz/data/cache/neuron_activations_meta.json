@@ -1,0 +1,645 @@
+{
+  "neurons": [
+    {
+      "layer": 11,
+      "neuron": 1969,
+      "emotion": "remorse",
+      "selectivity": 7.750363725423818,
+      "abs_selectivity": 7.750363725423818,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 2384,
+      "emotion": "fear",
+      "selectivity": 7.714970672714293,
+      "abs_selectivity": 7.714970672714293,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 1273,
+      "emotion": "remorse",
+      "selectivity": 7.641383448596573,
+      "abs_selectivity": 7.641383448596573,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 2162,
+      "emotion": "fear",
+      "selectivity": 7.624078983640051,
+      "abs_selectivity": 7.624078983640051,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 10,
+      "neuron": 2736,
+      "emotion": "remorse",
+      "selectivity": 7.402904607857535,
+      "abs_selectivity": 7.402904607857535,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 1890,
+      "emotion": "fear",
+      "selectivity": 7.1145929790356,
+      "abs_selectivity": 7.1145929790356,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 2719,
+      "emotion": "fear",
+      "selectivity": 6.975500941514669,
+      "abs_selectivity": 6.975500941514669,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 1846,
+      "emotion": "fear",
+      "selectivity": 6.9587614437774885,
+      "abs_selectivity": 6.9587614437774885,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 1453,
+      "emotion": "gratitude",
+      "selectivity": 6.876895589755605,
+      "abs_selectivity": 6.876895589755605,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 2992,
+      "emotion": "fear",
+      "selectivity": 6.869053464385504,
+      "abs_selectivity": 6.869053464385504,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 2315,
+      "emotion": "fear",
+      "selectivity": 6.85270632126531,
+      "abs_selectivity": 6.85270632126531,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 158,
+      "emotion": "remorse",
+      "selectivity": 6.499545452671871,
+      "abs_selectivity": 6.499545452671871,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 1112,
+      "emotion": "fear",
+      "selectivity": 6.494726099105333,
+      "abs_selectivity": 6.494726099105333,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 8,
+      "neuron": 1108,
+      "emotion": "remorse",
+      "selectivity": 6.474989545587668,
+      "abs_selectivity": 6.474989545587668,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 2661,
+      "emotion": "remorse",
+      "selectivity": 6.469761496630401,
+      "abs_selectivity": 6.469761496630401,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 8,
+      "neuron": 2089,
+      "emotion": "remorse",
+      "selectivity": 6.4108860408538915,
+      "abs_selectivity": 6.4108860408538915,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 1899,
+      "emotion": "gratitude",
+      "selectivity": 6.4058329651854224,
+      "abs_selectivity": 6.4058329651854224,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 10,
+      "neuron": 2695,
+      "emotion": "remorse",
+      "selectivity": 6.397570312632398,
+      "abs_selectivity": 6.397570312632398,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 1719,
+      "emotion": "fear",
+      "selectivity": 6.384850964065107,
+      "abs_selectivity": 6.384850964065107,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 2090,
+      "emotion": "remorse",
+      "selectivity": 6.329044713837234,
+      "abs_selectivity": 6.329044713837234,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 10,
+      "neuron": 1666,
+      "emotion": "remorse",
+      "selectivity": 6.177367186334089,
+      "abs_selectivity": 6.177367186334089,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 3006,
+      "emotion": "fear",
+      "selectivity": 6.1516060714954515,
+      "abs_selectivity": 6.1516060714954515,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 8,
+      "neuron": 1953,
+      "emotion": "gratitude",
+      "selectivity": 6.0817660275390555,
+      "abs_selectivity": 6.0817660275390555,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 436,
+      "emotion": "gratitude",
+      "selectivity": 6.020955485993761,
+      "abs_selectivity": 6.020955485993761,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 987,
+      "emotion": "gratitude",
+      "selectivity": 5.964365511837408,
+      "abs_selectivity": 5.964365511837408,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 608,
+      "emotion": "amusement",
+      "selectivity": 5.896129575618819,
+      "abs_selectivity": 5.896129575618819,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 760,
+      "emotion": "gratitude",
+      "selectivity": 5.852130144409559,
+      "abs_selectivity": 5.852130144409559,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 10,
+      "neuron": 884,
+      "emotion": "gratitude",
+      "selectivity": 5.838317833005811,
+      "abs_selectivity": 5.838317833005811,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 9,
+      "neuron": 197,
+      "emotion": "gratitude",
+      "selectivity": 5.754319952187378,
+      "abs_selectivity": 5.754319952187378,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 4,
+      "neuron": 1544,
+      "emotion": "gratitude",
+      "selectivity": 5.750951619826294,
+      "abs_selectivity": 5.750951619826294,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 2572,
+      "emotion": "gratitude",
+      "selectivity": 5.501963378361242,
+      "abs_selectivity": 5.501963378361242,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 2623,
+      "emotion": "love",
+      "selectivity": 5.411786802324433,
+      "abs_selectivity": 5.411786802324433,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 1235,
+      "emotion": "amusement",
+      "selectivity": 5.388711197270407,
+      "abs_selectivity": 5.388711197270407,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 2313,
+      "emotion": "love",
+      "selectivity": 5.358429025929777,
+      "abs_selectivity": 5.358429025929777,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 10,
+      "neuron": 1367,
+      "emotion": "love",
+      "selectivity": 5.353217083427511,
+      "abs_selectivity": 5.353217083427511,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 272,
+      "emotion": "love",
+      "selectivity": 5.327341558139487,
+      "abs_selectivity": 5.327341558139487,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 100,
+      "emotion": "love",
+      "selectivity": 5.32642923479994,
+      "abs_selectivity": 5.32642923479994,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 813,
+      "emotion": "love",
+      "selectivity": 5.287727029040765,
+      "abs_selectivity": 5.287727029040765,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 165,
+      "emotion": "love",
+      "selectivity": 5.253077932565097,
+      "abs_selectivity": 5.253077932565097,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 2364,
+      "emotion": "amusement",
+      "selectivity": 5.251479973854663,
+      "abs_selectivity": 5.251479973854663,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 9,
+      "neuron": 571,
+      "emotion": "amusement",
+      "selectivity": 5.228362033237836,
+      "abs_selectivity": 5.228362033237836,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 1394,
+      "emotion": "desire",
+      "selectivity": 5.197230519235059,
+      "abs_selectivity": 5.197230519235059,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 2327,
+      "emotion": "love",
+      "selectivity": 5.135068659677923,
+      "abs_selectivity": 5.135068659677923,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 2182,
+      "emotion": "love",
+      "selectivity": 5.1229603331039195,
+      "abs_selectivity": 5.1229603331039195,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 10,
+      "neuron": 2660,
+      "emotion": "amusement",
+      "selectivity": 5.111650326588346,
+      "abs_selectivity": 5.111650326588346,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 8,
+      "neuron": 520,
+      "emotion": "love",
+      "selectivity": 5.079487299930827,
+      "abs_selectivity": 5.079487299930827,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 10,
+      "neuron": 1243,
+      "emotion": "amusement",
+      "selectivity": 5.0277682165644695,
+      "abs_selectivity": 5.0277682165644695,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 9,
+      "neuron": 1177,
+      "emotion": "amusement",
+      "selectivity": 5.016726095049501,
+      "abs_selectivity": 5.016726095049501,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 2010,
+      "emotion": "desire",
+      "selectivity": 4.885689227599395,
+      "abs_selectivity": 4.885689227599395,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 1094,
+      "emotion": "amusement",
+      "selectivity": 4.799150380169301,
+      "abs_selectivity": 4.799150380169301,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 8,
+      "neuron": 96,
+      "emotion": "amusement",
+      "selectivity": 4.777750320586892,
+      "abs_selectivity": 4.777750320586892,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 9,
+      "neuron": 840,
+      "emotion": "amusement",
+      "selectivity": 4.65754791397291,
+      "abs_selectivity": 4.65754791397291,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 2998,
+      "emotion": "desire",
+      "selectivity": 4.515172553576155,
+      "abs_selectivity": 4.515172553576155,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 1215,
+      "emotion": "desire",
+      "selectivity": 4.470194084292869,
+      "abs_selectivity": 4.470194084292869,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 826,
+      "emotion": "desire",
+      "selectivity": 4.40557007652162,
+      "abs_selectivity": 4.40557007652162,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 10,
+      "neuron": 2972,
+      "emotion": "embarrassment",
+      "selectivity": 4.35290291435463,
+      "abs_selectivity": 4.35290291435463,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 550,
+      "emotion": "desire",
+      "selectivity": 4.2235391259773225,
+      "abs_selectivity": 4.2235391259773225,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 10,
+      "neuron": 1589,
+      "emotion": "desire",
+      "selectivity": 4.1728134817444,
+      "abs_selectivity": 4.1728134817444,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 1276,
+      "emotion": "sadness",
+      "selectivity": 4.155416846701167,
+      "abs_selectivity": 4.155416846701167,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 3004,
+      "emotion": "embarrassment",
+      "selectivity": 4.077883327396063,
+      "abs_selectivity": 4.077883327396063,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 1515,
+      "emotion": "sadness",
+      "selectivity": 4.062155011132081,
+      "abs_selectivity": 4.062155011132081,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 1885,
+      "emotion": "desire",
+      "selectivity": 4.056287180000708,
+      "abs_selectivity": 4.056287180000708,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 1535,
+      "emotion": "sadness",
+      "selectivity": 4.044497507917504,
+      "abs_selectivity": 4.044497507917504,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 605,
+      "emotion": "desire",
+      "selectivity": 4.032812541073785,
+      "abs_selectivity": 4.032812541073785,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 10,
+      "neuron": 2673,
+      "emotion": "desire",
+      "selectivity": 4.027190573307303,
+      "abs_selectivity": 4.027190573307303,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 45,
+      "emotion": "sadness",
+      "selectivity": 4.006974718023303,
+      "abs_selectivity": 4.006974718023303,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 791,
+      "emotion": "sadness",
+      "selectivity": 3.902865292947397,
+      "abs_selectivity": 3.902865292947397,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 9,
+      "neuron": 1673,
+      "emotion": "curiosity",
+      "selectivity": 3.783255137336501,
+      "abs_selectivity": 3.783255137336501,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 1295,
+      "emotion": "surprise",
+      "selectivity": 3.745873865462751,
+      "abs_selectivity": 3.745873865462751,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 10,
+      "neuron": 1555,
+      "emotion": "sadness",
+      "selectivity": 3.7305291717950126,
+      "abs_selectivity": 3.7305291717950126,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 10,
+      "neuron": 2426,
+      "emotion": "sadness",
+      "selectivity": 3.712865282178059,
+      "abs_selectivity": 3.712865282178059,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 10,
+      "neuron": 1200,
+      "emotion": "joy",
+      "selectivity": 3.712590937833313,
+      "abs_selectivity": 3.712590937833313,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 9,
+      "neuron": 1967,
+      "emotion": "curiosity",
+      "selectivity": 3.69581326477302,
+      "abs_selectivity": 3.69581326477302,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 9,
+      "neuron": 192,
+      "emotion": "disgust",
+      "selectivity": 3.687939659035662,
+      "abs_selectivity": 3.687939659035662,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 890,
+      "emotion": "joy",
+      "selectivity": 3.668999274234973,
+      "abs_selectivity": 3.668999274234973,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 11,
+      "neuron": 1702,
+      "emotion": "surprise",
+      "selectivity": 3.658750328196461,
+      "abs_selectivity": 3.658750328196461,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 9,
+      "neuron": 546,
+      "emotion": "joy",
+      "selectivity": 3.6080464392446263,
+      "abs_selectivity": 3.6080464392446263,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 9,
+      "neuron": 917,
+      "emotion": "surprise",
+      "selectivity": 3.586164431545603,
+      "abs_selectivity": 3.586164431545603,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 10,
+      "neuron": 2823,
+      "emotion": "surprise",
+      "selectivity": 3.5656007961289213,
+      "abs_selectivity": 3.5656007961289213,
+      "direction": "excitatory"
+    },
+    {
+      "layer": 10,
+      "neuron": 1269,
+      "emotion": "curiosity",
+      "selectivity": 3.5555722064080615,
+      "abs_selectivity": 3.5555722064080615,
+      "direction": "excitatory"
+    }
+  ],
+  "top_k": 5
+}

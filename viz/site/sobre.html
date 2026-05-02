@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sobre · Anatomía Emocional</title>
+<meta name="description" content="Sobre el TFG de Guido Biosca. Stack, datos, agradecimientos." />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23F7F6F2'/><circle cx='16' cy='16' r='5' fill='%231F4E6C'/></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,30..100&family=Geist:wght@300..700&family=Geist+Mono:wght@300..600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:        #F7F6F2;
+    --bg-2:      #FFFFFF;
+    --bg-3:      #EFEEE9;
+    --ink:       #141413;
+    --ink-2:     #4A4A47;
+    --ink-3:     #8A8A82;
+    --line:      #D8D7D1;
+    --line-2:    #E8E7E2;
+    --accent:    #1F4E6C;
+    --serif:  "Fraunces", "Iowan Old Style", "Palatino", serif;
+    --sans:   "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono:   "Geist Mono", "JetBrains Mono", "SF Mono", Menlo, monospace;
+    --pad-x:  max(28px, 5vw);
+    --easing: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-font-smoothing: antialiased; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16.5px; line-height: 1.6;
+  }
+  ::selection { background: var(--accent); color: var(--bg-2); }
+
+  nav.top {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px var(--pad-x);
+    background: rgba(247,246,242,0.78);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border-bottom: 0.5px solid var(--line);
+    z-index: 50;
+  }
+  nav.top .brand {
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.08em; color: var(--ink);
+    text-decoration: none; text-transform: uppercase;
+  }
+  nav.top .brand .dot {
+    display: inline-block; width: 5px; height: 5px;
+    background: var(--accent); border-radius: 50%;
+    margin-right: 10px; transform: translateY(-1px);
+  }
+  nav.top a.back {
+    font-family: var(--mono); font-size: 11.5px;
+    letter-spacing: 0.05em; color: var(--ink-2);
+    text-decoration: none; text-transform: uppercase;
+    transition: color 0.18s var(--easing);
+  }
+  nav.top a.back:hover { color: var(--accent); }
+
+  main {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 22vh var(--pad-x) 14vh var(--pad-x);
+  }
+
+  .meta {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--accent); letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    display: inline-flex; align-items: center; gap: 12px;
+  }
+  .meta::before {
+    content: ""; display: inline-block;
+    width: 36px; height: 0.5px; background: var(--accent);
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-weight: 320;
+    font-size: clamp(40px, 5.5vw, 72px);
+    line-height: 1.02;
+    letter-spacing: -0.022em;
+    margin: 0 0 18px 0;
+    color: var(--ink);
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+  }
+  h1 em {
+    font-style: italic; color: var(--accent);
+    font-variation-settings: "opsz" 144, "SOFT" 100;
+  }
+
+  .lede {
+    font-family: var(--serif);
+    font-size: 22px; font-style: italic;
+    color: var(--ink-2); margin: 0 0 56px 0;
+    line-height: 1.4;
+    font-variation-settings: "opsz" 36, "SOFT" 70;
+  }
+
+  h2 {
+    font-family: var(--serif);
+    font-weight: 350;
+    font-size: 28px;
+    color: var(--ink);
+    margin: 60px 0 16px 0;
+    line-height: 1.15;
+    font-variation-settings: "opsz" 60, "SOFT" 60;
+  }
+
+  p { margin: 0 0 18px 0; color: var(--ink-2); font-size: 17px; }
+  p strong { color: var(--ink); font-weight: 500; }
+  p code {
+    font-family: var(--mono); font-size: 0.86em;
+    background: var(--bg-3); padding: 2px 6px;
+    border-radius: 1px; color: var(--ink);
+    border: 0.5px solid var(--line);
+  }
+  p a {
+    color: var(--accent); text-decoration: none;
+    border-bottom: 0.5px solid var(--accent);
+    transition: opacity 0.2s var(--easing);
+  }
+  p a:hover { opacity: 0.7; }
+
+  ul {
+    list-style: none; padding: 0; margin: 0 0 24px 0;
+  }
+  ul li {
+    font-family: var(--mono); font-size: 13px;
+    color: var(--ink-2); padding: 8px 0;
+    border-bottom: 0.5px solid var(--line-2);
+    display: grid; grid-template-columns: 1fr auto;
+    gap: 16px; align-items: baseline;
+  }
+  ul li .label { color: var(--ink); }
+  ul li .value { color: var(--ink-3); font-size: 12px; }
+
+  footer {
+    margin-top: 80px;
+    padding-top: 24px;
+    border-top: 0.5px solid var(--line);
+    font-family: var(--mono); font-size: 11px;
+    color: var(--ink-3); letter-spacing: 0.06em;
+    text-transform: uppercase;
+    display: flex; justify-content: space-between;
+  }
+
+  @media (max-width: 620px) {
+    main { padding: 14vh var(--pad-x) 8vh var(--pad-x); }
+    footer { flex-direction: column; gap: 12px; }
+  }
+</style>
+</head>
+
+<body>
+
+<nav class="top">
+  <a href="index.html" class="brand"><span class="dot"></span>Anatomía Emocional</a>
+  <a href="index.html" class="back">← Volver</a>
+</nav>
+
+<main>
+  <div class="meta">Sobre el proyecto</div>
+  <h1>Cómo está <em>hecho</em></h1>
+  <p class="lede">
+    Stack técnico, fuentes de datos, agradecimientos y créditos.
+  </p>
+
+  <h2>El proyecto</h2>
+  <p>
+    Esta página es la versión interactiva de mi TFG en el grado de
+    Ingeniería Informática de la FIB (Universitat Politècnica de
+    Catalunya). Director: Lluís Padró Cirera.
+  </p>
+  <p>
+    El título completo del trabajo es <em>Compresión Selectiva y
+    Análisis Estructural de Modelos basados en Arquitectura Transformer
+    mediante SVD</em>. Combina dos cosas: interpretabilidad mecánica
+    (probing, activation patching, ablation de cabezas, especialización
+    neuronal) y compresión por SVD informada por esa interpretabilidad.
+  </p>
+
+  <h2>Modelo y datos</h2>
+  <p>
+    El modelo es <code>bert-base-uncased</code> fine-tuneado sobre
+    GoEmotions (28 categorías emocionales, evaluadas sobre 23 tras
+    limpieza de etiquetas). Multi-label con <code>BCEWithLogitsLoss</code>.
+    Checkpoint final: <code>23emo-final</code>, 109.5M parámetros.
+  </p>
+  <p>
+    Las visualizaciones se alimentan de dos fuentes. Las primeras vienen
+    directamente de los CSVs producidos por los notebooks 2 al 9 (61
+    tablas exportadas: probing por capa, ablación de las 144 cabezas,
+    especialización neuronal con Cohen's d, activation patching,
+    frontera de Pareto, y más). Las segundas se computan en build-time
+    ejecutando el checkpoint sobre 2300 frases del split de test.
+  </p>
+
+  <h2>Stack</h2>
+  <ul>
+    <li><span class="label">Lenguaje</span><span class="value">Python 3.14</span></li>
+    <li><span class="label">Modelo</span><span class="value">PyTorch + HuggingFace Transformers</span></li>
+    <li><span class="label">Análisis</span><span class="value">NumPy, SciPy, scikit-learn</span></li>
+    <li><span class="label">Notebooks</span><span class="value">Jupyter, Google Colab Pro</span></li>
+    <li><span class="label">Visualización</span><span class="value">Plotly, D3.js, HTML+CSS+JS vanilla</span></li>
+    <li><span class="label">Tipografía</span><span class="value">Fraunces, Geist Sans, Geist Mono</span></li>
+    <li><span class="label">Hosting</span><span class="value">Estático, sin backend</span></li>
+  </ul>
+
+  <h2>Bibliografía clave</h2>
+  <p>
+    Devlin et al. (2018) <em>BERT: Pre-training of Deep Bidirectional
+    Transformers for Language Understanding</em>. Demszky et al. (2020)
+    <em>GoEmotions: A Dataset of Fine-Grained Emotions</em>. Tenney et
+    al. (2019) <em>BERT Rediscovers the NLP Pipeline</em>. Ethayarajh
+    (2019) <em>How Contextual are Contextualized Word Representations?</em>.
+    Voita et al. (2019) <em>Analyzing Multi-Head Self-Attention</em>.
+    Michel et al. (2019) <em>Are Sixteen Heads Really Better than One?</em>.
+    Nostalgebraist (2020) <em>interpreting GPT: the logit lens</em>.
+    Belrose et al. (2023) <em>Eliciting Latent Predictions from
+    Transformers with the Tuned Lens</em>.
+  </p>
+  <p>
+    Para el lado de compresión: Hsu et al. (2022) <em>Language model
+    compression with weighted low-rank factorization</em>. Yu et al.
+    (2017) <em>Compressing Neural Networks: Towards Determining the
+    Optimal Layer-wise Decomposition</em>.
+  </p>
+  <p>
+    La taxonomía de seis clusters se inspira en Russell (1980) <em>A
+    Circumplex Model of Affect</em> y Plutchik (2001) <em>The Nature of
+    Emotions</em>.
+  </p>
+
+  <h2>Agradecimientos</h2>
+  <p>
+    A Lluís Padró por la dirección, por las preguntas precisas y por
+    no aceptar atajos. A los autores del dataset GoEmotions y de las
+    librerías abiertas que han hecho posible este trabajo.
+  </p>
+
+  <h2>Contacto</h2>
+  <p>
+    <a href="mailto:guido.biosca0@gmail.com">guido.biosca0@gmail.com</a>
+  </p>
+
+  <footer>
+    <span>© 2026 Guido Biosca Lasa</span>
+    <span>FIB · UPC · 2026</span>
+  </footer>
+</main>
+
+</body>
+</html>

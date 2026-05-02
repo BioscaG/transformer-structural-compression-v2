@@ -1,0 +1,2 @@
+patch_rank,n_emotions_total,n_emotions_valid,baseline_f1_macro,compressed_f1_macro,best_layer_patch,best_layer_patch_f1,mean_restoration_global,top_k_layers_component,pearson_vs_lesion,spearman_vs_lesion
+64,23,23,0.577011044059513,0.0,11,0.577011044059513,0.10078655762248669,"11,10,9,8",0.6061502910343899,0.3292286659704355

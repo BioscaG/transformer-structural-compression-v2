@@ -1,0 +1,2 @@
+n_heads_total,n_emotions,n_eval_samples,baseline_macro_f1,most_critical_head,most_critical_head_macro_drop,n_critical_specialists,n_critical_generalists,n_minor_specialists,n_dispensable,top_redundant_pair,top_redundant_correlation
+144,23,2000,0.5818306950584514,L11H11,0.022711627506681764,37,35,35,37,L11H2-L11H8,0.9895553111573102

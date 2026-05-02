@@ -1,0 +1,20 @@
+experiment,target,f1_macro
+baseline,none,0.5770229075920625
+layer_lesion,layer_0,0.5552865408071438
+layer_lesion,layer_1,0.5640119226767064
+layer_lesion,layer_2,0.5606414066454544
+layer_lesion,layer_3,0.5602584419999832
+layer_lesion,layer_4,0.5723143363598401
+layer_lesion,layer_5,0.5730129423338237
+layer_lesion,layer_6,0.5665211520675939
+layer_lesion,layer_7,0.5463730775881136
+layer_lesion,layer_8,0.5162408680138162
+layer_lesion,layer_9,0.49031719503896715
+layer_lesion,layer_10,0.532616387749157
+layer_lesion,layer_11,0.2586627336456312
+component_lesion,Query,0.5735641348786487
+component_lesion,Key,0.567515801326565
+component_lesion,Value,0.3953311073330167
+component_lesion,Attn Out,0.3251416166013595
+component_lesion,FFN Inter,0.039858485237836756
+component_lesion,FFN Out,0.1278845898916819

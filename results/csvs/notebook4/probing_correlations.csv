@@ -1,0 +1,3 @@
+relation,spearman_r,p_value
+frequency_vs_crystal_layer,-0.26451904605699883,0.22257276135275536
+crystal_layer_vs_max_probe_f1,-0.6725484252299876,0.00043838419454762063

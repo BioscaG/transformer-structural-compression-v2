@@ -25,8 +25,20 @@ Thumbs.db
 # Model checkpoints and large files
 results/bert-goemotions/
 results/bert-goemotions-final/
+results/checkpoints/
 *.bin
 *.safetensors
+
+# Regenerable binary caches (rebuild via viz/extractors/*.py)
+# activations.npz is 212 MB on disk and exceeds GitHub's 100 MB limit.
+viz/data/cache/*.npz
+
+# Plotly virtual env
+.viz_venv/
+
+# Temp build dirs
+viz/site/_tmp/
+*.log
 
 # Environment variables
 .env

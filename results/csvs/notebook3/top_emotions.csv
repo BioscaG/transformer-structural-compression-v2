@@ -1,0 +1,11 @@
+rank_in_top,emotion_index,emotion,count,fraction
+0,0,admiration,211,0.14066666666666666
+1,4,approval,125,0.08333333333333333
+2,15,gratitude,119,0.07933333333333334
+3,3,annoyance,111,0.074
+4,7,curiosity,97,0.06466666666666666
+5,1,amusement,90,0.06
+6,10,disapproval,90,0.06
+7,2,anger,83,0.05533333333333333
+8,17,love,71,0.04733333333333333
+9,6,confusion,54,0.036
