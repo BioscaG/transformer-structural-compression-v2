@@ -88,7 +88,14 @@ def compute_or_load_spectra(top_k: int = 64, force: bool = False) -> dict:
     return spectra
 
 
-def build_flowers_figure(top_k: int = 32) -> go.Figure:
+LANG = {
+    "es": {"of": "de", "shape": "shape"},
+    "en": {"of": "of", "shape": "shape"},
+}
+
+
+def build_flowers_figure(top_k: int = 32, lang: str = "es") -> go.Figure:
+    _L = LANG[lang]
     spectra = compute_or_load_spectra(top_k=64)
 
     components = ["query", "key", "value", "attn_output", "ffn_intermediate", "ffn_output"]
@@ -130,8 +137,8 @@ def build_flowers_figure(top_k: int = 32) -> go.Figure:
                             line=dict(color="white", width=0.3)),
                 hovertemplate=(f"<b>L{L} · {comp_label[cname]}</b><br>"
                                "σᵢ / σ₁ = %{r:.3f}<br>"
-                               f"k95 = {sp['k95']} (de {sp['rank']})<br>"
-                               f"shape = {sp['shape'][0]}×{sp['shape'][1]}<extra></extra>"),
+                               f"k95 = {sp['k95']} ({_L['of']} {sp['rank']})<br>"
+                               f"{_L['shape']} = {sp['shape'][0]}×{sp['shape'][1]}<extra></extra>"),
                 showlegend=False,
             ), row=L+1, col=ci+1)
 

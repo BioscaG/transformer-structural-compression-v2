@@ -44,7 +44,40 @@ def _curate_sentences(meta: dict, n_per_emotion: int = 13) -> list[int]:
     return indices
 
 
-def build_html(out_path: pathlib.Path) -> pathlib.Path:
+LANG = {
+    "es": {
+        "frase":   "Frase",
+        "capa":    "Capa",
+        "layer_of": "{n} de 13",
+        "of_word": "de",
+        "frase_short": "Frase:",
+        "gold":    "Gold",
+        "top":     "Top predicción",
+        "conf":    "Confianza top",
+        "cofire":  "Co-firing (sigmoid &gt; 0.5)",
+        "play":    "▶ Play",
+        "pause":   "⏸ Pause",
+        "reset":   "↺ Reset",
+    },
+    "en": {
+        "frase":   "Sentence",
+        "capa":    "Layer",
+        "layer_of": "{n} of 13",
+        "of_word": "of",
+        "frase_short": "Sentence:",
+        "gold":    "Gold",
+        "top":     "Top prediction",
+        "conf":    "Top confidence",
+        "cofire":  "Co-firing (sigmoid &gt; 0.5)",
+        "play":    "▶ Play",
+        "pause":   "⏸ Pause",
+        "reset":   "↺ Reset",
+    },
+}
+
+
+def build_html(out_path: pathlib.Path, lang: str = "es") -> pathlib.Path:
+    _L = LANG[lang]
     # ─── Load activations + classifier ───
     data = np.load(CACHE_DIR / "activations.npz")
     cls = data["cls_per_layer"]                      # (N, 13, 768)
@@ -150,6 +183,22 @@ def build_html(out_path: pathlib.Path) -> pathlib.Path:
     font-family: "Inter", monospace; font-size: 11.5px; color: {st.INK};
   }}
   select, input[type=range] {{ width: 100%; font-family: inherit; }}
+  input[type=range] {{
+    -webkit-appearance: none; appearance: none;
+    height: 4px; background: {st.SPINE}; border-radius: 2px; outline: none;
+  }}
+  input[type=range]::-webkit-slider-thumb {{
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; background: {st.INK_2};
+    border-radius: 50%; cursor: pointer;
+  }}
+  input[type=range]::-moz-range-thumb {{
+    width: 14px; height: 14px; background: {st.INK_2};
+    border-radius: 50%; cursor: pointer; border: none;
+  }}
+  input[type=range]::-moz-range-track {{
+    background: {st.SPINE}; height: 4px; border-radius: 2px;
+  }}
   select {{
     padding: 6px 8px; border: 0.5px solid {st.SPINE};
     border-radius: 4px; background: white; color: {st.INK};
@@ -161,9 +210,7 @@ def build_html(out_path: pathlib.Path) -> pathlib.Path:
     border-radius: 4px; padding: 6px 12px; font-size: 12px;
     color: {st.INK_2}; cursor: pointer; font-family: inherit;
   }}
-  button:hover {{ background: {st.SAND}; color: {st.INK}; }}
-  button.primary {{ background: {st.TERRA}; color: white; border-color: {st.TERRA}; }}
-  button.primary:hover {{ background: #a04429; }}
+  button:hover {{ background: #F4F2EC; color: {st.INK}; border-color: {st.INK_3}; }}
   .info {{
     margin-top: 14px; padding: 12px;
     background: #FAFAF8; border: 0.5px solid {st.SPINE}; border-radius: 5px;
@@ -192,49 +239,37 @@ def build_html(out_path: pathlib.Path) -> pathlib.Path:
 </head>
 <body>
 
-<h1>Decision <span class="acc">fingerprint</span></h1>
-<div class="sub">
-  Cabeza clasificadora real (BERT-base 23-emo) aplicada al CLS de cada capa.
-  Pétalo destacado = emoción gold de la frase. Pétalos largos paralelos = emociones que co-firen.
-</div>
-
 <div class="grid">
   <div id="plot"></div>
 
   <div class="controls">
-    <h2>Frase</h2>
+    <h2>{_L['frase']}</h2>
     <select id="sentence-select"></select>
 
-    <h2 style="margin-top: 18px">Capa</h2>
+    <h2 style="margin-top: 18px">{_L['capa']}</h2>
     <div class="row">
       <div class="lbl">
         <span id="layer-label">L11</span>
-        <span class="val" id="layer-num">12 de 13</span>
+        <span class="val" id="layer-num">{_L['layer_of'].format(n=12)}</span>
       </div>
       <input type="range" id="layer-slider" min="0" max="12" step="1" value="12" />
     </div>
 
     <div class="btnrow">
-      <button class="primary" id="play-btn">▶ Play</button>
-      <button id="pause-btn">⏸ Pause</button>
-      <button id="reset-btn">↺ Reset</button>
+      <button id="play-btn">{_L['play']}</button>
+      <button id="pause-btn">{_L['pause']}</button>
+      <button id="reset-btn">{_L['reset']}</button>
     </div>
 
     <div class="info">
-      <div class="row"><span class="lbl">Frase:</span></div>
+      <div class="row"><span class="lbl">{_L['frase_short']}</span></div>
       <div class="text" id="info-text"></div>
-      <div class="row"><span class="lbl">Gold</span><span class="val" id="info-gold"></span></div>
-      <div class="row"><span class="lbl">Top predicción</span><span class="val" id="info-top"></span></div>
-      <div class="row"><span class="lbl">Confianza top</span><span class="val" id="info-conf"></span></div>
-      <div class="row"><span class="lbl">Co-firing (sigmoid &gt; 0.5)</span><span class="val" id="info-cofire"></span></div>
+      <div class="row"><span class="lbl">{_L['gold']}</span><span class="val" id="info-gold"></span></div>
+      <div class="row"><span class="lbl">{_L['top']}</span><span class="val" id="info-top"></span></div>
+      <div class="row"><span class="lbl">{_L['conf']}</span><span class="val" id="info-conf"></span></div>
+      <div class="row"><span class="lbl">{_L['cofire']}</span><span class="val" id="info-cofire"></span></div>
     </div>
 
-    <div class="legend-tip">
-      <b>Cómo leer:</b> el pétalo gold tiene borde negro grueso. Pétalos cercanos
-      en el círculo pertenecen al mismo cluster psicológico. Si ves varios pétalos
-      largos al mismo tiempo, el modelo cree que múltiples emociones están presentes
-      (multi-label real).
-    </div>
   </div>
 </div>
 
@@ -313,7 +348,7 @@ function updatePlot() {{
     'marker.line.color': [lineColors],
   }}, [0]);
   document.getElementById('layer-label').textContent = DATA.layer_labels[currentLayer];
-  document.getElementById('layer-num').textContent = `${{currentLayer + 1}} de ${{N_LAYERS}}`;
+  document.getElementById('layer-num').textContent = `${{currentLayer + 1}} {_L['of_word']} ${{N_LAYERS}}`;
   document.getElementById('layer-slider').value = currentLayer;
 
   // Info panel

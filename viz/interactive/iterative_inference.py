@@ -55,7 +55,30 @@ def _curate_sentences(meta: dict, n_per_emotion: int = 13) -> list[int]:
     return indices
 
 
-def build_html(out_path: pathlib.Path) -> pathlib.Path:
+LANG = {
+    "es": {
+        "panel_agg":   "Agregado · sigmoid promedio por capa",
+        "panel_concrete": "Frase concreta",
+        "all":         "Todas (n=2300)",
+        "early":       "Tempranas",
+        "mid":         "Medias",
+        "late":        "Tardías",
+        "frase":       "Frase:",
+    },
+    "en": {
+        "panel_agg":   "Aggregate · mean sigmoid per layer",
+        "panel_concrete": "Single sentence",
+        "all":         "All (n=2300)",
+        "early":       "Early",
+        "mid":         "Mid",
+        "late":        "Late",
+        "frase":       "Sentence:",
+    },
+}
+
+
+def build_html(out_path: pathlib.Path, lang: str = "es") -> pathlib.Path:
+    _L = LANG[lang]
     # ─── Load activations + classifier ───
     data = np.load(CACHE_DIR / "activations.npz")
     cls = data["cls_per_layer"]                       # (N, 13, 768)
@@ -206,7 +229,7 @@ def build_html(out_path: pathlib.Path) -> pathlib.Path:
   }}
   .panel-title {{
     font-family: "Inter", sans-serif; font-size: 11px; font-weight: 500;
-    color: {st.TERRA}; letter-spacing: 1.2px; text-transform: uppercase;
+    color: {st.INK_2}; letter-spacing: 1.2px; text-transform: uppercase;
     margin: 8px 0 0 12px;
   }}
   .panel-sub {{
@@ -232,7 +255,7 @@ def build_html(out_path: pathlib.Path) -> pathlib.Path:
     color: {st.INK}; border-color: {st.INK_3};
   }}
   .group-toggle button.active {{
-    background: {st.TERRA}; color: white; border-color: {st.TERRA};
+    background: #F4F2EC; color: {st.INK}; border-color: {st.INK_3};
   }}
   select {{
     padding: 5px 8px; border: 0.5px solid {st.SPINE};
@@ -256,59 +279,28 @@ def build_html(out_path: pathlib.Path) -> pathlib.Path:
 </head>
 <body>
 
-<h1>Iterative inference · <span class="acc">la curva en U del logit lens</span></h1>
-<div class="sub">
-  Aplicamos el pooler + classifier reales del modelo a cada una de las 13
-  capas ocultas (logit-lens). Lo que ves: las primeras capas explotan en
-  probabilidades difusas (todas un poco), las medias se hunden a casi cero
-  (transición), y las tardías cristalizan una decisión confiada. Es el
-  <b>patrón U canónico</b> de Nostalgebraist (2020) y la Tuned Lens de
-  Belrose et al. (NeurIPS 2023) — observable EN TU fine-tune.
-</div>
-
 <div class="grid">
   <div class="panel">
-    <div class="panel-title">Agregado · sigmoid promedio por capa</div>
+    <div class="panel-title">{_L['panel_agg']}</div>
     <div class="panel-sub">Top-1, gold, suma de las 23. Filtra por capa de cristalización para comparar la U entre emociones tempranas y tardías.</div>
     <div class="group-toggle" id="group-toggle">
-      <button data-g="all"      class="active" type="button">Todas (n=2300)</button>
-      <button data-g="temprano" type="button">Tempranas</button>
-      <button data-g="medio"    type="button">Medias</button>
-      <button data-g="tardio"   type="button">Tardías</button>
+      <button data-g="all"      class="active" type="button">{_L['all']}</button>
+      <button data-g="temprano" type="button">{_L['early']}</button>
+      <button data-g="medio"    type="button">{_L['mid']}</button>
+      <button data-g="tardio"   type="button">{_L['late']}</button>
     </div>
     <div id="agg-plot"></div>
   </div>
   <div class="panel">
-    <div class="panel-title">Frase concreta</div>
+    <div class="panel-title">{_L['panel_concrete']}</div>
     <div class="panel-sub">23 emociones × 13 capas — sigmoid completo, gold en negro</div>
     <div id="sentence-plot"></div>
   </div>
 </div>
 
 <div class="controls">
-  <label style="font-size: 12.5px; color: {st.INK_2}">Frase:</label>
+  <label style="font-size: 12.5px; color: {st.INK_2}">{_L['frase']}</label>
   <select id="sentence-select"></select>
-</div>
-
-<div class="narrative">
-  <h3>¿Por qué este patrón en U?</h3>
-  <b>Capas 0-3 (saturación):</b> el pooler aplica tanh, y las estadísticas del
-  CLS en estas capas saturan ±1 → el clasificador recibe vectores binarios
-  y dispara muchas emociones a la vez (probabilidades difusas).
-  <b>Capas 4-9 (valle de transición):</b> el CLS deja el régimen de embedding
-  pero todavía no llega al espacio del clasificador → tanh ≈ 0 → solo bias →
-  todas las sigmoides colapsan.
-  <b>Capas 10-11 (cristalización):</b> el CLS entra en su régimen natural
-  (donde el pooler+classifier fueron entrenados) → un peso del clasificador
-  se alinea → una emoción pega un salto, las demás se quedan bajas.
-  <br><br>
-  <b>Por qué importa para la memoria:</b> esto refuerza §5.1 (cristalización
-  emocional) y §5.2 (FFN-L11 como cuello de botella) desde un ángulo
-  complementario. El valle medio prueba que <b>la decisión emocional no
-  existe</b> hasta que la pipeline pooler+classifier se activa, lo que
-  ocurre exactamente al llegar a la representación de L11. Cuando la
-  capa 11 se restaura en el activation patching, el F1 vuelve al 100%
-  porque <b>se reactiva precisamente esta calibración</b>.
 </div>
 
 <script>

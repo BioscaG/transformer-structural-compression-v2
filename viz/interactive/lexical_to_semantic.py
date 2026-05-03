@@ -141,7 +141,52 @@ def _pick_examples(data, n: int = 4) -> list[int]:
     return picks
 
 
-def build_figure() -> go.Figure:
+LANG = {
+    "es": {
+        "subplot_curves":  "tres curvas, una historia · capa por capa",
+        "lex":             "retención léxica",
+        "ani":             "anisotropía",
+        "f1":              "emergencia semántica (probe F1)",
+        "lex_hover":       "cos(hidden, embedding)",
+        "ani_hover":       "cos entre tokens",
+        "f1_hover":        "F1 probe lineal",
+        "phase_lex_b":     "fase léxica",
+        "phase_lex_s":     "tokens preservan identidad",
+        "phase_mix_b":     "mezcla contextual",
+        "phase_mix_s":     "identidad léxica se diluye",
+        "phase_sem_b":     "fase semántica",
+        "phase_sem_s":     "emoción cristalizada, tokens convergen",
+        "hinge":           "punto de bisagra",
+        "axis_layer":      "capa",
+        "axis_value":      "valor",
+        "tok_hover":       "token <b>%{x}</b><br>capa <b>%{y}</b><br>cos a L0: %{z:.3f}<extra></extra>",
+        "cbar_title":      "cos<br>↔ L0",
+    },
+    "en": {
+        "subplot_curves":  "three curves, one story · layer by layer",
+        "lex":             "lexical retention",
+        "ani":             "anisotropy",
+        "f1":              "semantic emergence (probe F1)",
+        "lex_hover":       "cos(hidden, embedding)",
+        "ani_hover":       "cos between tokens",
+        "f1_hover":        "linear-probe F1",
+        "phase_lex_b":     "lexical phase",
+        "phase_lex_s":     "tokens keep their identity",
+        "phase_mix_b":     "contextual mixing",
+        "phase_mix_s":     "lexical identity dissolves",
+        "phase_sem_b":     "semantic phase",
+        "phase_sem_s":     "emotion crystallises, tokens converge",
+        "hinge":           "hinge point",
+        "axis_layer":      "layer",
+        "axis_value":      "value",
+        "tok_hover":       "token <b>%{x}</b><br>layer <b>%{y}</b><br>cos to L0: %{z:.3f}<extra></extra>",
+        "cbar_title":      "cos<br>↔ L0",
+    },
+}
+
+
+def build_figure(lang: str = "es") -> go.Figure:
+    L = LANG[lang]
     data = _compute_curves()
     n_layers = data["n_layers"]
     layer_x = list(range(n_layers))
@@ -155,7 +200,7 @@ def build_figure() -> go.Figure:
                [{}, {}, {}, {}]],
         row_heights=[0.58, 0.42],
         subplot_titles=(
-            "tres curvas, una historia · capa por capa",
+            L["subplot_curves"],
             *[f"<b>[{data['labels'][i]}]</b> "
               + (data['sentences'][i][:38] + "…"
                  if len(data['sentences'][i]) > 40
@@ -169,27 +214,27 @@ def build_figure() -> go.Figure:
     # ─── Curves ───────────────────────────────────────────────────────────
     fig.add_trace(go.Scatter(
         x=layer_x, y=data["lex"],
-        mode="lines+markers", name="retención léxica",
+        mode="lines+markers", name=L["lex"],
         line=dict(color=st.BLUE, width=3, shape="spline", smoothing=0.6),
         marker=dict(size=8, color=st.BLUE, line=dict(color="white", width=1.5)),
-        hovertemplate="%{x}: %{y:.3f}<extra>cos(hidden, embedding)</extra>",
+        hovertemplate="%{x}: %{y:.3f}<extra>" + L["lex_hover"] + "</extra>",
     ), row=1, col=1)
 
     fig.add_trace(go.Scatter(
         x=layer_x, y=data["ani"],
-        mode="lines+markers", name="anisotropía",
+        mode="lines+markers", name=L["ani"],
         line=dict(color=st.SAND, width=3, shape="spline", smoothing=0.6),
         marker=dict(size=8, color=st.SAND, line=dict(color="white", width=1.5)),
-        hovertemplate="%{x}: %{y:.3f}<extra>cos entre tokens</extra>",
+        hovertemplate="%{x}: %{y:.3f}<extra>" + L["ani_hover"] + "</extra>",
     ), row=1, col=1)
 
     fig.add_trace(go.Scatter(
         x=layer_x, y=data["f1"],
-        mode="lines+markers", name="emergencia semántica (probe F1)",
+        mode="lines+markers", name=L["f1"],
         line=dict(color=st.TERRA, width=3, shape="spline", smoothing=0.6),
         marker=dict(size=8, color=st.TERRA,
                     line=dict(color="white", width=1.5)),
-        hovertemplate="%{x}: %{y:.3f}<extra>F1 probe lineal</extra>",
+        hovertemplate="%{x}: %{y:.3f}<extra>" + L["f1_hover"] + "</extra>",
     ), row=1, col=1)
 
     # Phase shading
@@ -214,20 +259,20 @@ def build_figure() -> go.Figure:
 
     annotations = [
         dict(x=2, y=0.97, xref="x", yref="paper", showarrow=False,
-             text="<b>fase léxica</b><br><span style='font-size:10px'>"
-                  "tokens preservan identidad</span>",
+             text=f"<b>{L['phase_lex_b']}</b><br><span style='font-size:10px'>"
+                  f"{L['phase_lex_s']}</span>",
              font=dict(size=11, color=st.BLUE), align="center"),
         dict(x=6.5, y=0.97, xref="x", yref="paper", showarrow=False,
-             text="<b>mezcla contextual</b><br><span style='font-size:10px'>"
-                  "identidad léxica se diluye</span>",
+             text=f"<b>{L['phase_mix_b']}</b><br><span style='font-size:10px'>"
+                  f"{L['phase_mix_s']}</span>",
              font=dict(size=11, color=st.SAND), align="center"),
         dict(x=10.5, y=0.97, xref="x", yref="paper", showarrow=False,
-             text="<b>fase semántica</b><br><span style='font-size:10px'>"
-                  "emoción cristalizada, tokens convergen</span>",
+             text=f"<b>{L['phase_sem_b']}</b><br><span style='font-size:10px'>"
+                  f"{L['phase_sem_s']}</span>",
              font=dict(size=11, color=st.TERRA), align="center"),
         dict(x=8.5, y=0.04, xref="x", yref="paper", showarrow=True,
              ax=0, ay=-22, arrowhead=0, arrowwidth=1, arrowcolor=st.INK_3,
-             text="punto de bisagra", font=dict(size=10, color=st.INK_3)),
+             text=L["hinge"], font=dict(size=10, color=st.INK_3)),
     ]
 
     # ─── Per-sentence heatmaps (layer × token, cos to L0) ────────────────
@@ -257,12 +302,11 @@ def build_figure() -> go.Figure:
             showscale=(col_i == 4),
             colorbar=dict(
                 thickness=10, len=0.34, x=1.01, y=0.21,
-                title=dict(text="cos<br>↔ L0",
+                title=dict(text=L["cbar_title"],
                            font=dict(size=10, color=st.INK_3)),
                 tickfont=dict(size=9, color=st.INK_3),
             ) if col_i == 4 else None,
-            hovertemplate=("token <b>%{x}</b><br>capa <b>%{y}</b><br>"
-                           "cos a L0: %{z:.3f}<extra></extra>"),
+            hovertemplate=L["tok_hover"],
             xgap=1, ygap=1,
         ), row=2, col=col_i)
 
@@ -278,7 +322,8 @@ def build_figure() -> go.Figure:
             height=900, width=1400,
         ),
         legend=dict(
-            x=0.99, y=0.98, xanchor="right", yanchor="top",
+            orientation="h",
+            x=0.5, y=0.46, xanchor="center", yanchor="top",
             bgcolor="rgba(255,255,255,0.92)", bordercolor=st.SPINE,
             borderwidth=0.5, font=dict(size=11),
         ),
@@ -287,14 +332,14 @@ def build_figure() -> go.Figure:
     )
 
     fig.update_xaxes(
-        title=dict(text="capa", font=dict(size=12, color=st.INK_2)),
+        title=dict(text=L["axis_layer"], font=dict(size=12, color=st.INK_2)),
         tickmode="array", tickvals=layer_x, ticktext=layer_labels,
         gridcolor=st.GRID, linecolor=st.SPINE, showline=True,
         tickfont=dict(size=10, color=st.INK_3),
         row=1, col=1,
     )
     fig.update_yaxes(
-        title=dict(text="valor", font=dict(size=12, color=st.INK_2)),
+        title=dict(text=L["axis_value"], font=dict(size=12, color=st.INK_2)),
         range=[-0.05, 1.05],
         gridcolor=st.GRID, linecolor=st.SPINE, showline=True,
         tickfont=dict(size=10, color=st.INK_3),

@@ -84,7 +84,7 @@
     overflow-x: hidden !important;
   }
   body {
-    font-family: "TeX Gyre Pagella", "Palatino", "Palatino Linotype", "Book Antiqua", "Iowan Old Style", "DejaVu Serif", serif !important;
+    font-family: "Geist", "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif !important;
     color: #4A4A47 !important;
   }
   /* Make scrollbars unobtrusive if any appear */
@@ -96,8 +96,6 @@
 <body>
 
 <header>
-  <h1>Circuit network — <span class="acc">emoción · cabeza · cluster</span></h1>
-  <div class="sub">Cap. 5 · Mapa de los circuitos atencionales que cada emoción reserva, y la cabeza que las unifica.</div>
   <div class="stats" id="stats"></div>
 </header>
 
@@ -112,10 +110,6 @@
 <div class="layout">
   <svg id="graph" width="100%" height="100%"></svg>
   <div id="panel">
-    <div class="hint">
-      <b>Haz click</b> en cualquier nodo. Los nodos rojos son las dos cabezas
-      compartidas — el "circuito común" de §5.3.5.
-    </div>
     <div id="detail"></div>
   </div>
 </div>
@@ -125,10 +119,11 @@ const DATA = {"nodes": [{"id": "emo:gratitude", "kind": "emotion", "label": "gra
 const PAL = {"BLUE": "#3A6EA5", "TERRA": "#C1553A", "SAGE": "#5A8F7B", "SAND": "#D4A843", "PLUM": "#7B5E7B", "INK": "#1A1A1A", "INK_2": "#4A4A4A", "INK_3": "#8A8A85", "GRID": "#EBEBEB", "SPINE": "#C8C7C1", "BG": "#FFFFFF"};
 
 // Stats header
-document.getElementById('stats').textContent =
-  `${DATA.stats.n_emotions} emociones · ${DATA.stats.n_clusters} clusters · `
-  + `${DATA.stats.n_critical_heads} cabezas críticas distintas · `
-  + `${DATA.stats.n_shared_heads} cabeza(s) compartida(s) por más de una emoción.`;
+document.getElementById('stats').textContent = `{n_emo} emociones · {n_cl} clusters · {n_crit} cabezas críticas distintas · {n_sh} cabeza(s) compartida(s) por más de una emoción.`
+  .replace('{n_emo}', DATA.stats.n_emotions)
+  .replace('{n_cl}',  DATA.stats.n_clusters)
+  .replace('{n_crit}', DATA.stats.n_critical_heads)
+  .replace('{n_sh}',  DATA.stats.n_shared_heads);
 
 const svg = d3.select("#graph");
 const W = svg.node().getBoundingClientRect().width;
@@ -252,25 +247,7 @@ function highlightConnected(node) {
 function showDetail(node) {
   const detail = document.getElementById('detail');
   if (!node) {
-    detail.innerHTML = `
-      <h2>Cómo leer este grafo</h2>
-      <div class="meta">
-        Cada emoción (izquierda) se conecta a su <b>cabeza crítica</b> según
-        Tabla 19 de la memoria. La línea termina en una cabeza (centro) y se
-        ramifica al cluster psicológico (derecha). Las cabezas en rojo son
-        compartidas — múltiples emociones dependen de la misma circuiteria.
-      </div>
-      <h2>Hallazgo central</h2>
-      <div class="meta">
-        <b>L11-H6 sirve a la vez a sadness y realization</b>: un patrón atencional
-        de "expectativa frustrada" que ambas emociones comparten. Es el primer
-        circuito reutilizado documentado en este dataset.
-      </div>
-      <h2>Estadísticas</h2>
-      <div class="row"><span class="lbl">Emociones</span><span class="val">${DATA.stats.n_emotions}</span></div>
-      <div class="row"><span class="lbl">Cabezas críticas</span><span class="val">${DATA.stats.n_critical_heads}</span></div>
-      <div class="row"><span class="lbl">Cabezas compartidas</span><span class="val">${DATA.stats.n_shared_heads}</span></div>
-    `;
+    detail.innerHTML = `<div class="meta">Click un nodo</div>`;
     return;
   }
 
@@ -286,12 +263,6 @@ function showDetail(node) {
       <div class="row"><span class="lbl">Cristaliza en</span><span class="val">L${node.crystal_layer}</span></div>
       <div class="row"><span class="lbl">Norma selectividad</span><span class="val">${node.selectivity_norm}</span></div>
       <div class="row"><span class="lbl">Neuronas significativas</span><span class="val">${node.neuron_count}</span></div>
-      <h2>Vulnerabilidad</h2>
-      <div class="meta">
-        Esta emoción depende críticamente de su cabeza marcada. Si la cabeza es
-        compartida (roja), está más protegida; si es única, una sola ablación
-        la destruye.
-      </div>
     `;
   } else if (node.kind === "head") {
     const emoLines = node.emotions.map(e => {
@@ -310,11 +281,6 @@ function showDetail(node) {
       ${emoLines}
       <h2>Impacto agregado</h2>
       <div class="row"><span class="lbl">Suma |ΔF1|</span><span class="val">${node.total_impact.toFixed(3)}</span></div>
-      ${node.shared ? `<div class="hint" style="margin-top:14px">
-        Esta cabeza activa un patrón atencional que ${node.emotions.length} emociones
-        diferentes <b>reutilizan</b>. Es el ejemplo del paper sobre interpretabilidad:
-        circuiteria compartida emergente sin diseño explícito.
-      </div>` : ''}
     `;
   } else if (node.kind === "cluster") {
     const members = Object.entries({
@@ -334,9 +300,6 @@ function showDetail(node) {
       <div class="big">${node.label}</div>
       <div class="meta">
         <span class="badge" style="background:${node.color}">${members.length} emociones</span>
-        <br><br>
-        Estos seis grupos surgieron del clustering jerárquico sobre los vectores
-        de selectividad neuronal — sin imponer la taxonomía a priori.
       </div>
       <h2>Miembros</h2>
       ${emoLines}

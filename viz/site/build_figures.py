@@ -17,19 +17,17 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
 # Plotly figures
 from viz.plots import (crystallization, fingerprints, heads_matrix,
-                       lesion_theater, pareto_3d, spectral_flowers, sunburst)
+                       lesion_theater, pareto_3d, sunburst)
 from viz.interactive import (bert_architecture, compression_decay,
-                             confusion_evolution, confusion_volume,
                              finetuning_diff, galaxy_formation,
                              greedy_replay, internal_compression,
                              lens_vs_probe, lexical_to_semantic,
-                             probe_constellations, spectral_landscape,
-                             token_trajectories)
+                             probe_constellations, spectral_landscape)
 # HTML+JS custom
 from viz.interactive import (attention_atlas, circuit_network,
-                             compression_sandbox, decision_fingerprint,
-                             emotion_cards, iterative_inference,
-                             neuron_gallery, sentence_trajectory)
+                             decision_fingerprint,
+                             iterative_inference,
+                             sentence_trajectory)
 
 from viz.site._site_mode import write_site_figure, inject_site_mode_into_html
 
@@ -39,7 +37,7 @@ SITE_FIGS = SITE_DIR / "figures"
 LEGACY_OUT = SITE_DIR.parent / "output"
 
 
-def _build_galaxy_combined() -> pathlib.Path:
+def _build_galaxy_combined(lang: str = "es") -> pathlib.Path:
     """Special: galaxy_formation gets both 2D and 3D in a single HTML
     with a toggle. Each figure is fully rendered and styled site-mode."""
     from viz.site._site_mode import (apply_site_mode, FONT_STACK,
@@ -47,10 +45,17 @@ def _build_galaxy_combined() -> pathlib.Path:
                                      PAGE_LINE, PAGE_LINE_2, PAGE_BG_PLOT,
                                      GOOGLE_FONTS_LINK)
 
-    print("  Building galaxy_formation 3D + 2D combined…")
-    fig_3d = galaxy_formation.build_galaxy_figure(dim=3)
+    import inspect
+    sig = inspect.signature(galaxy_formation.build_galaxy_figure)
+    has_lang = "lang" in sig.parameters
+    print(f"  Building galaxy_formation 3D + 2D [{lang}]…")
+    if has_lang:
+        fig_3d = galaxy_formation.build_galaxy_figure(dim=3, lang=lang)
+        fig_2d = galaxy_formation.build_galaxy_figure(dim=2, lang=lang)
+    else:
+        fig_3d = galaxy_formation.build_galaxy_figure(dim=3)
+        fig_2d = galaxy_formation.build_galaxy_figure(dim=2)
     apply_site_mode(fig_3d)
-    fig_2d = galaxy_formation.build_galaxy_figure(dim=2)
     apply_site_mode(fig_2d)
 
     hi_dpi = {
@@ -160,10 +165,11 @@ def _build_galaxy_combined() -> pathlib.Path:
 </html>
 """
 
-    out = SITE_FIGS / "galaxy_formation.html"
+    out_name = f"galaxy_formation{_suffix(lang)}.html"
+    out = SITE_FIGS / out_name
     out.write_text(template, encoding="utf-8")
     kb = out.stat().st_size / 1024
-    print(f"  ✓ galaxy_formation.html ({kb:.0f} KB) [3D + 2D toggle]")
+    print(f"  ✓ {out_name} ({kb:.0f} KB) [3D + 2D toggle]")
     return out
 
 
@@ -173,7 +179,6 @@ PLOTLY_FIGS = [
     ("lexical_to_semantic",   lexical_to_semantic.build_figure),
     ("internal_compression",  internal_compression.build_figure),
     ("lens_vs_probe",         lens_vs_probe.build_figure),
-    ("spectral_flowers",      spectral_flowers.build_flowers_figure),
     ("spectral_landscape",    spectral_landscape.build_landscape_figure),
     ("pareto_3d",             pareto_3d.build_pareto_figure),
     ("compression_decay",     compression_decay.build_decay_figure),
@@ -184,8 +189,6 @@ PLOTLY_FIGS = [
     ("lesion_theater",        lesion_theater.build_lesion_theater),
     ("sunburst",              sunburst.build_sunburst_figure),
     ("emotional_landscape",   fingerprints.build_landscape_figure),
-    ("confusion_evolution",   confusion_evolution.build_confusion_figure),
-    ("confusion_volume",      confusion_volume.build_volume_figure),
     ("greedy_replay",         greedy_replay.build_replay_figure),
     ("finetuning_diff",       finetuning_diff.build_diff_figure),
 ]
@@ -200,66 +203,89 @@ def _make_html_builder(module, name):
     return _build
 
 
-def _token_trajectories_builder(out_path: pathlib.Path) -> pathlib.Path:
-    """token_trajectories.build_trajectories_figure() returns HTML string,
-    not a Plotly figure — wrap it as an HTML builder."""
-    html = token_trajectories.build_trajectories_figure()
-    out_path.write_text(html, encoding="utf-8")
-    return out_path
-
-
 HTML_FIGS = [
     ("attention_atlas",       attention_atlas.build_html),
     ("circuit_network",       circuit_network.build_html),
-    ("compression_sandbox",   compression_sandbox.build_html),
     ("decision_fingerprint",  decision_fingerprint.build_html),
-    ("emotion_cards",         emotion_cards.build_html),
     ("iterative_inference",   iterative_inference.build_html),
-    ("neuron_gallery",        neuron_gallery.build_html),
     ("sentence_trajectory",   sentence_trajectory.build_html),
-    ("token_trajectories",    _token_trajectories_builder),
 ]
 
 
 # ── Build everything ──────────────────────────────────────────────────────
 
+def _suffix(lang: str) -> str:
+    return "" if lang == "es" else f".{lang}"
+
+
+def _call_with_lang(builder, lang: str):
+    """Call a builder with ``lang`` if it accepts it; otherwise plain."""
+    import inspect
+    try:
+        sig = inspect.signature(builder)
+    except (TypeError, ValueError):
+        return builder()
+    if "lang" in sig.parameters:
+        return builder(lang=lang)
+    return builder()
+
+
 def build_all() -> dict[str, pathlib.Path]:
     SITE_FIGS.mkdir(parents=True, exist_ok=True)
     results: dict[str, pathlib.Path] = {}
 
+    LANGS = ("es", "en")
+
     # Special: galaxy with 2D + 3D toggle
-    try:
-        results["galaxy_formation"] = _build_galaxy_combined()
-    except Exception as exc:
-        print(f"  ✗ galaxy_formation: {type(exc).__name__}: {exc}")
-
-    print(f"Building {len(PLOTLY_FIGS)} Plotly figures…")
-    for name, builder in PLOTLY_FIGS:
+    for lang in LANGS:
         try:
-            fig = builder()
-            out = write_site_figure(fig, SITE_FIGS / f"{name}.html")
-            kb = out.stat().st_size / 1024
-            print(f"  ✓ {name}.html ({kb:.0f} KB)")
-            results[name] = out
+            results[f"galaxy_formation{_suffix(lang)}"] = _build_galaxy_combined(lang=lang)
         except Exception as exc:
-            print(f"  ✗ {name}: {type(exc).__name__}: {exc}")
+            print(f"  ✗ galaxy_formation [{lang}]: {type(exc).__name__}: {exc}")
 
-    print(f"\nBuilding {len(HTML_FIGS)} HTML+JS custom figures…")
+    print(f"Building {len(PLOTLY_FIGS)} Plotly figures × 2 langs…")
+    for name, builder in PLOTLY_FIGS:
+        for lang in LANGS:
+            try:
+                fig = _call_with_lang(builder, lang)
+                out_name = f"{name}{_suffix(lang)}.html"
+                out = write_site_figure(fig, SITE_FIGS / out_name)
+                kb = out.stat().st_size / 1024
+                print(f"  ✓ {out_name} ({kb:.0f} KB)")
+                results[f"{name}{_suffix(lang)}"] = out
+            except Exception as exc:
+                print(f"  ✗ {name} [{lang}]: {type(exc).__name__}: {exc}")
+
+    print(f"\nBuilding {len(HTML_FIGS)} HTML+JS custom figures × 2 langs…")
     LEGACY_OUT.mkdir(parents=True, exist_ok=True)
     tmp_dir = SITE_DIR / "_tmp"
     tmp_dir.mkdir(parents=True, exist_ok=True)
     for name, builder in HTML_FIGS:
-        try:
-            tmp = tmp_dir / f"{name}.html"
-            builder(tmp)
-            out = inject_site_mode_into_html(tmp, SITE_FIGS / f"{name}.html")
-            kb = out.stat().st_size / 1024
-            print(f"  ✓ {name}.html ({kb:.0f} KB)")
-            results[name] = out
-        except Exception as exc:
-            print(f"  ✗ {name}: {type(exc).__name__}: {exc}")
+        for lang in LANGS:
+            try:
+                tmp = tmp_dir / f"{name}{_suffix(lang)}.html"
+                _call_with_lang_html(builder, tmp, lang)
+                out_name = f"{name}{_suffix(lang)}.html"
+                out = inject_site_mode_into_html(tmp, SITE_FIGS / out_name)
+                kb = out.stat().st_size / 1024
+                print(f"  ✓ {out_name} ({kb:.0f} KB)")
+                results[f"{name}{_suffix(lang)}"] = out
+            except Exception as exc:
+                print(f"  ✗ {name} [{lang}]: {type(exc).__name__}: {exc}")
 
     return results
+
+
+def _call_with_lang_html(builder, out_path, lang: str):
+    """Same as _call_with_lang but for HTML builders that take an out_path."""
+    import inspect
+    try:
+        sig = inspect.signature(builder)
+    except (TypeError, ValueError):
+        return builder(out_path)
+    if "lang" in sig.parameters:
+        return builder(out_path, lang=lang)
+    return builder(out_path)
 
 
 if __name__ == "__main__":

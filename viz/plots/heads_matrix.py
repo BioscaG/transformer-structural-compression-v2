@@ -106,7 +106,26 @@ def _synth_categories(seed: int = 42) -> np.ndarray:
     return cats
 
 
-def build_heads_figure() -> go.Figure:
+LANG = {
+    "es": {
+        "heatmap_h":   "<b>L%{y}-H%{x}</b><br>Categoría: %{customdata}<extra></extra>",
+        "head_h":      "<b>%{text}</b><br>Cabeza crítica: L%{y}-H%{x}<br>ΔF1 al ablacionar: %{customdata[0]:.3f}<extra></extra>",
+        "head_name":   "Cabeza crítica por emoción",
+        "axis_x":      "Cabeza (índice 0–11)",
+        "axis_y":      "Capa del encoder",
+    },
+    "en": {
+        "heatmap_h":   "<b>L%{y}-H%{x}</b><br>Category: %{customdata}<extra></extra>",
+        "head_h":      "<b>%{text}</b><br>Critical head: L%{y}-H%{x}<br>ΔF1 when ablated: %{customdata[0]:.3f}<extra></extra>",
+        "head_name":   "Critical head per emotion",
+        "axis_x":      "Head (index 0–11)",
+        "axis_y":      "Encoder layer",
+    },
+}
+
+
+def build_heads_figure(lang: str = "es") -> go.Figure:
+    L = LANG[lang]
     # Try real first, fall back to synthesis
     cats = _real_categories()
     if cats is None:
@@ -118,16 +137,18 @@ def build_heads_figure() -> go.Figure:
                   "Minor Specialist": 1, "Dispensable": 0}
     z = np.array([[cat_to_int.get(c, 0) for c in row] for row in cats])
 
-    # Discrete colorscale for the 4 categories
+    # Discrete colorscale for the 4 categories — soft pastel tones so the
+    # star overlays and labels stay legible.
+    DISP_L  = "#EBE9E0"  # near-bg light grey for Dispensable
     colorscale = [
-        [0.000, st.SPINE],     # Dispensable (grey)
-        [0.250, st.SPINE],
-        [0.250, st.SAND],      # Minor Specialist
-        [0.500, st.SAND],
-        [0.500, st.BLUE],      # Critical Generalist
-        [0.750, st.BLUE],
-        [0.750, st.TERRA],     # Critical Specialist
-        [1.000, st.TERRA],
+        [0.000, DISP_L],       # Dispensable
+        [0.250, DISP_L],
+        [0.250, st.SAND_L],    # Minor Specialist
+        [0.500, st.SAND_L],
+        [0.500, st.BLUE_L],    # Critical Generalist
+        [0.750, st.BLUE_L],
+        [0.750, st.TERRA_L],   # Critical Specialist
+        [1.000, st.TERRA_L],
     ]
 
     fig = go.Figure()
@@ -135,12 +156,9 @@ def build_heads_figure() -> go.Figure:
         z=z, x=list(range(12)), y=list(range(12)),
         colorscale=colorscale, zmin=-0.5, zmax=3.5,
         showscale=False,
-        xgap=2.5, ygap=2.5,
+        xgap=4, ygap=4,
         customdata=cats,
-        hovertemplate=(
-            "<b>L%{y}-H%{x}</b><br>"
-            "Categoría: %{customdata}<extra></extra>"
-        ),
+        hovertemplate=L["heatmap_h"],
     ))
 
     # Overlay critical heads — REAL data from notebook 6 (top-1 head per emotion)
@@ -163,19 +181,15 @@ def build_heads_figure() -> go.Figure:
 
     fig.add_trace(go.Scatter(
         x=star_x, y=star_y, mode="markers+text",
-        marker=dict(symbol="star", size=star_size,
-                    color="white", line=dict(color=st.INK, width=1.5),
-                    opacity=0.95),
+        marker=dict(symbol="circle", size=[max(s * 0.55, 9) for s in star_size],
+                    color=st.INK, line=dict(color="white", width=1.5),
+                    opacity=0.92),
         text=star_text,
-        textposition="top center",
-        textfont=dict(size=9.5, color=st.INK, family="serif"),
+        textposition="middle right",
+        textfont=dict(size=9, color=st.INK_2, family="serif"),
         customdata=[(critical[e][2], e) for e in star_emotion],
-        hovertemplate=(
-            "<b>%{text}</b><br>"
-            "Cabeza crítica: L%{y}-H%{x}<br>"
-            "ΔF1 al ablacionar: %{customdata[0]:.3f}<extra></extra>"
-        ),
-        name="Cabeza crítica por emoción",
+        hovertemplate=L["head_h"],
+        name=L["head_name"],
         showlegend=True,
     ))
 
@@ -184,10 +198,10 @@ def build_heads_figure() -> go.Figure:
                   ["Critical Specialist", "Critical Generalist",
                    "Minor Specialist", "Dispensable"]}
     legend_items = [
-        (f"Critical Specialist ({cat_counts['Critical Specialist']})", st.TERRA),
-        (f"Critical Generalist ({cat_counts['Critical Generalist']})", st.BLUE),
-        (f"Minor Specialist ({cat_counts['Minor Specialist']})",       st.SAND),
-        (f"Dispensable ({cat_counts['Dispensable']})",                 st.SPINE),
+        (f"Critical Specialist ({cat_counts['Critical Specialist']})", st.TERRA_L),
+        (f"Critical Generalist ({cat_counts['Critical Generalist']})", st.BLUE_L),
+        (f"Minor Specialist ({cat_counts['Minor Specialist']})",       st.SAND_L),
+        (f"Dispensable ({cat_counts['Dispensable']})",                 DISP_L),
     ]
     for label, color in legend_items:
         fig.add_trace(go.Scatter(
@@ -197,16 +211,12 @@ def build_heads_figure() -> go.Figure:
             name=label, showlegend=True, hoverinfo="skip",
         ))
 
-    # Annotation: layer 11 highlight box
+    # Layer 11 highlight: subtle box marking the row where every head is
+    # critical — the structural finding without the visual shouting.
     fig.add_shape(
         type="rect", x0=-0.55, x1=11.55, y0=10.55, y1=11.55,
-        line=dict(color=st.TERRA, width=2.5, dash="solid"),
+        line=dict(color=st.INK_3, width=1.2, dash="dot"),
         fillcolor="rgba(0,0,0,0)",
-    )
-    fig.add_annotation(
-        x=11.7, y=11, text="Capa 11:<br>0 cabezas<br>prescindibles",
-        showarrow=False, font=dict(size=10.5, color=st.TERRA),
-        align="left", xanchor="left",
     )
 
     # Layout
@@ -223,13 +233,13 @@ def build_heads_figure() -> go.Figure:
         ),
     )
     fig.update_xaxes(
-        title=dict(text="Cabeza (índice 0–11)", font=dict(size=13, color=st.INK_2)),
+        title=dict(text=L["axis_x"], font=dict(size=13, color=st.INK_2)),
         tickmode="array", tickvals=list(range(12)),
         showgrid=False, zeroline=False,
         tickfont=dict(size=11, color=st.INK_3),
     )
     fig.update_yaxes(
-        title=dict(text="Capa del encoder", font=dict(size=13, color=st.INK_2)),
+        title=dict(text=L["axis_y"], font=dict(size=13, color=st.INK_2)),
         tickmode="array", tickvals=list(range(12)),
         showgrid=False, zeroline=False, autorange="reversed",
         tickfont=dict(size=11, color=st.INK_3),

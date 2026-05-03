@@ -134,7 +134,64 @@ def build_graph_data() -> dict:
     return {"nodes": nodes, "links": links, "stats": stats}
 
 
-def build_html(out_path: pathlib.Path) -> pathlib.Path:
+LANG = {
+    "es": {
+        "head_late":   "Cabeza crítica capa 8-11",
+        "head_early":  "Cabeza crítica capa 0-7",
+        "head_shared": "Cabeza compartida (varias emociones)",
+        "stats_fmt":   ("{n_emo} emociones · {n_cl} clusters · "
+                        "{n_crit} cabezas críticas distintas · "
+                        "{n_sh} cabeza(s) compartida(s) por más de una emoción."),
+        "click_node":  "Click un nodo",
+        "h_emotion":   "Emoción",
+        "h_geo":       "Geografía interna",
+        "row_f1":      "F1 baseline",
+        "row_crystal": "Cristaliza en",
+        "row_normsel": "Norma selectividad",
+        "row_neurons": "Neuronas significativas",
+        "h_head":      "Cabeza de atención",
+        "row_layer":   "Capa",
+        "row_idx":     "índice de cabeza",
+        "shared_lbl":  "cabeza compartida",
+        "h_emos_dep":  "Emociones que dependen",
+        "h_impact":    "Impacto agregado",
+        "row_sum":     "Suma |ΔF1|",
+        "h_cluster":   "Cluster emergente",
+        "n_emos":      "{n} emociones",
+        "emos_word":   "emociones",
+        "h_members":   "Miembros",
+    },
+    "en": {
+        "head_late":   "Critical head layer 8-11",
+        "head_early":  "Critical head layer 0-7",
+        "head_shared": "Shared head (multiple emotions)",
+        "stats_fmt":   ("{n_emo} emotions · {n_cl} clusters · "
+                        "{n_crit} distinct critical heads · "
+                        "{n_sh} head(s) shared by more than one emotion."),
+        "click_node":  "Click a node",
+        "h_emotion":   "Emotion",
+        "h_geo":       "Internal geography",
+        "row_f1":      "F1 baseline",
+        "row_crystal": "Crystallises at",
+        "row_normsel": "Selectivity norm",
+        "row_neurons": "Significant neurons",
+        "h_head":      "Attention head",
+        "row_layer":   "Layer",
+        "row_idx":     "head index",
+        "shared_lbl":  "shared head",
+        "h_emos_dep":  "Emotions that depend",
+        "h_impact":    "Aggregate impact",
+        "row_sum":     "Sum |ΔF1|",
+        "h_cluster":   "Emergent cluster",
+        "n_emos":      "{n} emotions",
+        "emos_word":   "emotions",
+        "h_members":   "Members",
+    },
+}
+
+
+def build_html(out_path: pathlib.Path, lang: str = "es") -> pathlib.Path:
+    _L = LANG[lang]
     graph = build_graph_data()
     data_json = json.dumps(graph)
 
@@ -223,15 +280,13 @@ def build_html(out_path: pathlib.Path) -> pathlib.Path:
 <body>
 
 <header>
-  <h1>Circuit network — <span class="acc">emoción · cabeza · cluster</span></h1>
-  <div class="sub">Cap. 5 · Mapa de los circuitos atencionales que cada emoción reserva, y la cabeza que las unifica.</div>
   <div class="stats" id="stats"></div>
 </header>
 
 <div class="legend">
-  <div class="item"><span class="swatch" style="background:#3A6EA5"></span>Cabeza crítica capa 8-11</div>
-  <div class="item"><span class="swatch" style="background:#5A8F7B"></span>Cabeza crítica capa 0-7</div>
-  <div class="item"><span class="swatch" style="background:#C1553A"></span>Cabeza compartida (varias emociones)</div>
+  <div class="item"><span class="swatch" style="background:#3A6EA5"></span>{_L['head_late']}</div>
+  <div class="item"><span class="swatch" style="background:#5A8F7B"></span>{_L['head_early']}</div>
+  <div class="item"><span class="swatch" style="background:#C1553A"></span>{_L['head_shared']}</div>
   <div class="item">— enlaces continuos: dependencia crítica</div>
   <div class="item">- - enlaces discontinuos: pertenencia a cluster</div>
 </div>
@@ -239,10 +294,6 @@ def build_html(out_path: pathlib.Path) -> pathlib.Path:
 <div class="layout">
   <svg id="graph" width="100%" height="100%"></svg>
   <div id="panel">
-    <div class="hint">
-      <b>Haz click</b> en cualquier nodo. Los nodos rojos son las dos cabezas
-      compartidas — el "circuito común" de §5.3.5.
-    </div>
     <div id="detail"></div>
   </div>
 </div>
@@ -252,10 +303,11 @@ const DATA = {data_json};
 const PAL = {palette};
 
 // Stats header
-document.getElementById('stats').textContent =
-  `${{DATA.stats.n_emotions}} emociones · ${{DATA.stats.n_clusters}} clusters · `
-  + `${{DATA.stats.n_critical_heads}} cabezas críticas distintas · `
-  + `${{DATA.stats.n_shared_heads}} cabeza(s) compartida(s) por más de una emoción.`;
+document.getElementById('stats').textContent = `{_L['stats_fmt']}`
+  .replace('{{n_emo}}', DATA.stats.n_emotions)
+  .replace('{{n_cl}}',  DATA.stats.n_clusters)
+  .replace('{{n_crit}}', DATA.stats.n_critical_heads)
+  .replace('{{n_sh}}',  DATA.stats.n_shared_heads);
 
 const svg = d3.select("#graph");
 const W = svg.node().getBoundingClientRect().width;
@@ -379,46 +431,22 @@ function highlightConnected(node) {{
 function showDetail(node) {{
   const detail = document.getElementById('detail');
   if (!node) {{
-    detail.innerHTML = `
-      <h2>Cómo leer este grafo</h2>
-      <div class="meta">
-        Cada emoción (izquierda) se conecta a su <b>cabeza crítica</b> según
-        Tabla 19 de la memoria. La línea termina en una cabeza (centro) y se
-        ramifica al cluster psicológico (derecha). Las cabezas en rojo son
-        compartidas — múltiples emociones dependen de la misma circuiteria.
-      </div>
-      <h2>Hallazgo central</h2>
-      <div class="meta">
-        <b>L11-H6 sirve a la vez a sadness y realization</b>: un patrón atencional
-        de "expectativa frustrada" que ambas emociones comparten. Es el primer
-        circuito reutilizado documentado en este dataset.
-      </div>
-      <h2>Estadísticas</h2>
-      <div class="row"><span class="lbl">Emociones</span><span class="val">${{DATA.stats.n_emotions}}</span></div>
-      <div class="row"><span class="lbl">Cabezas críticas</span><span class="val">${{DATA.stats.n_critical_heads}}</span></div>
-      <div class="row"><span class="lbl">Cabezas compartidas</span><span class="val">${{DATA.stats.n_shared_heads}}</span></div>
-    `;
+    detail.innerHTML = `<div class="meta">{_L['click_node']}</div>`;
     return;
   }}
 
   if (node.kind === "emotion") {{
     detail.innerHTML = `
-      <h2>Emoción</h2>
+      <h2>{_L['h_emotion']}</h2>
       <div class="big">${{node.label}}</div>
       <div class="meta">
         <span class="badge" style="background:${{node.color}}">${{node.cluster}}</span>
       </div>
-      <h2>Geografía interna</h2>
-      <div class="row"><span class="lbl">F1 baseline</span><span class="val">${{node.f1_baseline.toFixed(3)}}</span></div>
-      <div class="row"><span class="lbl">Cristaliza en</span><span class="val">L${{node.crystal_layer}}</span></div>
-      <div class="row"><span class="lbl">Norma selectividad</span><span class="val">${{node.selectivity_norm}}</span></div>
-      <div class="row"><span class="lbl">Neuronas significativas</span><span class="val">${{node.neuron_count}}</span></div>
-      <h2>Vulnerabilidad</h2>
-      <div class="meta">
-        Esta emoción depende críticamente de su cabeza marcada. Si la cabeza es
-        compartida (roja), está más protegida; si es única, una sola ablación
-        la destruye.
-      </div>
+      <h2>{_L['h_geo']}</h2>
+      <div class="row"><span class="lbl">{_L['row_f1']}</span><span class="val">${{node.f1_baseline.toFixed(3)}}</span></div>
+      <div class="row"><span class="lbl">{_L['row_crystal']}</span><span class="val">L${{node.crystal_layer}}</span></div>
+      <div class="row"><span class="lbl">{_L['row_normsel']}</span><span class="val">${{node.selectivity_norm}}</span></div>
+      <div class="row"><span class="lbl">{_L['row_neurons']}</span><span class="val">${{node.neuron_count}}</span></div>
     `;
   }} else if (node.kind === "head") {{
     const emoLines = node.emotions.map(e => {{
@@ -427,21 +455,16 @@ function showDetail(node) {{
       return `<div class="row"><span class="lbl">${{e}}</span><span class="val">ΔF1 ${{(link.df1).toFixed(3)}}</span></div>`;
     }}).join("");
     detail.innerHTML = `
-      <h2>Cabeza de atención</h2>
+      <h2>{_L['h_head']}</h2>
       <div class="big">${{node.label}}</div>
       <div class="meta">
-        Capa ${{node.layer}}, índice de cabeza ${{node.head}}
-        ${{node.shared ? '<br><span class="badge" style="background:#C1553A">cabeza compartida</span>' : ''}}
+        {_L['row_layer']} ${{node.layer}}, {_L['row_idx']} ${{node.head}}
+        ${{node.shared ? '<br><span class="badge" style="background:#C1553A">{_L["shared_lbl"]}</span>' : ''}}
       </div>
-      <h2>Emociones que dependen</h2>
+      <h2>{_L['h_emos_dep']}</h2>
       ${{emoLines}}
-      <h2>Impacto agregado</h2>
-      <div class="row"><span class="lbl">Suma |ΔF1|</span><span class="val">${{node.total_impact.toFixed(3)}}</span></div>
-      ${{node.shared ? `<div class="hint" style="margin-top:14px">
-        Esta cabeza activa un patrón atencional que ${{node.emotions.length}} emociones
-        diferentes <b>reutilizan</b>. Es el ejemplo del paper sobre interpretabilidad:
-        circuiteria compartida emergente sin diseño explícito.
-      </div>` : ''}}
+      <h2>{_L['h_impact']}</h2>
+      <div class="row"><span class="lbl">{_L['row_sum']}</span><span class="val">${{node.total_impact.toFixed(3)}}</span></div>
     `;
   }} else if (node.kind === "cluster") {{
     const members = Object.entries({{
@@ -457,15 +480,12 @@ function showDetail(node) {{
       return `<div class="row"><span class="lbl">${{e}}</span><span class="val">F1 ${{en.f1_baseline.toFixed(2)}}</span></div>`;
     }}).join("");
     detail.innerHTML = `
-      <h2>Cluster emergente</h2>
+      <h2>{_L['h_cluster']}</h2>
       <div class="big">${{node.label}}</div>
       <div class="meta">
-        <span class="badge" style="background:${{node.color}}">${{members.length}} emociones</span>
-        <br><br>
-        Estos seis grupos surgieron del clustering jerárquico sobre los vectores
-        de selectividad neuronal — sin imponer la taxonomía a priori.
+        <span class="badge" style="background:${{node.color}}">${{members.length}} {_L['emos_word']}</span>
       </div>
-      <h2>Miembros</h2>
+      <h2>{_L['h_members']}</h2>
       ${{emoLines}}
       <h2>Neuronas totales</h2>
       <div class="row"><span class="lbl">Significativas (|d|>2)</span><span class="val">${{node.size}}</span></div>

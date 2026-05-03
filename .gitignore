@@ -42,3 +42,12 @@ viz/site/_tmp/
 
 # Environment variables
 .env
+
+# Claude Code per-machine settings
+.claude/
+
+# Latex figure scratch / comparison artifacts
+latex_figures/figures/_compare/
+
+# Local CSV archive backups
+results/csvs/Archive.zip

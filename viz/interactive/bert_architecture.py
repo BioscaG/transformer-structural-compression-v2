@@ -37,7 +37,46 @@ def _category_color(cat: str) -> str:
     }.get(cat, st.SPINE)
 
 
-def build_architecture_figure() -> go.Figure:
+LANG = {
+    "es": {
+        "head_hover":   "<b>L{L}-H{h}</b><br>categoría: {cat}<br>importancia: {imp:.3f}",
+        "ffn":          "FFN L{L}",
+        "residual":     "residual stream",
+        "cls_hover":    "entrada [CLS]",
+        "classifier":   "classifier (23 emociones)",
+        "classifier_h": "pooler + Linear(768→23)<br>la decisión final",
+        "ffn_block":    "FFN block",
+        "residual_lbl": "Residual stream",
+        "axis_layer":   "capa",
+        "categories": {
+            "Critical Specialist": "Critical Specialist",
+            "Critical Generalist": "Critical Generalist",
+            "Minor Specialist":    "Minor Specialist",
+            "Dispensable":         "Dispensable",
+        },
+    },
+    "en": {
+        "head_hover":   "<b>L{L}-H{h}</b><br>category: {cat}<br>importance: {imp:.3f}",
+        "ffn":          "FFN L{L}",
+        "residual":     "residual stream",
+        "cls_hover":    "[CLS] entry",
+        "classifier":   "classifier (23 emotions)",
+        "classifier_h": "pooler + Linear(768→23)<br>the final decision",
+        "ffn_block":    "FFN block",
+        "residual_lbl": "Residual stream",
+        "axis_layer":   "layer",
+        "categories": {
+            "Critical Specialist": "Critical Specialist",
+            "Critical Generalist": "Critical Generalist",
+            "Minor Specialist":    "Minor Specialist",
+            "Dispensable":         "Dispensable",
+        },
+    },
+}
+
+
+def build_architecture_figure(lang: str = "es") -> go.Figure:
+    L_ = LANG[lang]
     heads_data = load_heads()
     cat_grid = np.full((12, 12), "Minor Specialist", dtype=object)
     importance_grid = np.zeros((12, 12), dtype=np.float32)
@@ -95,11 +134,7 @@ def build_architecture_figure() -> go.Figure:
             head_size.append(size)
             head_color.append(_category_color(cat))
             head_cats.append(cat)
-            head_hover.append(
-                f"<b>L{L}-H{h}</b><br>"
-                f"categoría: {cat}<br>"
-                f"importancia: {imp:.3f}"
-            )
+            head_hover.append(L_["head_hover"].format(L=L, h=h, cat=cat, imp=imp))
             head_text.append(f"H{h}")
 
     fig.add_trace(go.Scatter3d(
@@ -134,8 +169,8 @@ def build_architecture_figure() -> go.Figure:
         x=[0, 0], y=[0, 0], z=[-0.5, n_layers - 0.5],
         mode="lines",
         line=dict(color=st.INK_3, width=3, dash="dot"),
-        hovertext=["residual stream"], hoverinfo="text",
-        name="residual stream", showlegend=False,
+        hovertext=[L_["residual"]], hoverinfo="text",
+        name=L_["residual"], showlegend=False,
     ))
 
     # ─── [CLS] token entry point ───
@@ -146,7 +181,7 @@ def build_architecture_figure() -> go.Figure:
                     line=dict(color=st.INK, width=1.5)),
         text=["⟨CLS⟩"], textposition="bottom center",
         textfont=dict(size=12, color=st.TERRA, family="serif"),
-        hovertext=["entrada [CLS]"], hoverinfo="text",
+        hovertext=[L_["cls_hover"]], hoverinfo="text",
         showlegend=False,
     ))
 
@@ -156,21 +191,21 @@ def build_architecture_figure() -> go.Figure:
         mode="markers+text",
         marker=dict(size=18, color=st.SAGE, symbol="square",
                     line=dict(color=st.INK, width=1.5)),
-        text=["classifier (23 emociones)"], textposition="top center",
+        text=[L_["classifier"]], textposition="top center",
         textfont=dict(size=12, color=st.SAGE, family="serif"),
-        hovertext=["pooler + Linear(768→23)<br>la decisión final"],
+        hovertext=[L_["classifier_h"]],
         hoverinfo="text",
         showlegend=False,
     ))
 
     # ─── Legend (manual via dummy traces) ───
     legend_items = [
-        ("Critical Specialist", st.TERRA),
-        ("Critical Generalist", st.BLUE),
-        ("Minor Specialist",    st.SAND),
-        ("Dispensable",         st.SPINE),
-        ("FFN block",           st.TEAL),
-        ("Residual stream",     st.INK_3),
+        (L_["categories"]["Critical Specialist"], st.TERRA),
+        (L_["categories"]["Critical Generalist"], st.BLUE),
+        (L_["categories"]["Minor Specialist"],    st.SAND),
+        (L_["categories"]["Dispensable"],         st.SPINE),
+        (L_["ffn_block"],                          st.TEAL),
+        (L_["residual_lbl"],                       st.INK_3),
     ]
     for label, col in legend_items:
         fig.add_trace(go.Scatter3d(
@@ -191,7 +226,7 @@ def build_architecture_figure() -> go.Figure:
         scene=dict(
             xaxis=dict(visible=False),
             yaxis=dict(visible=False),
-            zaxis=dict(title="capa",
+            zaxis=dict(title=L_["axis_layer"],
                        tickmode="array",
                        tickvals=list(range(n_layers)),
                        ticktext=[f"L{L}" for L in range(n_layers)],

@@ -67,7 +67,68 @@ def _per_emotion_recovery(stage_pct: float, real_matrix=None,
     return None  # signaled to caller — use direct lookup instead
 
 
-def build_lesion_theater() -> go.Figure:
+LANG = {
+    "es": {
+        "baseline":   "F1 baseline (objetivo)",
+        "current":    "F1 actual",
+        "baseline_h": "<b>%{y}</b><br>F1 baseline: %{x:.3f}<extra></extra>",
+        "current_h":  "<b>%{y}</b><br>F1: %{x:.3f}<extra></extra>",
+        "axis_x":     "F1 por emoción",
+        "stage_pref": "Etapa: ",
+        "play":       "▶ Play (revive completo)",
+        "pause":      "⏸ Pause",
+        "reset":      "↺ Reset",
+        "dead_lbl":   "Muerto",
+        "title_fmt":  "<b>{stage}</b> · F1 macro = {now:.3f} ({pct:.1f}% del baseline {base:.3f})",
+        "stages": [
+            ("Modelo colapsado (SVD r=64)", "F1 = 0.000 en todas las emociones."),
+            ("Restaurar L0",  "L0 sola: la señal léxica creada aquí se destruye al pasar por las capas comprimidas."),
+            ("Restaurar L1",  "Misma historia: las capas tempranas crean información, pero las intermedias comprimidas la consumen."),
+            ("Restaurar L2",  "Sigue muerto."),
+            ("Restaurar L3",  "Sigue muerto."),
+            ("Restaurar L4",  "Sigue muerto."),
+            ("Restaurar L5",  "Sigue muerto."),
+            ("Restaurar L6",  "Sigue muerto."),
+            ("Restaurar L7",  "Sigue muerto. 8 capas restauradas y F1 sigue cerca de 0."),
+            ("Restaurar L8",  "Primer destello — el cuello de botella se asoma."),
+            ("Restaurar L9",  "Las emociones léxicas (gratitude, love) empiezan a despertar."),
+            ("Restaurar L10", "Casi mitad del modelo emocional vuelve."),
+            ("Restaurar L11", "BOOM. La capa 11 — concretamente su FFN — es el cuello de botella. Aquí vive el modelo."),
+        ],
+    },
+    "en": {
+        "baseline":   "F1 baseline (target)",
+        "current":    "F1 current",
+        "baseline_h": "<b>%{y}</b><br>F1 baseline: %{x:.3f}<extra></extra>",
+        "current_h":  "<b>%{y}</b><br>F1: %{x:.3f}<extra></extra>",
+        "axis_x":     "F1 per emotion",
+        "stage_pref": "Stage: ",
+        "play":       "▶ Play (full revival)",
+        "pause":      "⏸ Pause",
+        "reset":      "↺ Reset",
+        "dead_lbl":   "Dead",
+        "title_fmt":  "<b>{stage}</b> · F1 macro = {now:.3f} ({pct:.1f}% of baseline {base:.3f})",
+        "stages": [
+            ("Collapsed model (SVD r=64)", "F1 = 0.000 across every emotion."),
+            ("Restore L0",  "L0 alone: the lexical signal it creates is destroyed by the compressed layers downstream."),
+            ("Restore L1",  "Same story: early layers create information, mid compressed layers consume it."),
+            ("Restore L2",  "Still dead."),
+            ("Restore L3",  "Still dead."),
+            ("Restore L4",  "Still dead."),
+            ("Restore L5",  "Still dead."),
+            ("Restore L6",  "Still dead."),
+            ("Restore L7",  "Still dead. 8 layers restored and F1 is still near 0."),
+            ("Restore L8",  "First flicker — the bottleneck peeks out."),
+            ("Restore L9",  "Lexical emotions (gratitude, love) start waking up."),
+            ("Restore L10", "Almost half the emotional model returns."),
+            ("Restore L11", "BOOM. Layer 11 — its FFN specifically — is the bottleneck. The model lives here."),
+        ],
+    },
+}
+
+
+def build_lesion_theater(lang: str = "es") -> go.Figure:
+    _L = LANG[lang]
     # Load REAL per-(layer, emotion) patched F1 from notebook 5
     real_f1, _ = _real_per_layer_f1()
     informed = load_informed()
@@ -98,19 +159,8 @@ def build_lesion_theater() -> go.Figure:
         stage_pcts_real = stage_pcts_canonical
 
     STAGES = [
-        ("Modelo colapsado (SVD r=64)", stage_pcts_real[0],  "F1 = 0.000 en todas las emociones."),
-        ("Restaurar L0",                stage_pcts_real[1],  "L0 sola: la señal léxica creada aquí se destruye al pasar por las capas comprimidas."),
-        ("Restaurar L1",                stage_pcts_real[2],  "Misma historia: las capas tempranas crean información, pero las intermedias comprimidas la consumen."),
-        ("Restaurar L2",                stage_pcts_real[3],  "Sigue muerto."),
-        ("Restaurar L3",                stage_pcts_real[4],  "Sigue muerto."),
-        ("Restaurar L4",                stage_pcts_real[5],  "Sigue muerto."),
-        ("Restaurar L5",                stage_pcts_real[6],  "Sigue muerto."),
-        ("Restaurar L6",                stage_pcts_real[7],  "Sigue muerto."),
-        ("Restaurar L7",                stage_pcts_real[8],  "Sigue muerto. 8 capas restauradas y F1 sigue cerca de 0."),
-        ("Restaurar L8",                stage_pcts_real[9],  "Primer destello — el cuello de botella se asoma."),
-        ("Restaurar L9",                stage_pcts_real[10], "Las emociones léxicas (gratitude, love) empiezan a despertar."),
-        ("Restaurar L10",               stage_pcts_real[11], "Casi mitad del modelo emocional vuelve."),
-        ("Restaurar L11",               stage_pcts_real[12], "BOOM. La capa 11 — concretamente su FFN — es el cuello de botella. Aquí vive el modelo."),
+        (_L["stages"][i][0], stage_pcts_real[i], _L["stages"][i][1])
+        for i in range(13)
     ]
 
     n_emo = len(sorted_emos)
@@ -129,15 +179,15 @@ def build_lesion_theater() -> go.Figure:
     fig.add_trace(go.Bar(
         x=baseline_values, y=sorted_emos, orientation="h",
         marker=dict(color="rgba(200,199,193,0.20)", line=dict(color=st.SPINE, width=0.6)),
-        name="F1 baseline (objetivo)",
-        hovertemplate="<b>%{y}</b><br>F1 baseline: %{x:.3f}<extra></extra>",
+        name=_L["baseline"],
+        hovertemplate=_L["baseline_h"],
     ))
     # The active bars (these get animated frame-by-frame)
     fig.add_trace(go.Bar(
         x=init_values, y=sorted_emos, orientation="h",
         marker=dict(color=bar_colors, line=dict(color="white", width=0.5)),
-        name="F1 actual",
-        hovertemplate="<b>%{y}</b><br>F1: %{x:.3f}<extra></extra>",
+        name=_L["current"],
+        hovertemplate=_L["current_h"],
     ))
 
     # Frames — one per stage. Build per-emotion F1 values: real lookup if data
@@ -165,8 +215,9 @@ def build_lesion_theater() -> go.Figure:
         # Title overlay (real F1 macro = mean of values, real baseline if avail)
         baseline_mean = sum(baseline_values) / max(len(baseline_values), 1)
         f1_macro_now = sum(values) / max(len(values), 1)
-        title_html = (f"<b>{stage_name}</b> · F1 macro = {f1_macro_now:.3f} "
-                      f"({stage_pct:.1f}% del baseline {baseline_mean:.3f})")
+        title_html = _L["title_fmt"].format(
+            stage=stage_name, now=f1_macro_now, pct=stage_pct, base=baseline_mean
+        )
 
         frames.append(go.Frame(
             data=[
@@ -199,7 +250,10 @@ def build_lesion_theater() -> go.Figure:
         args=[[str(i)],
               dict(mode="immediate", frame=dict(duration=0, redraw=True),
                    transition=dict(duration=400, easing="cubic-in-out"))],
-        label=STAGES[i][0].replace("Restaurar ", "").replace("Modelo colapsado (SVD r=64)", "Muerto"),
+        label=(STAGES[i][0]
+               .replace("Restaurar ", "").replace("Restore ", "")
+               .replace("Modelo colapsado (SVD r=64)", _L["dead_lbl"])
+               .replace("Collapsed model (SVD r=64)", _L["dead_lbl"])),
     ) for i in range(len(STAGES))]
 
     fig.update_layout(
@@ -219,7 +273,7 @@ def build_lesion_theater() -> go.Figure:
         ],
         sliders=[dict(
             active=0, x=0.05, y=-0.04, len=0.90,
-            currentvalue=dict(prefix="Etapa: ",
+            currentvalue=dict(prefix=_L["stage_pref"],
                               font=dict(size=13, color=st.INK, family="serif"),
                               xanchor="left"),
             steps=steps,
@@ -232,14 +286,14 @@ def build_lesion_theater() -> go.Figure:
             type="buttons", direction="left",
             x=0.05, y=-0.18, xanchor="left", yanchor="top",
             buttons=[
-                dict(label="▶ Play (revive completo)", method="animate",
+                dict(label=_L["play"], method="animate",
                      args=[None, dict(frame=dict(duration=900, redraw=True),
                                       transition=dict(duration=400, easing="cubic-in-out"),
                                       fromcurrent=True, mode="immediate")]),
-                dict(label="⏸ Pause", method="animate",
+                dict(label=_L["pause"], method="animate",
                      args=[[None], dict(frame=dict(duration=0, redraw=False),
                                         mode="immediate")]),
-                dict(label="↺ Reset", method="animate",
+                dict(label=_L["reset"], method="animate",
                      args=[["0"], dict(mode="immediate", frame=dict(duration=0, redraw=True),
                                         transition=dict(duration=300))]),
             ],
@@ -254,7 +308,7 @@ def build_lesion_theater() -> go.Figure:
     )
 
     fig.update_xaxes(
-        title=dict(text="F1 por emoción", font=dict(size=12, color=st.INK_2)),
+        title=dict(text=_L["axis_x"], font=dict(size=12, color=st.INK_2)),
         range=[0, 1.0],
         gridcolor=st.GRID, linecolor=st.SPINE, showline=True,
         tickfont=dict(size=10, color=st.INK_3),

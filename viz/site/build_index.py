@@ -12,7 +12,30 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
-from viz.site.sections import SECTIONS, HERO_STATS, FIG_HEIGHTS
+from viz.site.sections import (
+    SECTIONS, HERO_STATS, FIG_HEIGHTS, HERO, OUTRO, NAV, FOOTER,
+)
+
+
+def bi(d: dict | str, tag: str = "span", classes: str = "") -> str:
+    """Render a bilingual ``{"es": ..., "en": ...}`` dict as two HTML
+    elements tagged with ``lang``. Use ``tag="p"`` for paragraphs.
+    A plain string passes through (single-language fallback).
+    """
+    if isinstance(d, str):
+        return d
+    cls = f' class="{classes}"' if classes else ""
+    return (
+        f'<{tag} lang="es"{cls}>{d["es"]}</{tag}>'
+        f'<{tag} lang="en"{cls}>{d["en"]}</{tag}>'
+    )
+
+
+def bi_text(d: dict | str) -> tuple[str, str]:
+    """Return (es, en) tuple. For plain strings returns same value twice."""
+    if isinstance(d, str):
+        return d, d
+    return d["es"], d["en"]
 
 
 SITE_DIR = pathlib.Path(__file__).resolve().parent
@@ -23,35 +46,33 @@ def render_hero() -> str:
     stats_html = "\n".join(
         f'      <div class="stat">\n'
         f'        <span class="num">{num}</span>\n'
-        f'        <span class="label">{label}</span>\n'
+        f'        {bi(label, tag="span", classes="label")}\n'
         f'      </div>'
         for num, label in HERO_STATS
     )
+    left_es, left_en = bi_text(HERO["left"])
+    right_es, right_en = bi_text(HERO["right"])
     return f"""
 <section class="hero" id="top">
+  <canvas id="hero-canvas" aria-hidden="true"></canvas>
+
   <div class="hero-meta reveal">
     <div class="left">
-      <strong>TFG · 2026</strong><br>
-      Universitat Politècnica<br>
-      de Catalunya · FIB
+      <span lang="es">{left_es}</span><span lang="en">{left_en}</span>
     </div>
     <div class="right">
-      <strong>Vol. 01</strong><br>
-      Compresión selectiva<br>
-      Interpretabilidad mecánica
+      <span lang="es">{right_es}</span><span lang="en">{right_en}</span>
     </div>
   </div>
 
   <div class="hero-content reveal" style="--delay: 120ms">
-    <div class="hero-tag">Trabajo de fin de grado · 2026</div>
+    {bi(HERO["tag"], tag="div", classes="hero-tag")}
     <h1 class="hero-title">
-      Anatomía<br>
-      emocional<br>
-      <em>de un transformer</em>
+      <span lang="es">{HERO["title_1"]["es"]}<br>{HERO["title_2"]["es"]}<br><em>{HERO["title_3"]["es"]}</em></span>
+      <span lang="en">{HERO["title_1"]["en"]}<br>{HERO["title_2"]["en"]}<br><em>{HERO["title_3"]["en"]}</em></span>
       <span class="small">
-        Compresión selectiva e interpretabilidad mecánica
-        de BERT-base sobre GoEmotions. Un manual visual para
-        desarmar el modelo capa por capa.
+        <span lang="es">{HERO["lead"]["es"]}</span>
+        <span lang="en">{HERO["lead"]["en"]}</span>
       </span>
     </h1>
 
@@ -63,10 +84,10 @@ def render_hero() -> str:
   <div class="hero-foot reveal" style="--delay: 240ms">
     <div class="scroll-cue">
       <span class="arrow"></span>
-      <span>Scroll · Empezar el recorrido</span>
+      {bi(HERO["scroll"], tag="span")}
     </div>
     <div>
-      <a href="sobre.html">Guido Biosca Lasa</a> · Director: Lluís Padró Cirera
+      <a href="sobre.html">Guido Biosca Lasa</a> · {bi(HERO["director"], tag="span")}
     </div>
   </div>
 </section>
@@ -74,34 +95,62 @@ def render_hero() -> str:
 
 
 def render_part(s: dict) -> str:
-    intro_html = "\n".join(f"    <p>{p}</p>" for p in s["intro"])
+    intro_html = "\n".join(
+        f"    {bi(p, tag='p')}" for p in s["intro"]
+    )
+    # Big numeral (asymmetric layout). Pull just the digits from the
+    # bilingual ``num`` field (e.g. "Parte 04" → "04"). Same for both langs.
+    num_es = s["num"]["es"].split()[-1] if isinstance(s["num"], dict) else s["num"].split()[-1]
+    num_en = s["num"]["en"].split()[-1] if isinstance(s["num"], dict) else s["num"].split()[-1]
     return f"""
 <section class="part" id="{s['id']}">
-  <div class="part-meta reveal">{s['num']}</div>
-  <h2 class="part-title reveal" style="--delay: 100ms">{s['title']}</h2>
-  <div class="part-intro reveal" style="--delay: 200ms">
+  <div class="part-grid">
+    <div class="part-numeral reveal" aria-hidden="true">
+      <span lang="es">{num_es}</span><span lang="en">{num_en}</span>
+    </div>
+    <div class="part-content">
+      {bi(s['num'], tag='div', classes='part-meta reveal')}
+      {bi(s['title'], tag='h2', classes='part-title reveal')}
+      <div class="part-intro reveal" style="--delay: 200ms">
 {intro_html}
+      </div>
+    </div>
   </div>
 </section>
 """
 
 
+HERO_FIGURES = {"galaxy_formation", "lesion_theater", "sentence_trajectory"}
+
+
 def render_figure(s: dict) -> str:
-    body_html = "\n".join(f'    <p class="reveal">{p}</p>'
-                          for p in s["body"])
+    body_html = "\n".join(
+        f'    {bi(p, tag="p", classes=("reveal lead" if i == 0 else "reveal"))}'
+        for i, p in enumerate(s["body"])
+    )
     pull_html = ""
     if s.get("pull"):
-        pull_html = f'\n  <blockquote class="pull reveal">{s["pull"]}</blockquote>\n'
+        pull_html = (
+            f'\n  {bi(s["pull"], tag="blockquote", classes="pull reveal")}\n'
+        )
 
     fig_h = FIG_HEIGHTS.get(s["figure"], 800)
     wrap_h = fig_h + 64  # 32px padding × 2 (top + bottom of card)
 
+    is_hero = s["figure"] in HERO_FIGURES
+    section_class = "chapter hero-figure" if is_hero else "chapter"
+
+    chapter_html  = bi(s["chapter"],  tag="div", classes="ch-num reveal")
+    title_html    = bi(s["title"],    tag="h2",  classes="ch-title reveal")
+    subtitle_html = bi(s["subtitle"], tag="p",   classes="ch-sub reveal")
+    caption_html  = bi(s["caption"],  tag="div", classes="caption")
+
     return f"""
-<section class="chapter" id="{s['id']}">
+<section class="{section_class}" id="{s['id']}">
   <div class="ch-head">
-    <div class="ch-num reveal">{s['chapter']}</div>
-    <h2 class="ch-title reveal" style="--delay: 80ms">{s['title']}</h2>
-    <p class="ch-sub reveal" style="--delay: 160ms">{s['subtitle']}</p>
+    {chapter_html}
+    {title_html}
+    {subtitle_html}
   </div>
 
   <div class="ch-body">
@@ -110,10 +159,13 @@ def render_figure(s: dict) -> str:
 {pull_html}
   <div class="figure reveal">
     <div class="figure-wrap" style="height: {wrap_h}px">
-      <iframe data-src="figures/{s['figure']}.html" loading="lazy" scrolling="no"></iframe>
+      <iframe
+        data-src-es="figures/{s['figure']}.html"
+        data-src-en="figures/{s['figure']}.en.html"
+        loading="lazy" scrolling="no"></iframe>
     </div>
     <div class="figure-meta">
-      <div class="caption">{s['caption']}</div>
+      {caption_html}
       <div class="id">Fig. <strong>{s['fig_id']}</strong></div>
     </div>
   </div>
@@ -122,75 +174,59 @@ def render_figure(s: dict) -> str:
 
 
 def render_outro() -> str:
-    return """
+    label_html = bi(OUTRO["label"], tag="div", classes="ch-num reveal")
+    title_html = bi(OUTRO["title"], tag="h2",  classes="ch-title reveal")
+    sub_html   = bi(OUTRO["sub"],   tag="p",   classes="ch-sub reveal")
+    p1 = bi(OUTRO["p1"], tag="p", classes="reveal")
+    p2 = bi(OUTRO["p2"], tag="p", classes="reveal")
+    p3 = bi(OUTRO["p3"], tag="p", classes="reveal")
+    p4 = bi(OUTRO["p4"], tag="p", classes="reveal")
+    return f"""
 <section class="outro" id="cierre">
-  <div class="ch-num reveal">Cierre</div>
-  <h2 class="ch-title reveal" style="--delay: 80ms">Cómo está hecho</h2>
-  <p class="ch-sub reveal" style="--delay: 160ms">Stack, datos y créditos.</p>
+  {label_html}
+  {title_html}
+  {sub_html}
 
   <div class="ch-body">
-    <p class="reveal">
-      Datos numéricos. Las visualizaciones se alimentan directamente
-      de los CSVs de los notebooks 2 al 9. Resultados reales del
-      fine-tune sobre BERT-base-uncased y 23 emociones de GoEmotions.
-      61 tablas exportadas: probing por capa, ablación de 144 cabezas,
-      especialización neuronal, activation patching, frontera de
-      Pareto completa con 22 estrategias evaluadas.
-    </p>
-    <p class="reveal">
-      Activaciones y geometría. Galaxy formation, sentence trajectory,
-      compression decay y spectral flowers se computan ejecutando el
-      checkpoint <code>23emo-final</code> (109.5M parámetros, 23
-      emociones) sobre frases del test set. Pooler y classifier
-      reales aplicados en cada paso. LDA fija ajustada en L12 para
-      coordenadas consistentes capa a capa.
-    </p>
-    <p class="reveal">
-      Visualización. 27 piezas: 19 estáticas en Plotly, 7
-      interactivas con HTML+JS custom, 1 grafo en D3.js puro. Cada
-      figura es un HTML autocontenido. La página que las une es
-      static HTML+CSS+JS. Sin frameworks, sin servidor, sin
-      backend.
-    </p>
-    <p class="reveal">
-      Memoria. Guido Biosca Lasa. Director: Lluís Padró Cirera.
-      FIB-UPC, 2026. <a href="sobre.html">Más sobre el proyecto</a>.
-    </p>
+    {p1}
+    {p2}
+    {p3}
+    {p4}
   </div>
 </section>
 """
 
 
 def render_footer() -> str:
-    return """
+    return f"""
 <footer class="foot">
   <div class="foot-grid">
     <div class="brand-cell">
-      <h2>Anatomía emocional<br><em>de un transformer.</em></h2>
-      <p>Trabajo de fin de grado.</p>
-      <p>Facultat d'Informàtica de Barcelona · 2026.</p>
+      {bi(FOOTER["brand_title"], tag="h2")}
+      {bi(FOOTER["brand_sub"], tag="p")}
+      {bi(FOOTER["brand_school"], tag="p")}
     </div>
     <div>
-      <h3>Proyecto</h3>
-      <a href="#">Repositorio</a>
-      <a href="#">Memoria · PDF</a>
-      <a href="sobre.html">Cómo está hecho</a>
+      {bi(FOOTER["project"], tag="h3")}
+      <a href="#">{bi(FOOTER["project_repo"], tag="span")}</a>
+      <a href="#">{bi(FOOTER["project_pdf"], tag="span")}</a>
+      <a href="sobre.html">{bi(FOOTER["project_about"], tag="span")}</a>
     </div>
     <div>
-      <h3>Autor</h3>
+      {bi(FOOTER["author"], tag="h3")}
       <a href="mailto:guido.biosca0@gmail.com">guido.biosca0@gmail.com</a>
       <a href="#">LinkedIn</a>
       <a href="#">GitHub</a>
     </div>
     <div>
-      <h3>Tribunal</h3>
-      <p>Director: Lluís Padró Cirera</p>
+      {bi(FOOTER["tribunal"], tag="h3")}
+      {bi(FOOTER["director"], tag="p")}
       <p>FIB · UPC · 2026</p>
     </div>
   </div>
   <div class="foot-bottom">
     <span>© 2026 Guido Biosca Lasa</span>
-    <span>Built with Python · Plotly · D3 · no frameworks</span>
+    {bi(FOOTER["stack"], tag="span")}
   </div>
 </footer>
 """
@@ -207,34 +243,66 @@ def render_nav() -> str:
         elif s["kind"] == "figure" and current is not None:
             current["items"].append(s)
 
+    def _strip_em(s: str) -> str:
+        return s.replace("<em>", "").replace("</em>", "")
+
     toc_html = ""
     for p in parts:
+        part_title_es = _strip_em(p["part"]["title"]["es"])
+        part_title_en = _strip_em(p["part"]["title"]["en"])
+        part_num_es, part_num_en = bi_text(p["part"]["num"])
         toc_html += f'<div class="toc-part">'
-        toc_html += (f'<a href="#{p["part"]["id"]}" class="toc-part-title">'
-                     f'<span class="toc-num">{p["part"]["num"]}</span> '
-                     f'{p["part"]["title"]}</a>')
+        toc_html += (
+            f'<a href="#{p["part"]["id"]}" class="toc-part-title">'
+            f'<span class="toc-num"><span lang="es">{part_num_es}</span>'
+            f'<span lang="en">{part_num_en}</span></span> '
+            f'<span lang="es">{part_title_es}</span>'
+            f'<span lang="en">{part_title_en}</span></a>'
+        )
         toc_html += f'<ul>'
         for it in p["items"]:
-            toc_html += (f'<li><a href="#{it["id"]}">'
-                         f'<span class="toc-fig">{it["fig_id"]}</span>'
-                         f' {it["title"].replace("<em>", "").replace("</em>", "")}'
-                         f'</a></li>')
+            it_title_es = _strip_em(it["title"]["es"])
+            it_title_en = _strip_em(it["title"]["en"])
+            toc_html += (
+                f'<li><a href="#{it["id"]}">'
+                f'<span class="toc-fig">{it["fig_id"]}</span>'
+                f' <span lang="es">{it_title_es}</span>'
+                f'<span lang="en">{it_title_en}</span>'
+                f'</a></li>'
+            )
         toc_html += f'</ul></div>'
+
+    brand_html    = bi(NAV["brand"],    tag="span")
+    chapters_html = bi(NAV["chapters"], tag="span")
+    data_html     = bi(NAV["data"],     tag="span")
+    about_html    = bi(NAV["about"],    tag="span")
+    index_html    = bi(NAV["index"],    tag="span")
 
     return f"""
 <nav class="top" id="topnav">
-  <a href="#top" class="brand"><span class="dot"></span>Anatomía Emocional</a>
+  <a href="#top" class="brand"><span class="dot"></span>{brand_html}</a>
   <ul class="nav-links">
-    <li><a class="link" href="#parte-1">Capítulos</a></li>
-    <li><a class="link" href="#cierre">Datos</a></li>
-    <li><a class="link" href="sobre.html">Sobre</a></li>
+    <li><a class="link" href="#parte-1">{chapters_html}</a></li>
+    <li><a class="link" href="#cierre">{data_html}</a></li>
+    <li><a class="link" href="sobre.html">{about_html}</a></li>
   </ul>
-  <button class="toc-btn" id="toc-btn">Índice</button>
+  <div class="nav-tools">
+    <button class="lang-btn" id="lang-btn" aria-label="Toggle language">
+      <span class="lang-current"></span>
+    </button>
+    <button class="present-btn" id="present-btn" aria-label="Presentation mode" title="Presentation mode (P)">▶</button>
+    <button class="toc-btn" id="toc-btn">{index_html}</button>
+  </div>
 </nav>
+
+<div id="present-overlay" aria-hidden="true">
+  <div class="present-progress"><span id="present-counter">1 / 1</span></div>
+  <div class="present-hint">← →   ESC to exit</div>
+</div>
 
 <aside id="toc-panel" class="toc-panel">
   <div class="toc-head">
-    <span>Índice</span>
+    {index_html}
     <button id="toc-close" aria-label="Cerrar">×</button>
   </div>
   <div class="toc-body">
@@ -275,6 +343,250 @@ def render_styles() -> str:
 
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+
+  /* ─── BILINGUAL ──────────────────────────────────────────────────── */
+  /* Hide the inactive language. Both versions are rendered; CSS picks. */
+  html[lang="es"] [lang="en"] { display: none !important; }
+  html[lang="en"] [lang="es"] { display: none !important; }
+
+  /* ─── HERO CANVAS (ambient particle animation) ──────────────────── */
+  #hero-canvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    z-index: 0; pointer-events: none;
+    opacity: 0.55;
+    mask-image: radial-gradient(ellipse 80% 70% at 70% 50%, #000 30%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 70% at 70% 50%, #000 30%, transparent 80%);
+  }
+
+  /* ─── HERO-FIGURE (full-bleed key visualizations) ───────────────── */
+  section.chapter.hero-figure .figure {
+    max-width: none;
+    width: 100%;
+    margin: 56px 0 0 0;
+  }
+  section.chapter.hero-figure .figure-wrap {
+    border-radius: 0;
+    border-left: none; border-right: none;
+    box-shadow:
+      0 1px 0 rgba(20,20,19,0.02),
+      0 24px 60px -32px rgba(20,20,19,0.18);
+    padding-left: max(28px, 5vw);
+    padding-right: max(28px, 5vw);
+  }
+  section.chapter.hero-figure .figure-meta {
+    max-width: var(--max-wide);
+    margin: 18px auto 0 auto;
+    padding: 0 max(28px, 5vw);
+  }
+
+  /* ─── PRESENTATION MODE ──────────────────────────────────────────── */
+  body.present-mode { overflow: hidden; }
+  body.present-mode #progress,
+  body.present-mode footer.foot,
+  body.present-mode section.outro,
+  body.present-mode .ch-body,
+  body.present-mode .pull,
+  body.present-mode .figure-meta,
+  body.present-mode .part-intro,
+  body.present-mode .part-meta,
+  body.present-mode .hero-meta,
+  body.present-mode .hero-stats,
+  body.present-mode .hero-foot,
+  body.present-mode .hero-tag,
+  body.present-mode .hero-title .small,
+  body.present-mode #toc-overlay,
+  body.present-mode #toc-panel { display: none !important; }
+  body.present-mode nav.top { background: transparent; border-bottom: none; }
+  body.present-mode nav.top ul.nav-links { display: none; }
+  body.present-mode nav.top .brand { opacity: 0.4; }
+  body.present-mode main {
+    height: 100vh;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+  }
+  body.present-mode section.hero,
+  body.present-mode section.part {
+    min-height: 100vh; height: 100vh;
+    padding: 12vh max(28px, 4vw) 8vh max(28px, 4vw);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    margin: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  body.present-mode section.hero .hero-content { align-self: center; }
+
+  /* Asymmetric split layout for figure slides:
+     left ~34% (chapter num + title + subtitle on top, caption + fig
+     id at bottom), right ~66% (figure spanning full slide height). */
+  body.present-mode section.chapter {
+    min-height: 100vh; height: 100vh;
+    padding: 5vh max(28px, 3vw);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    display: grid;
+    grid-template-columns: minmax(280px, 34%) 1fr;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "head fig"
+      "head fig"
+      "meta fig";
+    column-gap: 4vw;
+    row-gap: 0;
+    align-items: stretch;
+    margin: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  body.present-mode section.chapter .ch-head {
+    grid-area: head;
+    max-width: none;
+    margin: 0;
+    width: 100%;
+    text-align: left;
+    align-self: center;
+    display: flex; flex-direction: column;
+    gap: 14px;
+  }
+  body.present-mode .ch-title {
+    font-size: clamp(24px, 2.6vw, 40px);
+    margin: 0;
+    line-height: 1.08;
+  }
+  body.present-mode .ch-sub {
+    font-size: clamp(13px, 1.05vw, 17px);
+    margin: 0;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  /* Flatten .figure so its children (figure-wrap + figure-meta)
+     become direct grid items of the section. */
+  body.present-mode section.chapter .figure {
+    display: contents;
+  }
+  body.present-mode section.chapter .figure-wrap {
+    grid-area: fig;
+    height: 100% !important;
+    width: 100%;
+    border-radius: 4px;
+    padding: 14px;
+    align-self: stretch;
+  }
+  body.present-mode section.chapter .figure-meta {
+    grid-area: meta;
+    display: flex !important;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0;
+    padding: 16px 0 0 0;
+    max-width: none;
+    border-top: 0.5px solid var(--line);
+    align-self: end;
+  }
+  body.present-mode section.chapter .figure-meta .caption {
+    font-family: var(--serif);
+    font-size: 13.5px; font-style: italic;
+    color: var(--ink-3); line-height: 1.45;
+  }
+  body.present-mode section.chapter .figure-meta .id {
+    font-family: var(--mono); font-size: 10.5px;
+    color: var(--ink-3); letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  body.present-mode section.part .part-grid {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 32px;
+    max-width: var(--max-wide); margin: 0 auto;
+    text-align: center;
+    height: 100%;
+  }
+  body.present-mode section.part .part-numeral {
+    font-size: clamp(96px, 14vw, 200px);
+    text-align: center; opacity: 1;
+    position: static;
+    color: var(--accent);
+    line-height: 1;
+    padding: 0;
+    font-variation-settings: "opsz" 144, "SOFT" 30;
+  }
+  body.present-mode section.part .part-content {
+    text-align: center;
+    max-width: var(--max-wide);
+  }
+  body.present-mode section.part .part-content .part-title {
+    margin: 0;
+  }
+  body.present-mode section.part .part-content {
+    text-align: center; position: relative; z-index: 2;
+  }
+  body.present-mode #present-overlay {
+    display: block;
+    position: fixed; inset: 0; pointer-events: none; z-index: 80;
+  }
+  #present-overlay { display: none; }
+  .present-progress {
+    position: absolute; bottom: 24px; right: 32px;
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.1em; color: var(--ink-3);
+    background: rgba(247,246,242,0.85); padding: 6px 12px;
+    border: 0.5px solid var(--line); border-radius: 2px;
+  }
+  .present-hint {
+    position: absolute; bottom: 24px; left: 32px;
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.08em; color: var(--ink-3);
+    text-transform: uppercase;
+  }
+  nav.top button.present-btn {
+    font-family: var(--mono); font-size: 11.5px;
+    color: var(--ink); background: transparent;
+    border: 0.5px solid var(--line);
+    padding: 7px 12px; border-radius: 1px; cursor: pointer;
+    transition: all 0.2s var(--easing);
+    line-height: 1;
+  }
+  nav.top button.present-btn:hover {
+    border-color: var(--accent); color: var(--accent);
+    background: var(--bg-2);
+  }
+
+  /* ─── PART DIVIDER (asymmetric) ─────────────────────────────────── */
+  .part-grid {
+    display: grid;
+    grid-template-columns: minmax(140px, 0.42fr) minmax(0, 0.58fr);
+    gap: clamp(36px, 6vw, 96px);
+    align-items: start;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .part-numeral {
+    font-family: var(--serif);
+    font-weight: 250;
+    font-size: clamp(120px, 17vw, 240px);
+    line-height: 0.84;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+    font-variation-settings: "opsz" 144, "SOFT" 30;
+    align-self: start;
+    text-align: right;
+    padding-top: 18px;
+    font-feature-settings: "tnum";
+  }
+  .part-content { padding-top: 0; }
+  @media (max-width: 980px) {
+    .part-grid {
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+    .part-numeral { text-align: left; padding-top: 0; font-size: clamp(96px, 22vw, 160px); }
+  }
   body {
     margin: 0;
     background: var(--bg);
@@ -320,7 +632,11 @@ def render_styles() -> str:
     text-transform: uppercase;
   }
   nav.top a.link:hover { color: var(--accent); }
-  nav.top button.toc-btn {
+  nav.top .nav-tools {
+    display: flex; align-items: center; gap: 10px;
+  }
+  nav.top button.toc-btn,
+  nav.top button.lang-btn {
     font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.05em;
     color: var(--ink); background: transparent;
     border: 0.5px solid var(--line);
@@ -328,9 +644,13 @@ def render_styles() -> str:
     text-transform: uppercase;
     transition: all 0.2s var(--easing);
   }
-  nav.top button.toc-btn:hover {
+  nav.top button.toc-btn:hover,
+  nav.top button.lang-btn:hover {
     border-color: var(--accent); color: var(--accent);
     background: var(--bg-2);
+  }
+  nav.top button.lang-btn {
+    min-width: 38px;
   }
 
   #progress {
@@ -617,7 +937,7 @@ def render_styles() -> str:
     margin: 0 0 22px 0; font-size: 17px; line-height: 1.65;
     hyphens: auto;
   }
-  .ch-body > p:first-of-type::first-letter {
+  .ch-body > p.lead::first-letter {
     font-family: var(--serif);
     font-size: 4.6em; line-height: 0.9;
     float: left; color: var(--ink);
@@ -625,7 +945,7 @@ def render_styles() -> str:
     font-weight: 320;
     font-variation-settings: "opsz" 144, "SOFT" 30;
   }
-  .ch-body > p:first-of-type { color: var(--ink); }
+  .ch-body > p.lead { color: var(--ink); }
   .ch-body strong { color: var(--ink); font-weight: 500; }
   .ch-body em { font-style: italic; color: var(--ink-2); }
   .ch-body code {
@@ -834,6 +1154,117 @@ def render_styles() -> str:
 def render_scripts() -> str:
     return r"""
 <script>
+  // ─── Hero canvas: ambient particle drift ────────────────────────
+  // Six color groups, each gently orbiting its own anchor on the
+  // right half of the hero. Anchors are spread apart enough that
+  // groups stay visually distinct; particles never fully merge.
+  // Pure aesthetics — no semantic claim.
+  (function() {
+    const canvas = document.getElementById('hero-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    const COLORS = [
+      "#D4A843", "#C1553A", "#7B5E7B",
+      "#3A6EA5", "#5A8F7B", "#A0A09A",
+    ];
+
+    let W = 0, H = 0, particles = [], centers = [], t0 = performance.now();
+
+    function layout() {
+      const rect = canvas.getBoundingClientRect();
+      W = rect.width; H = rect.height;
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // 6 anchors spread across the right two thirds of the hero.
+      // Pseudo-random offsets keep them feeling organic rather than
+      // a tight, geometric hexagon.
+      const xs = [0.55, 0.92, 0.62, 0.86, 0.70, 0.95];
+      const ys = [0.18, 0.28, 0.52, 0.62, 0.82, 0.78];
+      centers = xs.map((fx, i) => ({ x: W * fx, y: H * ys[i] }));
+    }
+
+    function spawn() {
+      particles = [];
+      const N = Math.min(160, Math.max(72, Math.floor(W * H / 9500)));
+      for (let i = 0; i < N; i++) {
+        const cluster = i % 6;
+        const c = centers[cluster] || { x: W * 0.7, y: H * 0.5 };
+        const a = Math.random() * Math.PI * 2;
+        const r = 30 + Math.random() * 60;
+        particles.push({
+          x: c.x + Math.cos(a) * r,
+          y: c.y + Math.sin(a) * r,
+          cluster,
+          color: COLORS[cluster],
+          phase: Math.random() * Math.PI * 2,
+          orbitR: 22 + Math.random() * 34,   // local orbit radius
+          orbitW: 0.14 + Math.random() * 0.18, // angular speed
+          radius: 1.3 + Math.random() * 1.8,
+        });
+      }
+    }
+
+    function frame(now) {
+      const t = (now - t0) / 1000;
+      ctx.clearRect(0, 0, W, H);
+
+      for (const p of particles) {
+        const c = centers[p.cluster];
+        // Each particle orbits its own anchor with a unique phase.
+        // Anchors don't move; particles never merge into one blob.
+        const tx = c.x + Math.cos(t * p.orbitW + p.phase) * p.orbitR;
+        const ty = c.y + Math.sin(t * p.orbitW * 1.3 + p.phase) * p.orbitR * 0.7;
+        p.x += (tx - p.x) * 0.05;
+        p.y += (ty - p.y) * 0.05;
+
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = 0.7;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function resize() { layout(); spawn(); }
+    window.addEventListener('resize', resize, { passive: true });
+    resize();
+    requestAnimationFrame(frame);
+  })();
+
+  // Language toggle (ES ↔ EN). Persists in localStorage, applied
+  // before any reveal/scroll logic so the right text is visible from
+  // the first paint.
+  (function() {
+    const html = document.documentElement;
+    const stored = localStorage.getItem('site-lang');
+    const initial = stored === 'es' || stored === 'en'
+      ? stored
+      : (navigator.language || 'es').toLowerCase().startsWith('en') ? 'en' : 'es';
+    html.lang = initial;
+
+    function updateBtn(lang) {
+      const cur = document.querySelector('.lang-current');
+      if (cur) cur.textContent = lang === 'es' ? 'EN' : 'ES';
+    }
+    updateBtn(initial);
+
+    const btn = document.getElementById('lang-btn');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        const next = html.lang === 'es' ? 'en' : 'es';
+        html.lang = next;
+        localStorage.setItem('site-lang', next);
+        updateBtn(next);
+        window.dispatchEvent(new CustomEvent('site-lang-change',
+          { detail: { lang: next } }));
+      });
+    }
+  })();
+
   // Reading progress
   function progress() {
     const s = window.scrollY;
@@ -865,14 +1296,19 @@ def render_scripts() -> str:
   }, { threshold: 0.08, rootMargin: '0px 0px -8% 0px' });
   document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 
-  // Lazy-load iframes
+  // Lazy-load iframes (language-aware). Each iframe carries
+  // data-src-es and data-src-en; pick the one matching <html lang>.
+  function srcForLang(iframe, lang) {
+    return lang === 'en' ? iframe.dataset.srcEn : iframe.dataset.srcEs;
+  }
   const figObserver = new IntersectionObserver(entries => {
     entries.forEach(e => {
       if (!e.isIntersecting) return;
       const wrap = e.target;
       const iframe = wrap.querySelector('iframe');
-      if (iframe && iframe.dataset.src && !iframe.src) {
-        iframe.src = iframe.dataset.src;
+      const lang = document.documentElement.lang || 'es';
+      if (iframe && !iframe.src) {
+        iframe.src = srcForLang(iframe, lang);
         iframe.addEventListener('load', () => wrap.classList.add('loaded'),
           { once: true });
       }
@@ -880,6 +1316,26 @@ def render_scripts() -> str:
     });
   }, { rootMargin: '300px 0px' });
   document.querySelectorAll('.figure-wrap').forEach(w => figObserver.observe(w));
+
+  // When language changes, swap every loaded iframe to its other-language
+  // sibling. iframes that haven't been lazy-loaded yet pick up automatically
+  // because srcForLang reads the current lang at observe time.
+  window.addEventListener('site-lang-change', (ev) => {
+    const lang = ev.detail.lang;
+    document.querySelectorAll('.figure-wrap iframe').forEach(iframe => {
+      const wantedSrc = srcForLang(iframe, lang);
+      if (!wantedSrc) return;
+      // Only swap if already loaded (has src) and target differs.
+      if (iframe.src && !iframe.src.endsWith(wantedSrc)) {
+        const wrap = iframe.closest('.figure-wrap');
+        if (wrap) wrap.classList.remove('loaded');
+        iframe.src = wantedSrc;
+        iframe.addEventListener('load', () => {
+          if (wrap) wrap.classList.add('loaded');
+        }, { once: true });
+      }
+    });
+  });
 
   // TOC toggle
   const tocBtn     = document.getElementById('toc-btn');
@@ -900,9 +1356,164 @@ def render_scripts() -> str:
   tocPanel.querySelectorAll('a').forEach(a => {
     a.addEventListener('click', () => setTimeout(closeToc, 180));
   });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeToc();
-  });
+
+  // ─── Presentation mode ──────────────────────────────────────────
+  // Activated via ?present=1 URL param OR the ▶ button in the nav.
+  // Hides body text, captions, footer; converts the page into
+  // viewport-snapped slides; ← → navigate between them; ESC exits.
+  (function() {
+    const body = document.body;
+    const main = document.querySelector('main');
+    const presentBtn = document.getElementById('present-btn');
+    const counter = document.getElementById('present-counter');
+
+    function getSlides() {
+      return Array.from(document.querySelectorAll(
+        'main > section.hero, main > section.part, main > section.chapter'
+      ));
+    }
+    let slides = getSlides();
+    let idx = 0;
+
+    function snapToCurrent() {
+      slides = getSlides();
+      const target = slides[idx];
+      if (target) target.scrollIntoView({ block: 'start' });
+      updateCounter();
+    }
+    function updateCounter() {
+      if (counter) counter.textContent = `${idx + 1} / ${slides.length}`;
+    }
+    function findCurrentIndex() {
+      // Pick the slide whose top is closest to the viewport top
+      let best = 0, bestDist = Infinity;
+      for (let i = 0; i < slides.length; i++) {
+        const r = slides[i].getBoundingClientRect();
+        const d = Math.abs(r.top);
+        if (d < bestDist) { bestDist = d; best = i; }
+      }
+      return best;
+    }
+    function loadIframe(s) {
+      const fr = s && s.querySelector('iframe[data-src-es]');
+      if (!fr || fr.src) return null;
+      const lang = document.documentElement.lang || 'es';
+      fr.src = lang === 'en' ? fr.dataset.srcEn : fr.dataset.srcEs;
+      const wrap = fr.closest('.figure-wrap');
+      if (wrap) {
+        fr.addEventListener('load', () => wrap.classList.add('loaded'),
+          { once: true });
+      }
+      return fr;
+    }
+
+    // Sliding-window bg-loader. Keeps at most PRELOAD_AHEAD slides
+    // loaded ahead of the current position. When user navigates, the
+    // window slides with them and the next gap fills in. One load at
+    // a time so Plotly never initializes multiple figures concurrently.
+    const PRELOAD_AHEAD = 8;
+    let queueRunning = false;
+    function ensureQueue() {
+      if (queueRunning) return;
+      if (!body.classList.contains('present-mode')) return;
+      const limit = Math.min(slides.length, idx + PRELOAD_AHEAD + 1);
+      for (let i = idx; i < limit; i++) {
+        const s = slides[i];
+        const fr = s && s.querySelector('iframe[data-src-es]');
+        if (!fr || fr.src) continue;
+        queueRunning = true;
+        loadIframe(s);
+        let advanced = false;
+        const advance = () => {
+          if (advanced) return;
+          advanced = true;
+          queueRunning = false;
+          setTimeout(ensureQueue, 500);
+        };
+        fr.addEventListener('load', advance, { once: true });
+        setTimeout(advance, 3000);
+        return;
+      }
+    }
+
+    function enter() {
+      body.classList.add('present-mode');
+      slides = getSlides();
+      idx = findCurrentIndex();
+      // Preload immediate window inline so the first few slides feel instant
+      slides.slice(Math.max(0, idx - 1), idx + 4).forEach(loadIframe);
+      snapToCurrent();
+      const url = new URL(window.location);
+      if (url.searchParams.get('present') !== '1') {
+        url.searchParams.set('present', '1');
+        history.replaceState(null, '', url.toString());
+      }
+      // Then start the bounded sliding-window queue.
+      setTimeout(ensureQueue, 1200);
+    }
+    function exit() {
+      body.classList.remove('present-mode');
+      const url = new URL(window.location);
+      url.searchParams.delete('present');
+      history.replaceState(null, '', url.toString());
+    }
+    function go(delta) {
+      slides = getSlides();
+      idx = findCurrentIndex();
+      idx = Math.max(0, Math.min(slides.length - 1, idx + delta));
+      snapToCurrent();
+      // Snap-load destination + next in case queue hasn't reached
+      // them yet (user racing through slides faster than queue).
+      loadIframe(slides[idx]);
+      if (slides[idx + 1]) loadIframe(slides[idx + 1]);
+      // Slide the bg-load window forward.
+      ensureQueue();
+    }
+
+    if (presentBtn) {
+      presentBtn.addEventListener('click', () => {
+        if (body.classList.contains('present-mode')) exit();
+        else enter();
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (body.classList.contains('present-mode')) { exit(); return; }
+        closeToc();
+        return;
+      }
+      const inPresent = body.classList.contains('present-mode');
+      if (e.key === 'p' || e.key === 'P') {
+        if (inPresent) exit(); else enter();
+        return;
+      }
+      if (!inPresent) return;
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault(); go(+1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault(); go(-1);
+      } else if (e.key === 'Home') {
+        idx = 0; snapToCurrent();
+      } else if (e.key === 'End') {
+        idx = getSlides().length - 1; snapToCurrent();
+      }
+    });
+
+    // Update counter as the user scrolls inside present mode
+    if (main) {
+      main.addEventListener('scroll', () => {
+        if (!body.classList.contains('present-mode')) return;
+        idx = findCurrentIndex();
+        updateCounter();
+      }, { passive: true });
+    }
+
+    // Auto-enter from URL param
+    const initial = new URL(window.location).searchParams.get('present');
+    if (initial === '1') enter();
+    updateCounter();
+  })();
 </script>
 """
 

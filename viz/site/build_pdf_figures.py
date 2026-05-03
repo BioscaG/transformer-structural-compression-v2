@@ -43,13 +43,16 @@ EXTRA_FIGS = [
 
 
 # ── PDF render parameters ────────────────────────────────────────────────
-# Match latex_figures/tfg_plot_style.py BUT pre-bumped to survive LaTeX
-# scaling without losing legibility.
-PDF_TITLE  = 16
-PDF_LABEL  = 13
-PDF_TICK   = 11
-PDF_LEGEND = 11
-PDF_ANN    = 10
+# Aggressively bumped relative to tfg_plot_style.py + LaTeX scaling so
+# that — even when included with `[width=0.7\textwidth]` or similar —
+# the text stays clearly readable. Notebook effective sizes after LaTeX
+# scaling are ~11/9/8 pt (title/label/tick); these are bigger than that
+# so the web-origin figures don't look weaker.
+PDF_TITLE  = 19
+PDF_LABEL  = 15
+PDF_TICK   = 13
+PDF_LEGEND = 13
+PDF_ANN    = 12
 
 # 6.3 in matches \textwidth on A4 with 2.5 cm margins. 300 DPI is the
 # standard for print quality.
@@ -77,7 +80,8 @@ FIGURE_CHAPTER = {
     "bert_architecture":     2,
     "lexical_to_semantic":   5,
     "internal_compression":  4,
-    "lens_vs_probe":         5,
+    # "lens_vs_probe": authored in latex_figures/generate_cap5_figures.ipynb
+    # (matplotlib version preferred — kept out of web→PDF overwrite path).
     "spectral_flowers":      4,
     "spectral_landscape":    4,
     "pareto_3d":             4,
@@ -211,6 +215,10 @@ def apply_pdf_mode(fig: go.Figure) -> go.Figure:
 
 
 def export_one(name: str, builder, lang: str = "es") -> pathlib.Path | None:
+    if name not in FIGURE_CHAPTER:
+        # Authored elsewhere (e.g. matplotlib notebook); skip web export.
+        print(f"  – {name}: skipped (not in FIGURE_CHAPTER)")
+        return None
     fig = builder()
     apply_pdf_mode(fig)
 
@@ -218,7 +226,7 @@ def export_one(name: str, builder, lang: str = "es") -> pathlib.Path | None:
     width_px  = int(PDF_WIDTH_IN * PDF_DPI)
     height_px = int(h_in * PDF_DPI)
 
-    chapter = FIGURE_CHAPTER.get(name, 0)
+    chapter = FIGURE_CHAPTER[name]
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     out_png = OUT_DIR / f"cap{chapter}_{name}_{lang}.png"
     fig.write_image(str(out_png), format="png",

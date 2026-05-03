@@ -46,7 +46,34 @@ def _curate_sentences(meta: dict, n_per_emotion: int = 3) -> list[int]:
     return indices
 
 
-def build_html(out_path: pathlib.Path) -> pathlib.Path:
+LANG = {
+    "es": {
+        "frase":     "Frase:",
+        "capa":      "Capa:",
+        "trayectoria": "Trayectoria CLS · LDA-3D",
+        "sigmoids":  "Sigmoids · pooler+classifier en esta capa",
+        "atencion":  "Atención · 3 cabezas más críticas",
+        "confianza": "Confianza emoción gold · curva",
+        "play":      "▶ Play",
+        "pause":     "⏸ Pause",
+        "reset":     "↺ Reset",
+    },
+    "en": {
+        "frase":     "Sentence:",
+        "capa":      "Layer:",
+        "trayectoria": "CLS trajectory · LDA-3D",
+        "sigmoids":  "Sigmoids · pooler+classifier at this layer",
+        "atencion":  "Attention · 3 most critical heads",
+        "confianza": "Gold-emotion confidence · curve",
+        "play":      "▶ Play",
+        "pause":     "⏸ Pause",
+        "reset":     "↺ Reset",
+    },
+}
+
+
+def build_html(out_path: pathlib.Path, lang: str = "es") -> pathlib.Path:
+    _L = LANG[lang]
     # ─── Load all the data we need ───
     data = np.load(CACHE_DIR / "activations.npz")
     cls = data["cls_per_layer"]                     # (N, 13, 768)
@@ -201,12 +228,27 @@ def build_html(out_path: pathlib.Path) -> pathlib.Path:
     padding: 6px 12px; font-size: 12px; color: {st.INK_2};
     cursor: pointer; font-family: inherit;
   }}
-  button:hover {{ background: {st.SAND}; color: {st.INK}; }}
-  button.primary {{ background: {st.TERRA}; color: white; border-color: {st.TERRA}; }}
+  button:hover {{ background: #F4F2EC; color: {st.INK}; border-color: {st.INK_3}; }}
   .layer-control {{
     display: flex; gap: 10px; align-items: center; margin: 8px 0 16px 0;
   }}
   .layer-control input[type=range] {{ flex: 1; max-width: 600px; }}
+  input[type=range] {{
+    -webkit-appearance: none; appearance: none;
+    height: 4px; background: {st.SPINE}; border-radius: 2px; outline: none;
+  }}
+  input[type=range]::-webkit-slider-thumb {{
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; background: {st.INK_2};
+    border-radius: 50%; cursor: pointer;
+  }}
+  input[type=range]::-moz-range-thumb {{
+    width: 14px; height: 14px; background: {st.INK_2};
+    border-radius: 50%; cursor: pointer; border: none;
+  }}
+  input[type=range]::-moz-range-track {{
+    background: {st.SPINE}; height: 4px; border-radius: 2px;
+  }}
   .layer-label {{
     font-family: "Inter", monospace; font-size: 12.5px; color: {st.INK};
     min-width: 90px;
@@ -220,7 +262,7 @@ def build_html(out_path: pathlib.Path) -> pathlib.Path:
   }}
   .panel-title {{
     font-family: "Inter", sans-serif; font-size: 11px; font-weight: 500;
-    color: {st.TERRA}; letter-spacing: 1.2px; text-transform: uppercase;
+    color: {st.INK_2}; letter-spacing: 1.2px; text-transform: uppercase;
     margin: 6px 0 0 12px;
   }}
   .info {{
@@ -233,40 +275,30 @@ def build_html(out_path: pathlib.Path) -> pathlib.Path:
 </head>
 <body>
 
-<h1>Sentence <span class="acc">trajectory</span></h1>
-<div class="sub">
-  Una frase, cuatro vistas sincronizadas. Eliges la frase, mueves el slider de
-  capa, y ves <b>simultáneamente</b>: la trayectoria geométrica del CLS,
-  la atención de las cabezas más críticas, los pétalos de decisión, y el
-  posicionamiento entre los centroides de las 23 emociones.
-</div>
-
 <div class="controls">
-  <label style="font-size: 13px; color: {st.INK_2}">Frase:</label>
+  <label style="font-size: 13px; color: {st.INK_2}">{_L['frase']}</label>
   <select id="sentence-select"></select>
 </div>
 
 <div class="layer-control">
-  <span class="layer-label" id="layer-display">Capa: Emb</span>
+  <span class="layer-label" id="layer-display">{_L['capa']} Emb</span>
   <input type="range" id="layer-slider" min="0" max="12" value="0" step="1" />
-  <button class="primary" id="play-btn">▶ Play</button>
-  <button id="pause-btn">⏸ Pause</button>
-  <button id="reset-btn">↺ Reset</button>
+  <button id="play-btn">{_L['play']}</button>
+  <button id="pause-btn">{_L['pause']}</button>
+  <button id="reset-btn">{_L['reset']}</button>
 </div>
-
-<div class="info" id="info">Selecciona una frase y dale a Play.</div>
 
 <div class="grid">
   <div class="panel">
-    <div class="panel-title">Trayectoria CLS · LDA-3D</div>
+    <div class="panel-title">{_L['trayectoria']}</div>
     <div id="galaxy-plot"></div>
   </div>
   <div class="panel">
-    <div class="panel-title">Sigmoids · pooler+classifier en esta capa</div>
+    <div class="panel-title">{_L['sigmoids']}</div>
     <div id="sigmoid-plot"></div>
   </div>
   <div class="panel">
-    <div class="panel-title">Atención · 3 cabezas más críticas</div>
+    <div class="panel-title">{_L['atencion']}</div>
     <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; padding: 8px;">
       <div id="attn-plot-0"></div>
       <div id="attn-plot-1"></div>
@@ -274,7 +306,7 @@ def build_html(out_path: pathlib.Path) -> pathlib.Path:
     </div>
   </div>
   <div class="panel">
-    <div class="panel-title">Confianza emoción gold · curva</div>
+    <div class="panel-title">{_L['confianza']}</div>
     <div id="gold-plot"></div>
   </div>
 </div>
@@ -496,27 +528,13 @@ function updateGoldMarker() {{
   }}, [2]);
 }}
 
-// ─── Info text ───
-function updateInfo() {{
-  const goldIdx = DATA.ordered_emotions.indexOf(DATA.labels[currentSentence]);
-  const sigsNow = DATA.sigmoids[currentSentence][currentLayer];
-  const goldVal = sigsNow[goldIdx];
-  const topIdx = sigsNow.indexOf(Math.max(...sigsNow));
-  const topEmo = DATA.ordered_emotions[topIdx];
-  document.getElementById('info').innerHTML =
-    `<b>${{DATA.labels[currentSentence]}}</b> · capa ${{DATA.layer_labels[currentLayer]}} · `
-    + `top predicción: <b>${{topEmo}} (${{sigsNow[topIdx].toFixed(3)}})</b> · `
-    + `confianza gold: <b>${{goldVal.toFixed(3)}}</b>`;
-}}
-
 function updateAll() {{
-  document.getElementById('layer-display').textContent = 'Capa: ' + DATA.layer_labels[currentLayer];
+  document.getElementById('layer-display').textContent = '{_L["capa"]} ' + DATA.layer_labels[currentLayer];
   document.getElementById('layer-slider').value = currentLayer;
   updateGalaxyTrail();
   updateSigmoidPlot();
   buildAttentionPlot();
   updateGoldMarker();
-  updateInfo();
 }}
 
 function rebuildAll() {{

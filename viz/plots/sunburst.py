@@ -23,7 +23,36 @@ from viz import style as st
 from viz.data.load_results import load_neurons, neuron_count_per_emotion
 
 
-def build_sunburst_figure() -> go.Figure:
+LANG = {
+    "es": {
+        "panel_sun":   "Clusters emocionales emergentes (§5.4.6)",
+        "panel_bar":   "Norma de selectividad neuronal (predictor de vulnerabilidad)",
+        "n_emos_fmt":  "{n} emociones",
+        "n_neur_fmt":  "{n} neuronas significativas reales",
+        "f1_fmt":      "F1 baseline: {f:.3f}",
+        "sel_fmt":     "Selectividad agregada: {s} (de {n} neuronas)",
+        "sun_h":       "<b>%{label}</b><br>Neuronas significativas: %{value}<br>%{customdata[0]}<br>%{customdata[1]}<extra></extra>",
+        "bar_h":       "<b>%{y}</b><br>Selectividad agregada: %{x:.1f}<br>Neuronas significativas: %{customdata[0]}<br>Cluster: %{customdata[1]}<br>F1 baseline: %{customdata[2]:.3f}<extra></extra>",
+        "vuln":        "Norma selectividad ↔ caída F1 bajo SVD<br>Spearman ρ = 0.64, p = 0.001",
+        "axis_x":      "Norma del vector de selectividad",
+    },
+    "en": {
+        "panel_sun":   "Emergent emotional clusters (§5.4.6)",
+        "panel_bar":   "Neural selectivity norm (vulnerability predictor)",
+        "n_emos_fmt":  "{n} emotions",
+        "n_neur_fmt":  "{n} significant neurons (real)",
+        "f1_fmt":      "F1 baseline: {f:.3f}",
+        "sel_fmt":     "Aggregate selectivity: {s} ({n} neurons)",
+        "sun_h":       "<b>%{label}</b><br>Significant neurons: %{value}<br>%{customdata[0]}<br>%{customdata[1]}<extra></extra>",
+        "bar_h":       "<b>%{y}</b><br>Aggregate selectivity: %{x:.1f}<br>Significant neurons: %{customdata[0]}<br>Cluster: %{customdata[1]}<br>F1 baseline: %{customdata[2]:.3f}<extra></extra>",
+        "vuln":        "Selectivity norm ↔ F1 drop under SVD<br>Spearman ρ = 0.64, p = 0.001",
+        "axis_x":      "Selectivity-vector norm",
+    },
+}
+
+
+def build_sunburst_figure(lang: str = "es") -> go.Figure:
+    L = LANG[lang]
     # REAL neuron counts from notebook 7
     neurons = load_neurons()
     real_counts = neuron_count_per_emotion(neurons)
@@ -41,10 +70,7 @@ def build_sunburst_figure() -> go.Figure:
         rows=1, cols=2,
         column_widths=[0.62, 0.38],
         specs=[[{"type": "sunburst"}, {"type": "xy"}]],
-        subplot_titles=(
-            "Clusters emocionales emergentes (§5.4.6)",
-            "Norma de selectividad neuronal (predictor de vulnerabilidad)",
-        ),
+        subplot_titles=(L["panel_sun"], L["panel_bar"]),
         horizontal_spacing=0.05,
     )
 
@@ -71,8 +97,8 @@ def build_sunburst_figure() -> go.Figure:
         parents.append("BERT-base")
         values.append(padded_total)
         colors.append(td.CLUSTER_COLORS[cluster])
-        customdata.append([f"{len(members)} emociones",
-                           f"{real_total} neuronas significativas reales"])
+        customdata.append([L["n_emos_fmt"].format(n=len(members)),
+                           L["n_neur_fmt"].format(n=real_total)])
 
         for emo in members:
             labels.append(emo)
@@ -83,8 +109,8 @@ def build_sunburst_figure() -> go.Figure:
             sel = selectivity_norm.get(emo, 0)
             sel_str = f"{sel:.1f}" if isinstance(sel, float) else str(sel)
             customdata.append([
-                f"F1 baseline: {td.F1_BASELINE[emo]:.3f}",
-                f"Selectividad agregada: {sel_str} (de {count} neuronas)",
+                L["f1_fmt"].format(f=td.F1_BASELINE[emo]),
+                L["sel_fmt"].format(s=sel_str, n=count),
             ])
 
     # Root value = sum of all cluster values (which themselves are
@@ -100,11 +126,7 @@ def build_sunburst_figure() -> go.Figure:
         labels=labels, parents=parents, values=values,
         marker=dict(colors=colors, line=dict(color="white", width=1.6)),
         customdata=customdata,
-        hovertemplate=(
-            "<b>%{label}</b><br>"
-            "Neuronas significativas: %{value}<br>"
-            "%{customdata[0]}<br>%{customdata[1]}<extra></extra>"
-        ),
+        hovertemplate=L["sun_h"],
         branchvalues="total",
         insidetextorientation="radial",
         textfont=dict(family="serif", size=11),
@@ -124,21 +146,14 @@ def build_sunburst_figure() -> go.Figure:
         customdata=[[real_counts.get(e, 0),
                      td.EMOTION_TO_CLUSTER[e],
                      td.F1_BASELINE[e]] for e in sorted_emotions],
-        hovertemplate=(
-            "<b>%{y}</b><br>"
-            "Selectividad agregada: %{x:.1f}<br>"
-            "Neuronas significativas: %{customdata[0]}<br>"
-            "Cluster: %{customdata[1]}<br>"
-            "F1 baseline: %{customdata[2]:.3f}<extra></extra>"
-        ),
+        hovertemplate=L["bar_h"],
         showlegend=False,
     ), row=1, col=2)
 
     # Vulnerability annotation
     fig.add_annotation(
         x=0.99, y=0.02, xref="paper", yref="paper",
-        text=("Norma selectividad ↔ caída F1 bajo SVD<br>"
-              "Spearman ρ = 0.64, p = 0.001"),
+        text=L["vuln"],
         showarrow=False, xanchor="right", yanchor="bottom",
         font=dict(size=10.5, color=st.INK_3, family="serif"),
         bgcolor="rgba(255,255,255,0.85)", bordercolor=st.SPINE, borderwidth=0.5,
@@ -152,7 +167,7 @@ def build_sunburst_figure() -> go.Figure:
         ),
     )
     fig.update_xaxes(
-        title=dict(text="Norma del vector de selectividad",
+        title=dict(text=L["axis_x"],
                    font=dict(size=12, color=st.INK_2)),
         tickfont=dict(size=10, color=st.INK_3),
         showgrid=True, gridcolor=st.GRID, zeroline=False,
@@ -168,7 +183,7 @@ def build_sunburst_figure() -> go.Figure:
 
     # Re-style subplot titles
     for ann in fig["layout"]["annotations"]:
-        if "text" in ann and any(s in ann["text"] for s in ["Clusters emocionales", "Norma de selectividad"]):
+        if "text" in ann and any(s in ann["text"] for s in [L["panel_sun"][:8], L["panel_bar"][:8]]):
             ann["font"] = dict(size=12.5, color=st.INK, family="serif")
             ann["yshift"] = -3
 

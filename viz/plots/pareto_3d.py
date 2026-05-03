@@ -71,16 +71,70 @@ def _real_depth_retention():
     return df
 
 
-def build_pareto_figure() -> go.Figure:
+LANG = {
+    "es": {
+        "panel_pareto":  "Frontera de Pareto: 22 estrategias evaluadas",
+        "panel_phase":   "Transición de fase: F1 vs rango × profundidad",
+        "frontier":      "Frontera de Pareto",
+        "baseline_size": "Tamaño<br>baseline",
+        "f1_retention":  "Retención<br>de F1",
+        "hover_surface": "Rango: %{x}<br>Profundidad: %{y}<br>Retención: %{z:.1%}<extra></extra>",
+        "axis_x":        "Ratio de parámetros (vs. baseline)",
+        "axis_y":        "F1 macro",
+        "scene_x":       "Rango de truncamiento r",
+        "scene_y":       "Profundidad",
+        "scene_z":       "Retención F1",
+        "families": {
+            "uniform":  "Uniforme",
+            "adaptive": "Adaptativa",
+            "mixed":    "Mixta",
+            "informed": "Informada (heurística)",
+            "greedy":   "Greedy (data-driven)",
+            "baseline": "Baseline",
+        },
+        "hover_strat":   ("<b>%{customdata[0]}</b><br>Ratio params: %{x:.3f}×<br>"
+                          "F1 macro: %{y:.3f}<br>Retención: %{customdata[1]}<br>"
+                          "Pareto-óptima: %{customdata[3]}<br>"
+                          "<i>%{customdata[2]}</i><extra></extra>"),
+        "depth_bands":   {"early": "Early (0-3)", "middle": "Middle (4-7)", "late": "Late (8-11)"},
+    },
+    "en": {
+        "panel_pareto":  "Pareto frontier: 22 strategies evaluated",
+        "panel_phase":   "Phase transition: F1 vs rank × depth",
+        "frontier":      "Pareto frontier",
+        "baseline_size": "Baseline<br>size",
+        "f1_retention":  "F1<br>retention",
+        "hover_surface": "Rank: %{x}<br>Depth: %{y}<br>Retention: %{z:.1%}<extra></extra>",
+        "axis_x":        "Parameter ratio (vs. baseline)",
+        "axis_y":        "F1 macro",
+        "scene_x":       "Truncation rank r",
+        "scene_y":       "Depth",
+        "scene_z":       "F1 retention",
+        "families": {
+            "uniform":  "Uniform",
+            "adaptive": "Adaptive",
+            "mixed":    "Mixed",
+            "informed": "Informed (heuristic)",
+            "greedy":   "Greedy (data-driven)",
+            "baseline": "Baseline",
+        },
+        "hover_strat":   ("<b>%{customdata[0]}</b><br>Param ratio: %{x:.3f}×<br>"
+                          "F1 macro: %{y:.3f}<br>Retention: %{customdata[1]}<br>"
+                          "Pareto-optimal: %{customdata[3]}<br>"
+                          "<i>%{customdata[2]}</i><extra></extra>"),
+        "depth_bands":   {"early": "Early (0-3)", "middle": "Middle (4-7)", "late": "Late (8-11)"},
+    },
+}
+
+
+def build_pareto_figure(lang: str = "es") -> go.Figure:
     """Big two-panel figure: 2D Pareto + 3D phase-transition surface."""
+    L = LANG[lang]
     fig = make_subplots(
         rows=1, cols=2,
         column_widths=[0.55, 0.45],
         specs=[[{"type": "xy"}, {"type": "scene"}]],
-        subplot_titles=(
-            "Frontera de Pareto: 22 estrategias evaluadas",
-            "Transición de fase: F1 vs rango × profundidad",
-        ),
+        subplot_titles=(L["panel_pareto"], L["panel_phase"]),
         horizontal_spacing=0.10,
     )
 
@@ -100,14 +154,7 @@ def build_pareto_figure() -> go.Figure:
         strategies_data = td.STRATEGIES
 
     families = ["uniform", "adaptive", "mixed", "informed", "greedy", "baseline"]
-    family_label = {
-        "uniform":  "Uniforme",
-        "adaptive": "Adaptativa",
-        "mixed":    "Mixta",
-        "informed": "Informada (heurística)",
-        "greedy":   "Greedy (data-driven)",
-        "baseline": "Baseline",
-    }
+    family_label = L["families"]
     family_symbol = {
         "uniform":  "square", "adaptive": "circle", "mixed": "diamond-tall",
         "informed": "diamond", "greedy": "star", "baseline": "x-thin-open",
@@ -140,14 +187,7 @@ def build_pareto_figure() -> go.Figure:
             x=x, y=y, mode="markers",
             name=family_label[fam],
             customdata=list(zip(names, rets, notes, pareto_flag)),
-            hovertemplate=(
-                "<b>%{customdata[0]}</b><br>"
-                "Ratio params: %{x:.3f}×<br>"
-                "F1 macro: %{y:.3f}<br>"
-                "Retención: %{customdata[1]}<br>"
-                "Pareto-óptima: %{customdata[3]}<br>"
-                "<i>%{customdata[2]}</i><extra></extra>"
-            ),
+            hovertemplate=L["hover_strat"],
             marker=dict(size=sizes,
                         color=st.FAMILY_COLOR[fam],
                         symbol=family_symbol[fam],
@@ -163,7 +203,7 @@ def build_pareto_figure() -> go.Figure:
             y=[s.f1_macro for s in pareto],
             mode="lines",
             line=dict(color=st.INK_3, width=1.2, dash="dot"),
-            name="Frontera de Pareto",
+            name=L["frontier"],
             hoverinfo="skip",
         ), row=1, col=1)
 
@@ -175,7 +215,7 @@ def build_pareto_figure() -> go.Figure:
     )
     fig.add_annotation(
         x=1.0, y=0.05, xref="x1", yref="y1",
-        text="Tamaño<br>baseline", showarrow=False,
+        text=L["baseline_size"], showarrow=False,
         font=dict(size=10, color=st.INK_3),
         align="center", xanchor="left", xshift=4,
     )
@@ -211,7 +251,7 @@ def build_pareto_figure() -> go.Figure:
     else:
         ranks = [64, 128, 256, 384, 512, 768]
         bands = ["early", "middle", "late"]
-        band_label = {"early": "Early (0-3)", "middle": "Middle (4-7)", "late": "Late (8-11)"}
+        band_label = L["depth_bands"]
         z_grid = []
         for band in bands:
             row = []
@@ -234,12 +274,12 @@ def build_pareto_figure() -> go.Figure:
                     [0.7, st.SAGE], [1.0, st.BLUE]],
         cmin=0, cmax=1,
         showscale=True,
-        colorbar=dict(title=dict(text="Retención<br>de F1", font=dict(size=11)),
+        colorbar=dict(title=dict(text=L["f1_retention"], font=dict(size=11)),
                       tickformat=".0%", thickness=14, x=1.0, len=0.7,
                       tickfont=dict(size=10, color=st.INK_3)),
         contours=dict(z=dict(show=True, usecolormap=True, project_z=True,
                              highlightcolor="white")),
-        hovertemplate="Rango: %{x}<br>Profundidad: %{y}<br>Retención: %{z:.1%}<extra></extra>",
+        hovertemplate=L["hover_surface"],
         opacity=0.95,
     ), row=1, col=2)
 
@@ -256,13 +296,13 @@ def build_pareto_figure() -> go.Figure:
             font=dict(size=11),
         ),
         scene=dict(
-            xaxis=dict(title="Rango de truncamiento r",
+            xaxis=dict(title=L["scene_x"],
                        backgroundcolor=st.BG, gridcolor=st.GRID,
                        zerolinecolor=st.SPINE, color=st.INK_2),
-            yaxis=dict(title="Profundidad",
+            yaxis=dict(title=L["scene_y"],
                        backgroundcolor=st.BG, gridcolor=st.GRID,
                        zerolinecolor=st.SPINE, color=st.INK_2),
-            zaxis=dict(title="Retención F1",
+            zaxis=dict(title=L["scene_z"],
                        backgroundcolor=st.BG, gridcolor=st.GRID,
                        zerolinecolor=st.SPINE, color=st.INK_2,
                        tickformat=".0%", range=[0, 1.05]),
@@ -270,12 +310,12 @@ def build_pareto_figure() -> go.Figure:
             aspectmode="manual", aspectratio=dict(x=1.4, y=1.0, z=0.9),
         ),
     )
-    fig.update_xaxes(title_text="Ratio de parámetros (vs. baseline)",
+    fig.update_xaxes(title_text=L["axis_x"],
                      range=[0.30, 1.45], row=1, col=1,
                      gridcolor=st.GRID, showline=True, linecolor=st.SPINE,
                      ticks="outside", tickcolor=st.INK_3,
                      tickfont=dict(size=11, color=st.INK_3))
-    fig.update_yaxes(title_text="F1 macro",
+    fig.update_yaxes(title_text=L["axis_y"],
                      range=[-0.02, 0.62], row=1, col=1,
                      gridcolor=st.GRID, showline=True, linecolor=st.SPINE,
                      ticks="outside", tickcolor=st.INK_3,

@@ -60,12 +60,14 @@ def load_real_activations(dim: int = 3) -> tuple[np.ndarray, list[str], list[str
     bp = mdl.bert.pooler.dense.bias.detach().numpy()      # (768,)
     pooled = np.tanh(np.einsum('slh,ph->slp', cls, Wp) + bp)   # (N, 13, 768)
 
-    # Supervised LDA on POOLED L12 — finds the `dim` directions that maximally
-    # separate the 23 emotions. With dim=3 and the corrected pipeline this
-    # gives separation ratio ≈ 4.3.
-    label_to_int = {e: i for i, e in enumerate(sorted(set(label_names)))}
-    y = np.array([label_to_int[l] for l in label_names])
-    print(f"  fitting LDA on pooled L12 (supervised, n_components={dim})...")
+    # Supervised LDA on POOLED L12 — find the `dim` directions that maximally
+    # separate the 6 PSYCHOLOGICAL CLUSTERS (rather than the 23 individual
+    # emotions). Cluster-supervision gives much cleaner visual separation
+    # of the macro structure while individual emotions still occupy distinct
+    # regions inside each cluster.
+    cluster_to_int = {c: i for i, c in enumerate(sorted(set(cluster_labels)))}
+    y = np.array([cluster_to_int[c] for c in cluster_labels])
+    print(f"  fitting LDA on pooled L12 (cluster-supervised, n_components={dim})...")
     lda = LinearDiscriminantAnalysis(n_components=dim)
     lda.fit(pooled[:, -1, :], y)
     var_ratio = lda.explained_variance_ratio_
@@ -79,7 +81,44 @@ def load_real_activations(dim: int = 3) -> tuple[np.ndarray, list[str], list[str
     return coords, label_names, cluster_labels, sentences
 
 
-def build_galaxy_figure(dim: int = 3) -> go.Figure:
+LANG = {
+    "es": {
+        "centroid":   "centroides",
+        "centroid_h": "centroide en",
+        "stage_pref": "Capa: ",
+        "play":       "▶ Play",
+        "pause":      "⏸ Pause",
+        "reset":      "↺ Reset",
+        "clusters": {
+            "Positivas alta energía":  "Positivas alta energía",
+            "Negativas reactivas":     "Negativas reactivas",
+            "Negativas internas":      "Negativas internas",
+            "Epistémicas":             "Epistémicas",
+            "Orientadas al otro":      "Orientadas al otro",
+            "Baja especificidad":      "Baja especificidad",
+        },
+    },
+    "en": {
+        "centroid":   "centroids",
+        "centroid_h": "centroid at",
+        "stage_pref": "Layer: ",
+        "play":       "▶ Play",
+        "pause":      "⏸ Pause",
+        "reset":      "↺ Reset",
+        "clusters": {
+            "Positivas alta energía":  "High-energy positives",
+            "Negativas reactivas":     "Reactive negatives",
+            "Negativas internas":      "Internal negatives",
+            "Epistémicas":             "Epistemic",
+            "Orientadas al otro":      "Other-oriented",
+            "Baja especificidad":      "Low specificity",
+        },
+    },
+}
+
+
+def build_galaxy_figure(dim: int = 3, lang: str = "es") -> go.Figure:
+    _L = LANG[lang]
     """Build the galaxy formation figure in 2D or 3D LDA projection.
 
     `dim`: 2 or 3. With 2, uses go.Scatter (xaxis/yaxis). With 3, uses
@@ -112,41 +151,68 @@ def build_galaxy_figure(dim: int = 3) -> go.Figure:
     cluster_for_emo = {e: EXTENDED_CLUSTER_MAP.get(e, "Baja especificidad")
                        for e in unique_emotions}
 
-    def make_traces(layer: int) -> list:
+    def _coords_at(t_layer: float) -> np.ndarray:
+        """Linearly interpolate point coords at fractional layer t_layer ∈ [0, n_layers-1]."""
+        L0 = int(np.floor(t_layer))
+        L1 = min(L0 + 1, n_layers - 1)
+        alpha = t_layer - L0
+        return coords[L0] * (1 - alpha) + coords[L1] * alpha
+
+    def _centroids_at(t_layer: float) -> np.ndarray:
+        L0 = int(np.floor(t_layer))
+        L1 = min(L0 + 1, n_layers - 1)
+        alpha = t_layer - L0
+        return centroid_traj[L0] * (1 - alpha) + centroid_traj[L1] * alpha
+
+    def make_traces_at(t_layer: float, layer_label: str,
+                       with_hover: bool = True) -> list:
+        """Build traces for a real or fractional layer index.
+
+        ``with_hover=False`` skips the per-point hovertext, dropping the
+        per-frame payload by an order of magnitude — used for the
+        intermediate (interpolation) frames where the user isn't hovering
+        anyway because they're mid-animation.
+        """
+        pts_all = _coords_at(t_layer)
+        cur     = _centroids_at(t_layer)
         traces = []
         for emo in unique_emotions:
             mask = emotions_arr == emo
-            pts = coords[layer, mask]
+            pts = pts_all[mask]
             cluster = cluster_for_emo[emo]
-            sample_hover = [
-                (f"<b>{emo}</b><br>cluster: {cluster}<br>"
-                 + (f"<i>{short(texts[i])}</i>" if texts and texts[i] else ""))
-                for i in np.where(mask)[0]
-            ]
+            color = emotion_palette[emo]
+            if with_hover:
+                sample_hover = [
+                    (f"<b>{emo}</b><br>cluster: {cluster}<br>"
+                     + (f"<i>{short(texts[i])}</i>" if texts and texts[i] else ""))
+                    for i in np.where(mask)[0]
+                ]
+                hover_kwargs = dict(hovertext=sample_hover, hoverinfo="text")
+            else:
+                hover_kwargs = dict(hoverinfo="skip")
             if dim == 3:
                 traces.append(go.Scatter3d(
                     x=pts[:, 0], y=pts[:, 1], z=pts[:, 2],
                     mode="markers",
-                    marker=dict(size=3.6, color=emotion_palette[emo], opacity=0.65,
+                    marker=dict(size=3.6, color=color, opacity=0.7,
                                 line=dict(color="white", width=0)),
-                    hovertext=sample_hover, hoverinfo="text",
                     name=emo, legendgroup=cluster,
-                    legendgrouptitle=dict(text=cluster),
+                    legendgrouptitle=dict(text=_L["clusters"].get(cluster, cluster)),
                     showlegend=True,
+                    **hover_kwargs,
                 ))
             else:
                 traces.append(go.Scatter(
                     x=pts[:, 0], y=pts[:, 1],
                     mode="markers",
-                    marker=dict(size=7, color=emotion_palette[emo], opacity=0.65,
+                    marker=dict(size=7, color=color, opacity=0.7,
                                 line=dict(color="white", width=0)),
-                    hovertext=sample_hover, hoverinfo="text",
                     name=emo, legendgroup=cluster,
-                    legendgrouptitle=dict(text=cluster),
+                    legendgrouptitle=dict(text=_L["clusters"].get(cluster, cluster)),
                     showlegend=True,
+                    **hover_kwargs,
                 ))
 
-        cur = centroid_traj[layer]
         if dim == 3:
             traces.append(go.Scatter3d(
                 x=cur[:, 0], y=cur[:, 1], z=cur[:, 2],
@@ -157,10 +223,10 @@ def build_galaxy_figure(dim: int = 3) -> go.Figure:
                             line=dict(color=st.INK, width=1.5), opacity=0.95),
                 text=unique_emotions, textposition="top center",
                 textfont=dict(size=10, color=st.INK, family="serif"),
-                hovertext=[f"<b>{e}</b><br>centroide en {_layer_label(layer)}"
+                hovertext=[f"<b>{e}</b><br>{_L['centroid_h']} {layer_label}"
                            for e in unique_emotions],
                 hoverinfo="text",
-                name="centroides", showlegend=False,
+                name=_L["centroid"], showlegend=False,
             ))
         else:
             traces.append(go.Scatter(
@@ -172,26 +238,47 @@ def build_galaxy_figure(dim: int = 3) -> go.Figure:
                             line=dict(color=st.INK, width=1.5), opacity=0.95),
                 text=unique_emotions, textposition="top center",
                 textfont=dict(size=10, color=st.INK, family="serif"),
-                hovertext=[f"<b>{e}</b><br>centroide en {_layer_label(layer)}"
+                hovertext=[f"<b>{e}</b><br>{_L['centroid_h']} {layer_label}"
                            for e in unique_emotions],
                 hoverinfo="text",
-                name="centroides", showlegend=False,
+                name=_L["centroid"], showlegend=False,
             ))
         return traces
 
+    # Build animation frames with N_INTERP intermediates between each pair
+    # of real layers — gives a smooth "morph" instead of a hard jump.
+    # Intermediate frames have hover stripped to keep the page payload
+    # manageable (full hover lists explode the file size otherwise).
+    N_INTERP = 4
     frames = []
+    real_frame_names: list[str] = []
     for layer in range(n_layers):
-        frames.append(go.Frame(data=make_traces(layer), name=_layer_label(layer)))
+        label = _layer_label(layer)
+        frames.append(go.Frame(
+            data=make_traces_at(float(layer), label, with_hover=True),
+            name=label,
+        ))
+        real_frame_names.append(label)
+        if layer < n_layers - 1:
+            for k in range(1, N_INTERP + 1):
+                t = layer + k / (N_INTERP + 1)
+                frames.append(go.Frame(
+                    data=make_traces_at(t, label, with_hover=False),
+                    name=f"{label}__{k}",   # unnamed in slider
+                ))
 
-    fig = go.Figure(data=make_traces(0), frames=frames)
+    fig = go.Figure(data=make_traces_at(0.0, _layer_label(0), with_hover=True),
+                    frames=frames)
 
+    # Slider only steps through the real-layer frames; intermediates animate
+    # automatically when Play runs.
     steps = [dict(
         method="animate",
-        args=[[_layer_label(L)],
+        args=[[name],
               dict(mode="immediate", frame=dict(duration=0, redraw=True),
                    transition=dict(duration=400, easing="cubic-in-out"))],
-        label=_layer_label(L),
-    ) for L in range(n_layers)]
+        label=name,
+    ) for name in real_frame_names]
 
     layout_kwargs = dict(
         **st.thesis_layout(
@@ -203,7 +290,7 @@ def build_galaxy_figure(dim: int = 3) -> go.Figure:
         ),
         sliders=[dict(
             active=0, x=0.04, y=-0.04, len=0.85,
-            currentvalue=dict(prefix="Capa: ",
+            currentvalue=dict(prefix=_L["stage_pref"],
                               font=dict(size=14, color=st.INK, family="serif"),
                               xanchor="left"),
             steps=steps,
@@ -216,14 +303,14 @@ def build_galaxy_figure(dim: int = 3) -> go.Figure:
             type="buttons", direction="left",
             x=0.04, y=-0.18, xanchor="left", yanchor="top",
             buttons=[
-                dict(label="▶ Play", method="animate",
-                     args=[None, dict(frame=dict(duration=900, redraw=True),
-                                      transition=dict(duration=400, easing="cubic-in-out"),
+                dict(label=_L["play"], method="animate",
+                     args=[None, dict(frame=dict(duration=90, redraw=True),
+                                      transition=dict(duration=60, easing="linear"),
                                       fromcurrent=True, mode="immediate")]),
-                dict(label="⏸ Pause", method="animate",
+                dict(label=_L["pause"], method="animate",
                      args=[[None], dict(frame=dict(duration=0, redraw=False),
                                         mode="immediate")]),
-                dict(label="↺ Reset", method="animate",
+                dict(label=_L["reset"], method="animate",
                      args=[[_layer_label(0)], dict(mode="immediate",
                                                     frame=dict(duration=0, redraw=True))]),
             ],

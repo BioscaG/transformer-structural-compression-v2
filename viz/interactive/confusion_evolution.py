@@ -30,7 +30,46 @@ from viz.thesis_data import EXTENDED_CLUSTER_MAP
 CACHE_DIR = pathlib.Path(__file__).resolve().parents[1] / "data" / "cache"
 
 
-def build_confusion_figure() -> go.Figure:
+LANG = {
+    "es": {
+        "cbar":      "sigmoid medio<br>(predicho | gold)",
+        "hover":     "<b>gold: %{y}</b><br>predicho: %{x}<br>sigmoid medio: %{z:.3f}<extra></extra>",
+        "stage_pref": "Capa: ",
+        "play":      "▶ Play",
+        "pause":     "⏸ Pause",
+        "reset":     "↺ Reset",
+        "trans":     "transición",
+        "captions": {
+            0: "L0 (Embedding) — saturación inicial: el modelo activa muchas emociones a la vez para CADA gold. Matriz casi uniforme — no hay decisión.",
+            4: "L4 — el valle de transición empieza. Los valores caen, las filas se vuelven más oscuras.",
+            7: "L7 — fondo del valle. Casi todo cerca de 0: el modelo está 'pensando' pero no decide.",
+            9: "L9 — la diagonal empieza a emerger. Para algunas emociones (gratitude, fear) la celda diagonal se separa del resto.",
+            11: "L11 — diagonal limpia + smudges fuera de diagonal. Las celdas off-diagonal cuentan QUÉ EMOCIONES SE CONFUNDEN: annoyance↔disapproval, fear↔sadness — exactamente las vecinas en los 6 clusters psicológicos.",
+            12: "L12 (capa final) — el modelo confiable. Donde no logra limpiar la diagonal, se ve la estructura de la dificultad: approval/realization siguen difusas.",
+        },
+    },
+    "en": {
+        "cbar":      "mean sigmoid<br>(predicted | gold)",
+        "hover":     "<b>gold: %{y}</b><br>predicted: %{x}<br>mean sigmoid: %{z:.3f}<extra></extra>",
+        "stage_pref": "Layer: ",
+        "play":      "▶ Play",
+        "pause":     "⏸ Pause",
+        "reset":     "↺ Reset",
+        "trans":     "transition",
+        "captions": {
+            0: "L0 (Embedding) — initial saturation: the model fires many emotions at once for EVERY gold. Matrix is nearly uniform — no decision.",
+            4: "L4 — the transition valley begins. Values drop, rows go darker.",
+            7: "L7 — bottom of the valley. Almost everything near 0: the model is \"thinking\" but not deciding.",
+            9: "L9 — the diagonal starts emerging. For some emotions (gratitude, fear) the diagonal cell pulls ahead.",
+            11: "L11 — clean diagonal + off-diagonal smudges. The off-diagonal cells reveal WHICH EMOTIONS GET CONFUSED: annoyance↔disapproval, fear↔sadness — exactly the neighbours in the 6 psychological clusters.",
+            12: "L12 (final layer) — the reliable model. Where the diagonal can't be cleaned, the difficulty structure shows: approval/realization stay diffuse.",
+        },
+    },
+}
+
+
+def build_confusion_figure(lang: str = "es") -> go.Figure:
+    _L = LANG[lang]
     data = np.load(CACHE_DIR / "activations.npz")
     cls = data["cls_per_layer"]                      # (N, 13, 768)
     meta = json.loads((CACHE_DIR / "meta.json").read_text())
@@ -92,12 +131,10 @@ def build_confusion_figure() -> go.Figure:
                     [0.85, st.TERRA], [1.0, "#7A2A18"]],
         zmin=0, zmax=0.85,
         showscale=True, colorbar=dict(thickness=14, len=0.85,
-                                       title=dict(text="sigmoid medio<br>(predicho | gold)",
+                                       title=dict(text=_L["cbar"],
                                                   font=dict(size=11)),
                                        tickfont=dict(size=10, color=st.INK_3)),
-        hovertemplate=("<b>gold: %{y}</b><br>"
-                       "predicho: %{x}<br>"
-                       "sigmoid medio: %{z:.3f}<extra></extra>"),
+        hovertemplate=_L["hover"],
         xgap=0.5, ygap=0.5,
     ))
 
@@ -112,29 +149,11 @@ def build_confusion_figure() -> go.Figure:
                            line=dict(color=st.INK_3, width=1.0, dash="dash")))
 
     # Frames
-    captions = {
-        0: ("L0 (Embedding) — saturación inicial: el modelo activa muchas "
-            "emociones a la vez para CADA gold. Matriz casi uniforme — "
-            "no hay decisión."),
-        4: ("L4 — el valle de transición empieza. Los valores caen, las "
-            "filas se vuelven más oscuras."),
-        7: ("L7 — fondo del valle. Casi todo cerca de 0: el modelo está "
-            "'pensando' pero no decide."),
-        9: ("L9 — la diagonal empieza a emerger. Para algunas emociones "
-            "(gratitude, fear) la celda diagonal se separa del resto."),
-        11: ("L11 — diagonal limpia + smudges fuera de diagonal. Las celdas "
-             "off-diagonal cuentan QUÉ EMOCIONES SE CONFUNDEN: "
-             "annoyance↔disapproval, fear↔sadness — exactamente las "
-             "vecinas en los 6 clusters psicológicos de §5.4.6."),
-        12: ("L12 (capa final) — el modelo confiable. Donde no logra "
-             "limpiar la diagonal, se ve la estructura de la dificultad: "
-             "approval/realization siguen difusas, son emociones "
-             "intrínsecamente vagas."),
-    }
+    captions = _L["captions"]
 
     frames = []
     for L in range(n_layers):
-        cap = captions.get(L, f"{layer_labels[L]} — transición")
+        cap = captions.get(L, f"{layer_labels[L]} — {_L['trans']}")
         frames.append(go.Frame(
             data=[go.Heatmap(
                 z=matrices[L], x=ordered_emotions, y=ordered_emotions,
@@ -191,7 +210,7 @@ def build_confusion_figure() -> go.Figure:
         ],
         sliders=[dict(
             active=0, x=0.05, y=-0.05, len=0.85,
-            currentvalue=dict(prefix="Capa: ",
+            currentvalue=dict(prefix=_L["stage_pref"],
                               font=dict(size=14, color=st.INK, family="serif"),
                               xanchor="left"),
             steps=steps,
@@ -204,14 +223,14 @@ def build_confusion_figure() -> go.Figure:
             type="buttons", direction="left",
             x=0.05, y=-0.20, xanchor="left", yanchor="top",
             buttons=[
-                dict(label="▶ Play", method="animate",
+                dict(label=_L["play"], method="animate",
                      args=[None, dict(frame=dict(duration=900, redraw=True),
                                       transition=dict(duration=400, easing="cubic-in-out"),
                                       fromcurrent=True, mode="immediate")]),
-                dict(label="⏸ Pause", method="animate",
+                dict(label=_L["pause"], method="animate",
                      args=[[None], dict(frame=dict(duration=0, redraw=False),
                                         mode="immediate")]),
-                dict(label="↺ Reset", method="animate",
+                dict(label=_L["reset"], method="animate",
                      args=[[layer_labels[0]], dict(mode="immediate",
                                                     frame=dict(duration=0, redraw=True))]),
             ],

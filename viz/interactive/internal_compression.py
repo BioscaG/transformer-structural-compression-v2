@@ -112,7 +112,64 @@ def _compute_metrics():
     }
 
 
-def build_figure() -> go.Figure:
+LANG = {
+    "es": {
+        "subplot_top": "norma ↑ vs rango efectivo ↓ · capa por capa",
+        "subplot_bot": "energía acumulada del espectro · cuántas dimensiones bastan",
+        "norm_cnt":    "norma media (tokens contenido)",
+        "norm_cnt_h":  "tokens contenido",
+        "norm_cls":    "norma del [CLS]",
+        "norm_cls_h":  "[CLS]",
+        "eff_rank":    "rango efectivo (entropía espectral)",
+        "eff_rank_h":  "%{x}: rango efectivo = %{y:.1f} dim<extra>de 768 posibles</extra>",
+        "k95":         "k95 (95% energía)",
+        "k95_h":       "%{x}: %{y} valores singulares cubren 95%<extra>k95</extra>",
+        "heatmap_h":   "capa <b>%{y}</b><br>top-%{x} valores singulares<br>explican %{z:.1%} de la varianza<extra></extra>",
+        "k95_short":   "k95",
+        "k95_short_h": "%{y}: k95 = %{x}<extra></extra>",
+        "phase_lex_b": "fase léxica",
+        "phase_lex_s": "rango efectivo alto<br>(~130 dim)",
+        "phase_mix_b": "fase de mezcla",
+        "phase_mix_s": "rango se mantiene<br>norma crece",
+        "phase_col_b": "colapso espectral",
+        "phase_col_s": "rango → 22 dim<br>k95 → 35 dim",
+        "axis_layer":  "capa",
+        "axis_norm":   "‖h‖₂ (norma euclídea)",
+        "axis_rank":   "rango efectivo / k95 (dim)",
+        "axis_sigidx": "índice del valor singular (1 = más fuerte)",
+        "cbar_title":  "energía<br>acumulada",
+    },
+    "en": {
+        "subplot_top": "norm ↑ vs effective rank ↓ · layer by layer",
+        "subplot_bot": "cumulative spectral energy · how many dimensions you need",
+        "norm_cnt":    "mean norm (content tokens)",
+        "norm_cnt_h":  "content tokens",
+        "norm_cls":    "[CLS] norm",
+        "norm_cls_h":  "[CLS]",
+        "eff_rank":    "effective rank (spectral entropy)",
+        "eff_rank_h":  "%{x}: effective rank = %{y:.1f} dim<extra>of 768 possible</extra>",
+        "k95":         "k95 (95% energy)",
+        "k95_h":       "%{x}: %{y} singular values cover 95%<extra>k95</extra>",
+        "heatmap_h":   "layer <b>%{y}</b><br>top-%{x} singular values<br>explain %{z:.1%} of variance<extra></extra>",
+        "k95_short":   "k95",
+        "k95_short_h": "%{y}: k95 = %{x}<extra></extra>",
+        "phase_lex_b": "lexical phase",
+        "phase_lex_s": "high effective rank<br>(~130 dim)",
+        "phase_mix_b": "mixing phase",
+        "phase_mix_s": "rank stays<br>norms grow",
+        "phase_col_b": "spectral collapse",
+        "phase_col_s": "rank → 22 dim<br>k95 → 35 dim",
+        "axis_layer":  "layer",
+        "axis_norm":   "‖h‖₂ (Euclidean norm)",
+        "axis_rank":   "effective rank / k95 (dim)",
+        "axis_sigidx": "singular-value index (1 = strongest)",
+        "cbar_title":  "cumulative<br>energy",
+    },
+}
+
+
+def build_figure(lang: str = "es") -> go.Figure:
+    L = LANG[lang]
     m = _compute_metrics()
     n_layers = m["n_layers"]
     layer_x = list(range(n_layers))
@@ -121,11 +178,9 @@ def build_figure() -> go.Figure:
     fig = make_subplots(
         rows=2, cols=1,
         row_heights=[0.55, 0.45],
-        subplot_titles=(
-            "norma ↑ vs rango efectivo ↓ · capa por capa",
-            "energía acumulada del espectro · cuántas dimensiones bastan",
-        ),
+        subplot_titles=(L["subplot_top"], L["subplot_bot"]),
         vertical_spacing=0.16,
+        specs=[[{"secondary_y": True}], [{"secondary_y": False}]],
     )
 
     # ─── Top panel: dual-axis curves ──────────────────────────────────────
@@ -133,48 +188,44 @@ def build_figure() -> go.Figure:
     fig.add_trace(go.Scatter(
         x=layer_x, y=m["norm_cnt"],
         mode="lines+markers",
-        name="norma media (tokens contenido)",
+        name=L["norm_cnt"],
         line=dict(color=st.BLUE, width=3, shape="spline", smoothing=0.6),
         marker=dict(size=8, color=st.BLUE,
                     line=dict(color="white", width=1.5)),
-        hovertemplate="%{x}: ‖h‖ = %{y:.2f}<extra>tokens contenido</extra>",
+        hovertemplate="%{x}: ‖h‖ = %{y:.2f}<extra>" + L["norm_cnt_h"] + "</extra>",
     ), row=1, col=1)
 
     fig.add_trace(go.Scatter(
         x=layer_x, y=m["norm_cls"],
         mode="lines+markers",
-        name="norma del [CLS]",
+        name=L["norm_cls"],
         line=dict(color=st.BLUE_L, width=2, shape="spline",
                   smoothing=0.6, dash="dot"),
         marker=dict(size=6, color=st.BLUE_L),
-        hovertemplate="%{x}: ‖CLS‖ = %{y:.2f}<extra>[CLS]</extra>",
+        hovertemplate="%{x}: ‖CLS‖ = %{y:.2f}<extra>" + L["norm_cls_h"] + "</extra>",
     ), row=1, col=1)
 
     # Effective rank on secondary y-axis
     fig.add_trace(go.Scatter(
         x=layer_x, y=m["eff_rank"],
         mode="lines+markers",
-        name="rango efectivo (entropía espectral)",
+        name=L["eff_rank"],
         line=dict(color=st.TERRA, width=3, shape="spline", smoothing=0.6),
         marker=dict(size=9, color=st.TERRA, symbol="diamond",
                     line=dict(color="white", width=1.5)),
-        yaxis="y2",
-        hovertemplate=("%{x}: rango efectivo = %{y:.1f} dim"
-                       "<extra>de 768 posibles</extra>"),
-    ), row=1, col=1)
+        hovertemplate=L["eff_rank_h"],
+    ), row=1, col=1, secondary_y=True)
 
     # k95 also on secondary axis (lighter)
     fig.add_trace(go.Scatter(
         x=layer_x, y=m["k95"],
         mode="lines+markers",
-        name="k95 (95% energía)",
+        name=L["k95"],
         line=dict(color=st.TERRA_L, width=2, shape="spline",
                   smoothing=0.6, dash="dash"),
         marker=dict(size=6, color=st.TERRA_L),
-        yaxis="y2",
-        hovertemplate=("%{x}: %{y} valores singulares cubren 95%"
-                       "<extra>k95</extra>"),
-    ), row=1, col=1)
+        hovertemplate=L["k95_h"],
+    ), row=1, col=1, secondary_y=True)
 
     # ─── Bottom panel: cumulative energy heatmap ──────────────────────────
     K_VIEW = m["k_view"]
@@ -193,13 +244,12 @@ def build_figure() -> go.Figure:
         showscale=True,
         colorbar=dict(
             thickness=12, len=0.42, x=1.01, y=0.22,
-            title=dict(text="energía<br>acumulada",
+            title=dict(text=L["cbar_title"],
                        font=dict(size=10, color=st.INK_3)),
             tickfont=dict(size=10, color=st.INK_3),
             tickformat=".0%",
         ),
-        hovertemplate=("capa <b>%{y}</b><br>top-%{x} valores singulares<br>"
-                       "explican %{z:.1%} de la varianza<extra></extra>"),
+        hovertemplate=L["heatmap_h"],
     ), row=2, col=1)
 
     # Overlay k95 markers as a line on the heatmap
@@ -211,8 +261,8 @@ def build_figure() -> go.Figure:
         marker=dict(size=7, color="white",
                     line=dict(color=st.INK, width=1.5)),
         showlegend=True,
-        name="k95",
-        hovertemplate="%{y}: k95 = %{x}<extra></extra>",
+        name=L["k95_short"],
+        hovertemplate=L["k95_short_h"],
         xaxis="x2", yaxis="y3",
     ), row=2, col=1)
 
@@ -239,16 +289,16 @@ def build_figure() -> go.Figure:
 
     annotations = [
         dict(x=2, y=0.97, xref="x", yref="paper", showarrow=False,
-             text="<b>fase léxica</b><br><span style='font-size:10px'>"
-                  "rango efectivo alto<br>(~130 dim)</span>",
+             text=f"<b>{L['phase_lex_b']}</b><br><span style='font-size:10px'>"
+                  f"{L['phase_lex_s']}</span>",
              font=dict(size=11, color=st.BLUE), align="center"),
         dict(x=6.5, y=0.97, xref="x", yref="paper", showarrow=False,
-             text="<b>fase de mezcla</b><br><span style='font-size:10px'>"
-                  "rango se mantiene<br>norma crece</span>",
+             text=f"<b>{L['phase_mix_b']}</b><br><span style='font-size:10px'>"
+                  f"{L['phase_mix_s']}</span>",
              font=dict(size=11, color=st.SAND), align="center"),
         dict(x=10.5, y=0.97, xref="x", yref="paper", showarrow=False,
-             text="<b>colapso espectral</b><br><span style='font-size:10px'>"
-                  "rango → 22 dim<br>k95 → 35 dim</span>",
+             text=f"<b>{L['phase_col_b']}</b><br><span style='font-size:10px'>"
+                  f"{L['phase_col_s']}</span>",
              font=dict(size=11, color=st.TERRA), align="center"),
     ]
 
@@ -272,7 +322,7 @@ def build_figure() -> go.Figure:
         shapes=shapes,
         annotations=list(fig.layout.annotations) + annotations,
         yaxis2=dict(
-            title=dict(text="rango efectivo / k95 (dim)",
+            title=dict(text=L["axis_rank"],
                        font=dict(size=12, color=st.TERRA)),
             overlaying="y", side="right",
             tickfont=dict(size=10, color=st.TERRA),
@@ -282,14 +332,14 @@ def build_figure() -> go.Figure:
     )
 
     fig.update_xaxes(
-        title=dict(text="capa", font=dict(size=12, color=st.INK_2)),
+        title=dict(text=L["axis_layer"], font=dict(size=12, color=st.INK_2)),
         tickmode="array", tickvals=layer_x, ticktext=layer_labels,
         gridcolor=st.GRID, linecolor=st.SPINE, showline=True,
         tickfont=dict(size=10, color=st.INK_3),
         row=1, col=1,
     )
     fig.update_yaxes(
-        title=dict(text="‖h‖₂ (norma euclídea)",
+        title=dict(text=L["axis_norm"],
                    font=dict(size=12, color=st.BLUE)),
         gridcolor=st.GRID, linecolor=st.SPINE, showline=True,
         tickfont=dict(size=10, color=st.BLUE),
@@ -297,7 +347,7 @@ def build_figure() -> go.Figure:
     )
 
     fig.update_xaxes(
-        title=dict(text="índice del valor singular (1 = más fuerte)",
+        title=dict(text=L["axis_sigidx"],
                    font=dict(size=12, color=st.INK_2)),
         gridcolor=st.GRID, linecolor=st.SPINE, showline=True,
         tickfont=dict(size=10, color=st.INK_3),

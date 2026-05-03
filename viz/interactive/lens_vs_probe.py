@@ -52,14 +52,37 @@ def _bucket(layer: int) -> str:
     return "tardio"
 
 
-GROUP_LABEL = {
-    "temprano": "Tempranas · cristalizan en L0–L2",
-    "medio":    "Medias · cristalizan en L3–L6",
-    "tardio":   "Tardías · cristalizan en L7–L11",
+LANG = {
+    "es": {
+        "early":      "Tempranas · cristalizan en L0–L2",
+        "mid":        "Medias · cristalizan en L3–L6",
+        "late":       "Tardías · cristalizan en L7–L11",
+        "n_emos":     "emociones",
+        "n_sent":     "frases",
+        "probe":      "probe F1",
+        "lens":       "gold sigmoid (logit lens)",
+        "gap":        "info no leída",
+        "axis_layer": "capa",
+        "axis_y":     "probe F1  /  gold sigmoid",
+    },
+    "en": {
+        "early":      "Early · crystallise in L0–L2",
+        "mid":        "Mid · crystallise in L3–L6",
+        "late":       "Late · crystallise in L7–L11",
+        "n_emos":     "emotions",
+        "n_sent":     "sentences",
+        "probe":      "probe F1",
+        "lens":       "gold sigmoid (logit lens)",
+        "gap":        "unread info",
+        "axis_layer": "layer",
+        "axis_y":     "probe F1  /  gold sigmoid",
+    },
 }
 
 
-def build_figure() -> go.Figure:
+def build_figure(lang: str = "es") -> go.Figure:
+    L = LANG[lang]
+    GROUP_LABEL = {"temprano": L["early"], "medio": L["mid"], "tardio": L["late"]}
     # ─── Logit lens gold sigmoid per layer per emotion ────────────────────
     data = np.load(CACHE_DIR / "activations.npz")
     cls = data["cls_per_layer"]                     # (N, 13, 768)
@@ -120,8 +143,8 @@ def build_figure() -> go.Figure:
     fig = make_subplots(
         rows=3, cols=1, shared_xaxes=True,
         vertical_spacing=0.10,
-        subplot_titles=[g["label"] + f"  ·  {len(g['emos'])} emociones · "
-                                     f"{g['n']} frases"
+        subplot_titles=[g["label"] + f"  ·  {len(g['emos'])} {L['n_emos']} · "
+                                     f"{g['n']} {L['n_sent']}"
                         for g in groups],
     )
 
@@ -143,7 +166,7 @@ def build_figure() -> go.Figure:
         fig.add_trace(go.Scatter(
             x=layer_x, y=g["probe"],
             mode="lines+markers",
-            name="probe F1",
+            name=L["probe"],
             legendgroup="probe",
             showlegend=(row_i == 1),
             line=dict(color=st.TERRA, width=2.6, shape="spline", smoothing=0.5),
@@ -156,7 +179,7 @@ def build_figure() -> go.Figure:
         fig.add_trace(go.Scatter(
             x=layer_x, y=g["gold"],
             mode="lines+markers",
-            name="gold sigmoid (logit lens)",
+            name=L["lens"],
             legendgroup="lens",
             showlegend=(row_i == 1),
             line=dict(color=st.SAGE, width=2.6, shape="spline", smoothing=0.5),
@@ -176,7 +199,7 @@ def build_figure() -> go.Figure:
             line=dict(color="rgba(0,0,0,0)"),
             hoverinfo="skip",
             showlegend=(row_i == 1),
-            name="info no leída",
+            name=L["gap"],
             legendgroup="gap",
         ), row=row_i, col=1)
 
@@ -191,7 +214,7 @@ def build_figure() -> go.Figure:
                    "desplaza, el contraste persiste.</sub>"),
             height=940, width=1380,
         ),
-        legend=dict(x=0.99, y=1.05, xanchor="right", yanchor="bottom",
+        legend=dict(x=0.99, y=0.99, xanchor="right", yanchor="top",
                     bgcolor="rgba(255,255,255,0.92)",
                     bordercolor=st.SPINE, borderwidth=0.5,
                     font=dict(size=11), orientation="h"),
@@ -212,10 +235,10 @@ def build_figure() -> go.Figure:
             row=r, col=1,
         )
     # Only the bottom panel gets the x-axis title
-    fig.update_xaxes(title=dict(text="capa", font=dict(size=12, color=st.INK_2)),
+    fig.update_xaxes(title=dict(text=L["axis_layer"], font=dict(size=12, color=st.INK_2)),
                      row=3, col=1)
     # Only the middle panel labels the y-axis
-    fig.update_yaxes(title=dict(text="probe F1  /  gold sigmoid",
+    fig.update_yaxes(title=dict(text=L["axis_y"],
                                 font=dict(size=12, color=st.INK_2)),
                      row=2, col=1)
 

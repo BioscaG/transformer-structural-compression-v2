@@ -32,7 +32,24 @@ from viz import style as st
 CACHE_DIR = pathlib.Path(__file__).resolve().parents[1] / "data" / "cache"
 
 
-def build_landscape_figure() -> go.Figure:
+LANG = {
+    "es": {
+        "k95":         "k95 (95% energía)",
+        "spectrum_h":  "matriz: %{customdata}<br>σ index: %{x}<br>σᵢ/σ₁: %{z:.3f}<extra></extra>",
+        "axis_x":      "índice de valor singular",
+        "axis_y":      "matriz (12 capas × 6 componentes)",
+    },
+    "en": {
+        "k95":         "k95 (95% energy)",
+        "spectrum_h":  "matrix: %{customdata}<br>σ index: %{x}<br>σᵢ/σ₁: %{z:.3f}<extra></extra>",
+        "axis_x":      "singular-value index",
+        "axis_y":      "matrix (12 layers × 6 components)",
+    },
+}
+
+
+def build_landscape_figure(lang: str = "es") -> go.Figure:
+    _L = LANG[lang]
     spectra = json.loads((CACHE_DIR / "spectra.json").read_text())
 
     components = ["query", "key", "value", "attn_output",
@@ -92,9 +109,7 @@ def build_landscape_figure() -> go.Figure:
         lighting=dict(ambient=0.55, diffuse=0.85, specular=0.15,
                       roughness=0.7, fresnel=0.2),
         lightposition=dict(x=80, y=20, z=120),
-        hovertemplate=("matriz: %{customdata}<br>"
-                       "σ index: %{x}<br>"
-                       "σᵢ/σ₁: %{z:.3f}<extra></extra>"),
+        hovertemplate=_L["spectrum_h"],
         customdata=np.array([[lab] * top_k for lab in row_labels]),
         opacity=0.96,
         name="spectrum",
@@ -109,7 +124,7 @@ def build_landscape_figure() -> go.Figure:
         hovertext=[f"<b>{row_labels[i]}</b><br>k95 = {k95_per_row[i]}"
                    for i in range(len(matrix_order))],
         hoverinfo="text",
-        name="k95 (95% energía)",
+        name=_L["k95"],
         showlegend=True,
     ))
 
@@ -134,10 +149,10 @@ def build_landscape_figure() -> go.Figure:
             height=820, width=1280,
         ),
         scene=dict(
-            xaxis=dict(title="índice de valor singular", range=[0, top_k - 1],
+            xaxis=dict(title=_L["axis_x"], range=[0, top_k - 1],
                        backgroundcolor=st.BG, gridcolor=st.GRID,
                        zerolinecolor=st.SPINE, color=st.INK_2),
-            yaxis=dict(title="matriz (12 capas × 6 componentes)",
+            yaxis=dict(title=_L["axis_y"],
                        tickmode="array",
                        tickvals=[ci * n_layers + n_layers / 2 for ci in range(len(components))],
                        ticktext=[comp_label[c] for c in components],

@@ -64,7 +64,36 @@ TYPE_COLOR = {
 }
 
 
-def build_trajectories_figure() -> go.Figure:
+LANG = {
+    "es": {
+        "frase":     "Frase:",
+        "capa":      "Capa:",
+        "cls":       "⟨CLS⟩</b> · agregador",
+        "sep":       "⟨SEP⟩</b> · separador",
+        "content":   "contenido",
+        "function":  "palabras función",
+        "centroids": "◆ centroides de emoción (referencia)",
+        "play":      "▶ Play",
+        "pause":     "⏸ Pause",
+        "reset":     "↺ Reset",
+    },
+    "en": {
+        "frase":     "Sentence:",
+        "capa":      "Layer:",
+        "cls":       "⟨CLS⟩</b> · aggregator",
+        "sep":       "⟨SEP⟩</b> · separator",
+        "content":   "content",
+        "function":  "function words",
+        "centroids": "◆ emotion centroids (reference)",
+        "play":      "▶ Play",
+        "pause":     "⏸ Pause",
+        "reset":     "↺ Reset",
+    },
+}
+
+
+def build_trajectories_figure(lang: str = "es") -> go.Figure:
+    _L = LANG[lang]
     # Load the token-level data
     data = np.load(CACHE_DIR / "token_trajectories.npz")
     hidden = data["hidden"].astype(np.float32)     # (n_sent, 13, T, 768)
@@ -162,12 +191,27 @@ def build_trajectories_figure() -> go.Figure:
     padding: 6px 12px; font-size: 12px; color: {st.INK_2};
     cursor: pointer; font-family: inherit;
   }}
-  button.primary {{ background: {st.TERRA}; color: white; border-color: {st.TERRA}; }}
-  button:hover {{ background: {st.SAND}; color: {st.INK}; }}
+  button:hover {{ background: #F4F2EC; color: {st.INK}; border-color: {st.INK_3}; }}
   .layer-control {{
     display: flex; gap: 10px; align-items: center; margin: 8px 0 14px 0;
   }}
   .layer-control input[type=range] {{ flex: 1; max-width: 600px; }}
+  input[type=range] {{
+    -webkit-appearance: none; appearance: none;
+    height: 4px; background: {st.SPINE}; border-radius: 2px; outline: none;
+  }}
+  input[type=range]::-webkit-slider-thumb {{
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; background: {st.INK_2};
+    border-radius: 50%; cursor: pointer;
+  }}
+  input[type=range]::-moz-range-thumb {{
+    width: 14px; height: 14px; background: {st.INK_2};
+    border-radius: 50%; cursor: pointer; border: none;
+  }}
+  input[type=range]::-moz-range-track {{
+    background: {st.SPINE}; height: 4px; border-radius: 2px;
+  }}
   .layer-label {{
     font-family: "Inter", monospace; font-size: 12.5px; color: {st.INK};
     min-width: 120px;
@@ -188,34 +232,25 @@ def build_trajectories_figure() -> go.Figure:
 </head>
 <body>
 
-<h1>Token <span class="acc">trajectories</span></h1>
-<div class="sub">
-  Las trayectorias de cada token (no solo el CLS) a través de las 13 capas.
-  La proyección LDA-3D coincide con la del galaxy formation, así que los
-  centroides de emoción están donde esperas. Verás que CLS viaja MUCHO
-  (es el agregador), mientras que los tokens de contenido apenas se mueven
-  — el residual stream preserva su información local. §2.2.3 + §2.3.2.
-</div>
-
 <div class="legend">
-  <div class="item"><span class="swatch" style="background: {st.TERRA}; height: 6px"></span><b>⟨CLS⟩</b> · agregador</div>
-  <div class="item"><span class="swatch" style="background: {st.SAND}; height: 6px"></span><b>⟨SEP⟩</b> · separador</div>
-  <div class="item"><span class="swatch" style="background: {st.BLUE}"></span>contenido</div>
-  <div class="item"><span class="swatch" style="background: {st.INK_3}"></span>palabras función</div>
-  <div class="item">◆ centroides de emoción (referencia)</div>
+  <div class="item"><span class="swatch" style="background: {st.TERRA}; height: 6px"></span><b>{_L['cls']}</div>
+  <div class="item"><span class="swatch" style="background: {st.SAND}; height: 6px"></span><b>{_L['sep']}</div>
+  <div class="item"><span class="swatch" style="background: {st.BLUE}"></span>{_L['content']}</div>
+  <div class="item"><span class="swatch" style="background: {st.INK_3}"></span>{_L['function']}</div>
+  <div class="item">{_L['centroids']}</div>
 </div>
 
 <div class="controls">
-  <label style="font-size: 13px; color: {st.INK_2}">Frase:</label>
+  <label style="font-size: 13px; color: {st.INK_2}">{_L['frase']}</label>
   <select id="sentence-select"></select>
 </div>
 
 <div class="layer-control">
-  <span class="layer-label" id="layer-display">Capa: Emb</span>
+  <span class="layer-label" id="layer-display">{_L['capa']} Emb</span>
   <input type="range" id="layer-slider" min="0" max="12" value="12" step="1" />
-  <button class="primary" id="play-btn">▶ Play</button>
-  <button id="pause-btn">⏸ Pause</button>
-  <button id="reset-btn">↺ Reset</button>
+  <button id="play-btn">{_L['play']}</button>
+  <button id="pause-btn">{_L['pause']}</button>
+  <button id="reset-btn">{_L['reset']}</button>
 </div>
 
 <div id="plot"></div>
@@ -347,7 +382,7 @@ const layout = {{
 function render() {{
   Plotly.react('plot', buildTraces(), layout, {{displayModeBar: true, responsive: true}});
   document.getElementById('layer-display').textContent =
-    'Capa: ' + DATA.layer_labels[currentLayer];
+    '{_L["capa"]} ' + DATA.layer_labels[currentLayer];
   document.getElementById('layer-slider').value = currentLayer;
 }}
 

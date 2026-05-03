@@ -44,7 +44,32 @@ def _short(s: str, n: int = 70) -> str:
     return s if len(s) <= n else s[: n - 1] + "…"
 
 
-def build_html(out_path: pathlib.Path) -> pathlib.Path:
+LANG = {
+    "es": {
+        "frase":     "Frase:",
+        "head":      "Cabeza",
+        "categories": {
+            "Critical Specialist": "Critical Specialist",
+            "Critical Generalist": "Critical Generalist",
+            "Minor Specialist":    "Minor Specialist",
+            "Dispensable":         "Dispensable",
+        },
+    },
+    "en": {
+        "frase":     "Sentence:",
+        "head":      "Head",
+        "categories": {
+            "Critical Specialist": "Critical Specialist",
+            "Critical Generalist": "Critical Generalist",
+            "Minor Specialist":    "Minor Specialist",
+            "Dispensable":         "Dispensable",
+        },
+    },
+}
+
+
+def build_html(out_path: pathlib.Path, lang: str = "es") -> pathlib.Path:
+    _L = LANG[lang]
     data = np.load(CACHE_DIR / "activations.npz")
     attn = data["attentions"]                  # (N, 12, 12, T, T) float16
     meta = json.loads((CACHE_DIR / "meta.json").read_text())
@@ -199,14 +224,6 @@ def build_html(out_path: pathlib.Path) -> pathlib.Path:
 </head>
 <body>
 
-<h1>Attention <span class="acc">atlas</span></h1>
-<div class="sub">
-  Las 144 cabezas de tu modelo, todas a la vez, sobre la frase elegida. Cada
-  celda es un mini-mapa de calor que muestra a qué tokens atiende esa cabeza.
-  Bordes coloreados por categoría funcional (notebook 6). <b>Click una celda
-  para ampliar</b> con etiquetas de tokens.
-</div>
-
 <div class="legend">
   <div class="item"><span class="swatch" style="background: {st.TERRA}"></span>Critical Specialist</div>
   <div class="item"><span class="swatch" style="background: {st.BLUE}"></span>Critical Generalist</div>
@@ -215,7 +232,7 @@ def build_html(out_path: pathlib.Path) -> pathlib.Path:
 </div>
 
 <div class="controls">
-  <label style="font-size: 13px; color: {st.INK_2}">Frase:</label>
+  <label style="font-size: 13px; color: {st.INK_2}">{_L['frase']}</label>
   <select id="sentence-select"></select>
 </div>
 
@@ -223,20 +240,10 @@ def build_html(out_path: pathlib.Path) -> pathlib.Path:
   <div class="grid" id="atlas"></div>
 </div>
 
-<div class="narrative">
-  La capa 11 (fila inferior) tiene <b>cero cabezas dispensables</b> según tu
-  notebook 6 — todas son críticas. Mira la fila L11: bordes en rojo o azul.
-  La cabeza compartida por sadness/realization según §5.3 está marcada como
-  Critical Generalist. Cuando cambies de frase, mira cómo las cabezas
-  tempranas atienden a tokens locales (diagonales) y las tardías concentran
-  atención en [CLS] o [SEP] (rayas verticales/horizontales) — el patrón
-  típico de "agregadores" que documenta tu memoria.
-</div>
-
 <div class="modal-bg" id="modal-bg" onclick="closeModal(event)">
   <div class="modal" id="modal">
     <button class="close-btn" onclick="closeModal()">×</button>
-    <h2>Cabeza <span class="head-id" id="modal-head"></span></h2>
+    <h2>{_L['head']} <span class="head-id" id="modal-head"></span></h2>
     <div class="modal-sub" id="modal-sub"></div>
     <canvas id="modal-canvas" width="600" height="600"
             style="width: 100%; max-width: 600px; border: 0.5px solid {st.SPINE}"></canvas>

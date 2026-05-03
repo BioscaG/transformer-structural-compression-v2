@@ -30,7 +30,46 @@ def _layer_labels() -> list[str]:
     return ["Emb"] + [f"L{i}" for i in range(12)]
 
 
-def build_crystallization_figure() -> go.Figure:
+LANG = {
+    "es": {
+        "probe":          "Probe F1",
+        "heatmap_h":      "<b>%{y}</b><br>Capa: %{x}<br>Probe F1: %{z:.3f}<extra></extra>",
+        "crystal_h":      "<b>%{y}</b><br>Cristaliza en %{x}<extra></extra>",
+        "crystal_name":   "Capa de cristalización",
+        "f1_head":        "<b>F1<br>head</b>",
+        "axis_layer":     "Capa del encoder",
+        "axis_emotion":   "Emoción (ordenada por cristalización)",
+        "clusters": {
+            "Positivas alta energía":  "Positivas alta energía",
+            "Negativas reactivas":     "Negativas reactivas",
+            "Negativas internas":      "Negativas internas",
+            "Epistémicas":             "Epistémicas",
+            "Orientadas al otro":      "Orientadas al otro",
+            "Baja especificidad":      "Baja especificidad",
+        },
+    },
+    "en": {
+        "probe":          "Probe F1",
+        "heatmap_h":      "<b>%{y}</b><br>Layer: %{x}<br>Probe F1: %{z:.3f}<extra></extra>",
+        "crystal_h":      "<b>%{y}</b><br>Crystallises at %{x}<extra></extra>",
+        "crystal_name":   "Crystallisation layer",
+        "f1_head":        "<b>F1<br>head</b>",
+        "axis_layer":     "Encoder layer",
+        "axis_emotion":   "Emotion (ordered by crystallisation)",
+        "clusters": {
+            "Positivas alta energía":  "High-energy positives",
+            "Negativas reactivas":     "Reactive negatives",
+            "Negativas internas":      "Internal negatives",
+            "Epistémicas":             "Epistemic",
+            "Orientadas al otro":      "Other-oriented",
+            "Baja especificidad":      "Low specificity",
+        },
+    },
+}
+
+
+def build_crystallization_figure(lang: str = "es") -> go.Figure:
+    L = LANG[lang]
     # Load REAL data from the user's notebook 4
     probing = load_probing()
     informed = load_informed()
@@ -55,7 +94,7 @@ def build_crystallization_figure() -> go.Figure:
     fig = make_subplots(
         rows=1, cols=2,
         column_widths=[0.04, 0.96],
-        horizontal_spacing=0.005,
+        horizontal_spacing=0.10,
         specs=[[{"type": "xy"}, {"type": "xy"}]],
     )
 
@@ -87,11 +126,11 @@ def build_crystallization_figure() -> go.Figure:
         zmin=0, zmax=0.95,
         showscale=True,
         colorbar=dict(
-            title=dict(text="Probe F1", font=dict(size=11)),
+            title=dict(text=L["probe"], font=dict(size=11)),
             thickness=14, x=1.02, len=0.85,
             tickfont=dict(size=10, color=st.INK_3),
         ),
-        hovertemplate="<b>%{y}</b><br>Capa: %{x}<br>Probe F1: %{z:.3f}<extra></extra>",
+        hovertemplate=L["heatmap_h"],
         xgap=0.5, ygap=2,
     ), row=1, col=2)
 
@@ -103,8 +142,8 @@ def build_crystallization_figure() -> go.Figure:
         mode="markers",
         marker=dict(symbol="diamond", size=11,
                     color="white", line=dict(color=st.INK, width=1.6)),
-        hovertemplate="<b>%{y}</b><br>Cristaliza en %{x}<extra></extra>",
-        name="Capa de cristalización",
+        hovertemplate=L["crystal_h"],
+        name=L["crystal_name"],
         showlegend=False,
     ), row=1, col=2)
 
@@ -120,7 +159,7 @@ def build_crystallization_figure() -> go.Figure:
     # Header for that column
     fig.add_annotation(
         x=12.65, xref="x2", y=-1, yref="y2",
-        text="<b>F1<br>head</b>", showarrow=False, xanchor="left",
+        text=L["f1_head"], showarrow=False, xanchor="left",
         font=dict(size=9.5, color=st.INK_2, family="serif"),
     )
 
@@ -128,9 +167,10 @@ def build_crystallization_figure() -> go.Figure:
     legend_y = len(emotions) + 1.2
     cluster_x_offset = 0
     for cname, ccolor in cluster_color_map.items():
+        cname_t = L["clusters"].get(cname, cname)
         fig.add_annotation(
             x=cluster_x_offset, y=legend_y, xref="x2", yref="y2",
-            text=f"■ {cname}", showarrow=False, xanchor="left",
+            text=f"■ {cname_t}", showarrow=False, xanchor="left",
             font=dict(size=10.5, color=ccolor, family="serif"),
         )
         cluster_x_offset += 2.05
@@ -155,15 +195,16 @@ def build_crystallization_figure() -> go.Figure:
         row=1, col=1, showticklabels=False,
     )
     fig.update_xaxes(
-        title=dict(text="Capa del encoder", font=dict(size=13, color=st.INK_2)),
+        title=dict(text=L["axis_layer"], font=dict(size=13, color=st.INK_2)),
         tickfont=dict(size=11, color=st.INK_3),
         showgrid=False, zeroline=False,
         row=1, col=2,
     )
     fig.update_yaxes(
-        title=dict(text="Emoción (ordenada por cristalización)", font=dict(size=13, color=st.INK_2)),
+        title=dict(text=L["axis_emotion"], font=dict(size=13, color=st.INK_2)),
         tickfont=dict(size=10.5, color=st.INK_2, family="serif"),
         showgrid=False, zeroline=False, autorange="reversed",
+        automargin=True,
         row=1, col=2,
     )
 

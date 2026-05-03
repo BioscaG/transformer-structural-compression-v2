@@ -91,7 +91,38 @@ def compute_diff_matrix() -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     return rel_change, frob_pre, frob_diff
 
 
-def build_diff_figure() -> go.Figure:
+LANG = {
+    "es": {
+        "panel_main":  "Cambio relativo por matriz (ratio Frobenius)",
+        "panel_3d":    "Mismo dato en 3D",
+        "panel_layer": "Cambio total por capa",
+        "panel_comp":  "Cambio total por componente",
+        "main_h":      "<b>L%{y}-%{x}</b><br>cambio relativo: %{z:.4f} (%{text})<extra></extra>",
+        "surface_h":   "L%{y} %{x}<br>cambio: %{z:.4f}<extra></extra>",
+        "bar_layer_h": "<b>L%{x}</b><br>cambio medio: %{y:.4f}<extra></extra>",
+        "bar_comp_h":  "<b>%{x}</b><br>cambio medio: %{y:.4f}<extra></extra>",
+        "axis_change": "cambio medio",
+        "axis_comp":   "componente",
+        "axis_layer":  "capa",
+    },
+    "en": {
+        "panel_main":  "Relative change per matrix (Frobenius ratio)",
+        "panel_3d":    "Same data in 3D",
+        "panel_layer": "Total change per layer",
+        "panel_comp":  "Total change per component",
+        "main_h":      "<b>L%{y}-%{x}</b><br>relative change: %{z:.4f} (%{text})<extra></extra>",
+        "surface_h":   "L%{y} %{x}<br>change: %{z:.4f}<extra></extra>",
+        "bar_layer_h": "<b>L%{x}</b><br>mean change: %{y:.4f}<extra></extra>",
+        "bar_comp_h":  "<b>%{x}</b><br>mean change: %{y:.4f}<extra></extra>",
+        "axis_change": "mean change",
+        "axis_comp":   "component",
+        "axis_layer":  "layer",
+    },
+}
+
+
+def build_diff_figure(lang: str = "es") -> go.Figure:
+    L = LANG[lang]
     rel_change, frob_pre, frob_diff = compute_diff_matrix()
     n_layers, n_comp = rel_change.shape
 
@@ -101,12 +132,8 @@ def build_diff_figure() -> go.Figure:
         row_heights=[0.78, 0.22],
         specs=[[{"type": "heatmap"}, {"type": "scene"}],
                [{"type": "xy"},      {"type": "xy"}]],
-        subplot_titles=(
-            "Cambio relativo por matriz (ratio Frobenius)",
-            "Mismo dato en 3D",
-            "Cambio total por capa",
-            "Cambio total por componente",
-        ),
+        subplot_titles=(L["panel_main"], L["panel_3d"],
+                        L["panel_layer"], L["panel_comp"]),
         horizontal_spacing=0.10, vertical_spacing=0.18,
     )
 
@@ -121,8 +148,7 @@ def build_diff_figure() -> go.Figure:
         zmin=0, zmax=float(rel_change.max()),
         text=text, texttemplate="%{text}",
         textfont=dict(size=11, color=st.INK, family="serif"),
-        hovertemplate=("<b>L%{y}-%{x}</b><br>"
-                       "cambio relativo: %{z:.4f} (%{text})<extra></extra>"),
+        hovertemplate=L["main_h"],
         xgap=1, ygap=1, showscale=True,
         colorbar=dict(thickness=14, len=0.65, x=0.55,
                       title=dict(text="‖ΔW‖/‖W₀‖", font=dict(size=11)),
@@ -144,7 +170,7 @@ def build_diff_figure() -> go.Figure:
         contours=dict(z=dict(show=True, usecolormap=True, project_z=True,
                              highlightcolor="white")),
         lighting=dict(ambient=0.6, diffuse=0.85, specular=0.2),
-        hovertemplate=("L%{y} %{x}<br>cambio: %{z:.4f}<extra></extra>"),
+        hovertemplate=L["surface_h"],
         opacity=0.95,
     ), row=1, col=2)
 
@@ -155,7 +181,7 @@ def build_diff_figure() -> go.Figure:
         marker=dict(color=per_layer,
                     colorscale=[[0, st.SAND_L], [1.0, st.TERRA]],
                     line=dict(color="white", width=0.5)),
-        hovertemplate="<b>L%{x}</b><br>cambio medio: %{y:.4f}<extra></extra>",
+        hovertemplate=L["bar_layer_h"],
         showlegend=False,
     ), row=2, col=1)
 
@@ -165,7 +191,7 @@ def build_diff_figure() -> go.Figure:
         x=[COMPONENT_LABEL[c] for c in COMPONENTS], y=per_comp,
         marker=dict(color=[component_color[c] for c in COMPONENTS],
                     line=dict(color="white", width=0.5)),
-        hovertemplate="<b>%{x}</b><br>cambio medio: %{y:.4f}<extra></extra>",
+        hovertemplate=L["bar_comp_h"],
         showlegend=False,
     ), row=2, col=2)
 
@@ -179,13 +205,13 @@ def build_diff_figure() -> go.Figure:
             height=860, width=1280,
         ),
         scene=dict(
-            xaxis=dict(title="componente",
+            xaxis=dict(title=L["axis_comp"],
                        tickmode="array",
                        tickvals=list(range(n_comp)),
                        ticktext=[COMPONENT_LABEL[c] for c in COMPONENTS],
                        backgroundcolor=st.BG, gridcolor=st.GRID,
                        color=st.INK_2),
-            yaxis=dict(title="capa",
+            yaxis=dict(title=L["axis_layer"],
                        tickmode="array",
                        tickvals=list(range(n_layers)),
                        ticktext=[f"L{L}" for L in range(n_layers)],
@@ -206,13 +232,13 @@ def build_diff_figure() -> go.Figure:
                      row=1, col=1)
     fig.update_xaxes(tickfont=dict(size=10, color=st.INK_3), gridcolor=st.GRID,
                      showline=True, linecolor=st.SPINE, row=2, col=1)
-    fig.update_yaxes(title=dict(text="cambio medio", font=dict(size=10, color=st.INK_2)),
+    fig.update_yaxes(title=dict(text=L["axis_change"], font=dict(size=10, color=st.INK_2)),
                      tickformat=".0%", gridcolor=st.GRID,
                      tickfont=dict(size=10, color=st.INK_3),
                      showline=True, linecolor=st.SPINE, row=2, col=1)
     fig.update_xaxes(tickfont=dict(size=10, color=st.INK_3), gridcolor=st.GRID,
                      showline=True, linecolor=st.SPINE, row=2, col=2)
-    fig.update_yaxes(title=dict(text="cambio medio", font=dict(size=10, color=st.INK_2)),
+    fig.update_yaxes(title=dict(text=L["axis_change"], font=dict(size=10, color=st.INK_2)),
                      tickformat=".0%", gridcolor=st.GRID,
                      tickfont=dict(size=10, color=st.INK_3),
                      showline=True, linecolor=st.SPINE, row=2, col=2)

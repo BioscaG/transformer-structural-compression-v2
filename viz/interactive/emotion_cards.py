@@ -224,14 +224,6 @@ def build_html(out_path: pathlib.Path) -> pathlib.Path:
 </head>
 <body>
 
-<h1>Emotion <span class="acc">trading cards</span></h1>
-<div class="sub">
-  23 tarjetas, una por emoción. Cada una sintetiza la huella completa: F1 antes
-  y después de comprimir y reentrenar, capa de cristalización, cabeza crítica,
-  neuronas dedicadas, radar funcional y frases ejemplo de tu test set.
-  Defense-grade dossier.
-</div>
-
 <div class="legend">
   <div class="item"><span class="swatch" style="background:#e5b85e"></span>Positivas alta energía</div>
   <div class="item"><span class="swatch" style="background:#c64a37"></span>Negativas reactivas</div>

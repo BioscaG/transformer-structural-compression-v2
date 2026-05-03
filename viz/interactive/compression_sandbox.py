@@ -191,8 +191,8 @@ def build_html(out_path: pathlib.Path) -> pathlib.Path:
     padding: 5px 9px; font-size: 11.5px; color: {st.INK_2}; cursor: pointer;
     font-family: inherit;
   }}
-  .preset-row button:hover {{ background: {st.SAND}; color: {st.INK}; border-color: {st.INK_3}; }}
-  .preset-row button.greedy {{ background: {st.SAND}; color: {st.INK}; border-color: {st.INK_3}; }}
+  .preset-row button:hover {{ background: #F4F2EC; color: {st.INK}; border-color: {st.INK_3}; }}
+  .preset-row button.greedy {{ background: #F4F2EC; color: {st.INK}; border-color: {st.INK_3}; }}
   .readout {{
     margin-top: 14px; padding: 14px;
     background: white; border: 0.5px solid {st.SPINE}; border-radius: 5px;
@@ -215,13 +215,6 @@ def build_html(out_path: pathlib.Path) -> pathlib.Path:
 </style>
 </head>
 <body>
-
-<h1>Compression Sandbox — <span class="acc">Beat the Greedy</span></h1>
-<div class="sub">
-  Diseña tu propia estrategia SVD ajustando el rango por componente y profundidad.
-  El simulador estima F1 macro, ratio de parámetros, y tu posición en la frontera de Pareto en tiempo real.
-  ¿Puedes vencer al algoritmo greedy data-driven?
-</div>
 
 <div class="grid">
   <div class="controls">

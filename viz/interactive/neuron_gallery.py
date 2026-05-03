@@ -189,13 +189,6 @@ def build_html(out_path: pathlib.Path) -> pathlib.Path:
 </head>
 <body>
 
-<h1>Neuron portrait <span class="acc">gallery</span></h1>
-<div class="sub">
-  Las 80 neuronas más selectivas del modelo, cada una con las 5 frases del
-  test set que más la activan. Una mirada íntima al "lenguaje" interno —
-  qué representa cada neurona.
-</div>
-
 <div class="controls">
   <label>Filtrar por emoción:</label>
   <select id="filter-emo">

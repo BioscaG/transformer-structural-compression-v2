@@ -34,7 +34,44 @@ from viz.data.load_results import EMOTIONS_23, MODEL_CHECKPOINT
 from viz.thesis_data import EXTENDED_CLUSTER_MAP, emotion_palette
 
 
-def build_constellation_figure() -> go.Figure:
+LANG = {
+    "es": {
+        "panel_3d":   "Direcciones de detección · PCA del peso del classifier",
+        "panel_heat": "Similitud coseno entre emociones (768-d)",
+        "origin":     "origen",
+        "hover_emo":  "<b>{emo}</b><br>cluster: {cluster}<br>norma 768d: %{{customdata:.2f}}<extra></extra>",
+        "heatmap_h":  "%{y} ↔ %{x}<br>cos sim: %{z:.3f}<extra></extra>",
+        "cbar":       "cos sim",
+        "clusters": {
+            "Positivas alta energía":  "Positivas alta energía",
+            "Negativas reactivas":     "Negativas reactivas",
+            "Negativas internas":      "Negativas internas",
+            "Epistémicas":             "Epistémicas",
+            "Orientadas al otro":      "Orientadas al otro",
+            "Baja especificidad":      "Baja especificidad",
+        },
+    },
+    "en": {
+        "panel_3d":   "Detection directions · PCA of classifier weights",
+        "panel_heat": "Cosine similarity between emotions (768-d)",
+        "origin":     "origin",
+        "hover_emo":  "<b>{emo}</b><br>cluster: {cluster}<br>768d norm: %{{customdata:.2f}}<extra></extra>",
+        "heatmap_h":  "%{y} ↔ %{x}<br>cos sim: %{z:.3f}<extra></extra>",
+        "cbar":       "cos sim",
+        "clusters": {
+            "Positivas alta energía":  "High-energy positives",
+            "Negativas reactivas":     "Reactive negatives",
+            "Negativas internas":      "Internal negatives",
+            "Epistémicas":             "Epistemic",
+            "Orientadas al otro":      "Other-oriented",
+            "Baja especificidad":      "Low specificity",
+        },
+    },
+}
+
+
+def build_constellation_figure(lang: str = "es") -> go.Figure:
+    L = LANG[lang]
     mdl = AutoModelForSequenceClassification.from_pretrained(str(MODEL_CHECKPOINT))
     W = mdl.classifier.weight.detach().numpy()       # (23, 768)
     # The user's checkpoint stores emotions in EMOTIONS_23 order.
@@ -54,13 +91,10 @@ def build_constellation_figure() -> go.Figure:
     # ─── Build figure with 3D constellation + 2D similarity heatmap ───
     fig = make_subplots(
         rows=1, cols=2,
-        column_widths=[0.62, 0.38],
+        column_widths=[0.58, 0.42],
         specs=[[{"type": "scene"}, {"type": "xy"}]],
-        subplot_titles=(
-            "Direcciones de detección · PCA del peso del classifier",
-            "Similitud coseno entre emociones (768-d)",
-        ),
-        horizontal_spacing=0.06,
+        subplot_titles=(L["panel_3d"], L["panel_heat"]),
+        horizontal_spacing=0.13,
     )
 
     # Arrows from origin to each emotion's projected weight vector
@@ -85,11 +119,11 @@ def build_constellation_figure() -> go.Figure:
                         line=dict(color=st.INK, width=1)),
             text=[emo], textposition="top center",
             textfont=dict(size=10, color=color, family="serif"),
-            hovertemplate=(f"<b>{emo}</b><br>cluster: {cluster}<br>"
-                            "norma 768d: %{customdata:.2f}<extra></extra>"),
+            hovertemplate=L["hover_emo"].format(emo=emo,
+                cluster=L["clusters"].get(cluster, cluster)),
             customdata=[float(np.linalg.norm(W[i]))],
             name=emo, legendgroup=cluster,
-            legendgrouptitle=dict(text=cluster),
+            legendgrouptitle=dict(text=L["clusters"].get(cluster, cluster)),
             showlegend=True,
         ), row=1, col=1)
 
@@ -97,7 +131,7 @@ def build_constellation_figure() -> go.Figure:
     fig.add_trace(go.Scatter3d(
         x=[0], y=[0], z=[0], mode="markers",
         marker=dict(size=6, color=st.INK, symbol="cross"),
-        hovertext=["origen"], hoverinfo="text",
+        hovertext=[L["origin"]], hoverinfo="text",
         showlegend=False,
     ), row=1, col=1)
 
@@ -118,13 +152,16 @@ def build_constellation_figure() -> go.Figure:
         zmid=0, zmin=-0.5, zmax=1.0,
         showscale=True,
         colorbar=dict(thickness=14, len=0.75, x=1.0,
-                      title=dict(text="cos sim", font=dict(size=11)),
+                      title=dict(text=L["cbar"], font=dict(size=11)),
                       tickfont=dict(size=10, color=st.INK_3)),
-        hovertemplate="%{y} ↔ %{x}<br>cos sim: %{z:.3f}<extra></extra>",
+        hovertemplate=L["heatmap_h"],
         xgap=0.5, ygap=0.5,
     ), row=1, col=2)
 
-    # Cluster boundary lines on the heatmap
+    # Cluster boundary lines on the heatmap. The heatmap subplot on
+    # row=1 col=2 uses axes "x" and "y" (not "x2"/"y2") because the
+    # scene takes the first axis slot. Use paper-relative refs scoped
+    # via the row/col argument.
     cum = 0
     shapes = []
     for cluster in cluster_order:
@@ -134,11 +171,11 @@ def build_constellation_figure() -> go.Figure:
             shapes.append(dict(type="line",
                                x0=cum - 0.5, x1=cum - 0.5, y0=-0.5, y1=22.5,
                                line=dict(color=st.INK_3, width=1, dash="dash"),
-                               xref="x2", yref="y2"))
+                               xref="x", yref="y"))
             shapes.append(dict(type="line",
                                x0=-0.5, x1=22.5, y0=cum - 0.5, y1=cum - 0.5,
                                line=dict(color=st.INK_3, width=1, dash="dash"),
-                               xref="x2", yref="y2"))
+                               xref="x", yref="y"))
 
     fig.update_layout(
         **st.thesis_layout(
@@ -163,12 +200,14 @@ def build_constellation_figure() -> go.Figure:
                     bgcolor="rgba(255,255,255,0.92)", bordercolor=st.SPINE,
                     borderwidth=0.5, font=dict(size=10)),
     )
-    fig.update_xaxes(side="top", tickangle=-45,
+    fig.update_xaxes(type="category", side="top", tickangle=-45,
                      tickfont=dict(size=9, color=st.INK_2, family="serif"),
-                     showgrid=False, linecolor=st.SPINE, row=1, col=2)
-    fig.update_yaxes(autorange="reversed",
+                     showgrid=False, linecolor=st.SPINE, automargin=True,
+                     row=1, col=2)
+    fig.update_yaxes(type="category", autorange="reversed",
                      tickfont=dict(size=9, color=st.INK_2, family="serif"),
-                     showgrid=False, linecolor=st.SPINE, row=1, col=2)
+                     showgrid=False, linecolor=st.SPINE, automargin=True,
+                     row=1, col=2)
 
     return fig
 

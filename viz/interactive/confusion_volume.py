@@ -186,7 +186,7 @@ def build_volume_figure() -> go.Figure:
                    f"{n_diagonal} en la diagonal (aciertos estructurales) + "
                    f"{n_offdiag} fuera de diagonal (confusiones que el modelo NUNCA arregla). "
                    "Las columnas verticales que ves son patrones intrínsecos del modelo.</sub>"),
-            height=820, width=1320,
+            height=700, width=1320,
         ),
         scene=dict(
             xaxis=dict(title="predicho",
@@ -208,7 +208,8 @@ def build_volume_figure() -> go.Figure:
                        ticktext=layer_labels,
                        backgroundcolor=st.BG, gridcolor=st.GRID,
                        zerolinecolor=st.SPINE, color=st.INK_2),
-            camera=dict(eye=dict(x=2.0, y=-2.0, z=1.0)),
+            domain=dict(x=[0, 0.92], y=[0, 1]),
+            camera=dict(eye=dict(x=1.4, y=-1.4, z=0.7)),
             aspectmode="manual", aspectratio=dict(x=1.0, y=1.0, z=0.85),
         ),
     )

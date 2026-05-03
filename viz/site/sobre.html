@@ -35,6 +35,10 @@
   }
   ::selection { background: var(--accent); color: var(--bg-2); }
 
+  /* Bilingual hiding */
+  html[lang="es"] [lang="en"] { display: none !important; }
+  html[lang="en"] [lang="es"] { display: none !important; }
+
   nav.top {
     position: fixed; top: 0; left: 0; right: 0;
     display: flex; align-items: center; justify-content: space-between;
@@ -55,6 +59,9 @@
     background: var(--accent); border-radius: 50%;
     margin-right: 10px; transform: translateY(-1px);
   }
+  nav.top .nav-tools {
+    display: flex; align-items: center; gap: 10px;
+  }
   nav.top a.back {
     font-family: var(--mono); font-size: 11.5px;
     letter-spacing: 0.05em; color: var(--ink-2);
@@ -62,6 +69,19 @@
     transition: color 0.18s var(--easing);
   }
   nav.top a.back:hover { color: var(--accent); }
+  nav.top button.lang-btn {
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.05em;
+    color: var(--ink); background: transparent;
+    border: 0.5px solid var(--line);
+    padding: 7px 12px; border-radius: 1px; cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s var(--easing);
+    min-width: 38px;
+  }
+  nav.top button.lang-btn:hover {
+    border-color: var(--accent); color: var(--accent);
+    background: var(--bg-2);
+  }
 
   main {
     max-width: 760px;
@@ -163,58 +183,110 @@
 
 <nav class="top">
   <a href="index.html" class="brand"><span class="dot"></span>Anatomía Emocional</a>
-  <a href="index.html" class="back">← Volver</a>
+  <div class="nav-tools">
+    <a href="index.html" class="back">
+      <span lang="es">← Volver</span><span lang="en">← Back</span>
+    </a>
+    <button class="lang-btn" id="lang-btn" aria-label="Toggle language">
+      <span class="lang-current"></span>
+    </button>
+  </div>
 </nav>
 
 <main>
-  <div class="meta">Sobre el proyecto</div>
-  <h1>Cómo está <em>hecho</em></h1>
+  <div class="meta">
+    <span lang="es">Sobre el proyecto</span><span lang="en">About the project</span>
+  </div>
+  <h1>
+    <span lang="es">Cómo está <em>hecho</em></span><span lang="en">How it's <em>made</em></span>
+  </h1>
   <p class="lede">
-    Stack técnico, fuentes de datos, agradecimientos y créditos.
+    <span lang="es">Stack técnico, fuentes de datos, agradecimientos y créditos.</span><span lang="en">Technical stack, data sources, acknowledgements and credits.</span>
   </p>
 
-  <h2>El proyecto</h2>
+  <h2>
+    <span lang="es">El proyecto</span><span lang="en">The project</span>
+  </h2>
   <p>
-    Esta página es la versión interactiva de mi TFG en el grado de
+    <span lang="es">Esta página es la versión interactiva de mi TFG en el grado de
     Ingeniería Informática de la FIB (Universitat Politècnica de
-    Catalunya). Director: Lluís Padró Cirera.
+    Catalunya). Director: Lluís Padró Cirera.</span><span lang="en">This page is the interactive version of my final thesis for the
+    Computer Engineering degree at FIB (Universitat Politècnica de
+    Catalunya). Advisor: Lluís Padró Cirera.</span>
   </p>
   <p>
-    El título completo del trabajo es <em>Compresión Selectiva y
+    <span lang="es">El título completo del trabajo es <em>Compresión Selectiva y
     Análisis Estructural de Modelos basados en Arquitectura Transformer
     mediante SVD</em>. Combina dos cosas: interpretabilidad mecánica
     (probing, activation patching, ablation de cabezas, especialización
-    neuronal) y compresión por SVD informada por esa interpretabilidad.
+    neuronal) y compresión por SVD informada por esa interpretabilidad.</span><span lang="en">The full title is <em>Selective Compression and Structural
+    Analysis of Transformer-based Models via SVD</em>. It combines two
+    things: mechanistic interpretability (probing, activation patching,
+    head ablation, neuron specialization) and SVD-based compression
+    informed by that interpretability.</span>
   </p>
 
-  <h2>Modelo y datos</h2>
+  <h2>
+    <span lang="es">Modelo y datos</span><span lang="en">Model and data</span>
+  </h2>
   <p>
-    El modelo es <code>bert-base-uncased</code> fine-tuneado sobre
+    <span lang="es">El modelo es <code>bert-base-uncased</code> fine-tuneado sobre
     GoEmotions (28 categorías emocionales, evaluadas sobre 23 tras
     limpieza de etiquetas). Multi-label con <code>BCEWithLogitsLoss</code>.
-    Checkpoint final: <code>23emo-final</code>, 109.5M parámetros.
+    Checkpoint final: <code>23emo-final</code>, 109.5M parámetros.</span><span lang="en">The model is <code>bert-base-uncased</code> fine-tuned on
+    GoEmotions (28 emotion categories, evaluated on 23 after label
+    cleanup). Multi-label with <code>BCEWithLogitsLoss</code>.
+    Final checkpoint: <code>23emo-final</code>, 109.5M parameters.</span>
   </p>
   <p>
-    Las visualizaciones se alimentan de dos fuentes. Las primeras vienen
+    <span lang="es">Las visualizaciones se alimentan de dos fuentes. Las primeras vienen
     directamente de los CSVs producidos por los notebooks 2 al 9 (61
     tablas exportadas: probing por capa, ablación de las 144 cabezas,
     especialización neuronal con Cohen's d, activation patching,
     frontera de Pareto, y más). Las segundas se computan en build-time
-    ejecutando el checkpoint sobre 2300 frases del split de test.
+    ejecutando el checkpoint sobre 2300 frases del split de test.</span><span lang="en">The visualizations are fed from two sources. The first come
+    directly from the CSVs produced by notebooks 2 through 9 (61
+    exported tables: layer-wise probing, ablation of the 144 heads,
+    neuron specialization with Cohen's d, activation patching, Pareto
+    frontier, and more). The second are computed at build-time by
+    running the checkpoint on 2,300 sentences from the test split.</span>
   </p>
 
   <h2>Stack</h2>
   <ul>
-    <li><span class="label">Lenguaje</span><span class="value">Python 3.14</span></li>
-    <li><span class="label">Modelo</span><span class="value">PyTorch + HuggingFace Transformers</span></li>
-    <li><span class="label">Análisis</span><span class="value">NumPy, SciPy, scikit-learn</span></li>
-    <li><span class="label">Notebooks</span><span class="value">Jupyter, Google Colab Pro</span></li>
-    <li><span class="label">Visualización</span><span class="value">Plotly, D3.js, HTML+CSS+JS vanilla</span></li>
-    <li><span class="label">Tipografía</span><span class="value">Fraunces, Geist Sans, Geist Mono</span></li>
-    <li><span class="label">Hosting</span><span class="value">Estático, sin backend</span></li>
+    <li>
+      <span class="label"><span lang="es">Lenguaje</span><span lang="en">Language</span></span>
+      <span class="value">Python 3.14</span>
+    </li>
+    <li>
+      <span class="label"><span lang="es">Modelo</span><span lang="en">Model</span></span>
+      <span class="value">PyTorch + HuggingFace Transformers</span>
+    </li>
+    <li>
+      <span class="label"><span lang="es">Análisis</span><span lang="en">Analysis</span></span>
+      <span class="value">NumPy, SciPy, scikit-learn</span>
+    </li>
+    <li>
+      <span class="label">Notebooks</span>
+      <span class="value">Jupyter, Google Colab Pro</span>
+    </li>
+    <li>
+      <span class="label"><span lang="es">Visualización</span><span lang="en">Visualization</span></span>
+      <span class="value">Plotly, D3.js, HTML+CSS+JS vanilla</span>
+    </li>
+    <li>
+      <span class="label"><span lang="es">Tipografía</span><span lang="en">Typography</span></span>
+      <span class="value">Fraunces, Geist Sans, Geist Mono</span>
+    </li>
+    <li>
+      <span class="label">Hosting</span>
+      <span class="value"><span lang="es">Estático, sin backend</span><span lang="en">Static, no backend</span></span>
+    </li>
   </ul>
 
-  <h2>Bibliografía clave</h2>
+  <h2>
+    <span lang="es">Bibliografía clave</span><span lang="en">Key references</span>
+  </h2>
   <p>
     Devlin et al. (2018) <em>BERT: Pre-training of Deep Bidirectional
     Transformers for Language Understanding</em>. Demszky et al. (2020)
@@ -228,25 +300,35 @@
     Transformers with the Tuned Lens</em>.
   </p>
   <p>
-    Para el lado de compresión: Hsu et al. (2022) <em>Language model
+    <span lang="es">Para el lado de compresión:</span><span lang="en">For the compression side:</span>
+    Hsu et al. (2022) <em>Language model
     compression with weighted low-rank factorization</em>. Yu et al.
     (2017) <em>Compressing Neural Networks: Towards Determining the
     Optimal Layer-wise Decomposition</em>.
   </p>
   <p>
-    La taxonomía de seis clusters se inspira en Russell (1980) <em>A
+    <span lang="es">La taxonomía de seis clusters se inspira en Russell (1980) <em>A
     Circumplex Model of Affect</em> y Plutchik (2001) <em>The Nature of
-    Emotions</em>.
+    Emotions</em>.</span><span lang="en">The six-cluster taxonomy draws on Russell (1980) <em>A
+    Circumplex Model of Affect</em> and Plutchik (2001) <em>The Nature of
+    Emotions</em>.</span>
   </p>
 
-  <h2>Agradecimientos</h2>
+  <h2>
+    <span lang="es">Agradecimientos</span><span lang="en">Acknowledgements</span>
+  </h2>
   <p>
-    A Lluís Padró por la dirección, por las preguntas precisas y por
+    <span lang="es">A Lluís Padró por la dirección, por las preguntas precisas y por
     no aceptar atajos. A los autores del dataset GoEmotions y de las
-    librerías abiertas que han hecho posible este trabajo.
+    librerías abiertas que han hecho posible este trabajo.</span><span lang="en">To Lluís Padró for the supervision, the precise questions and
+    for not accepting shortcuts. To the authors of the GoEmotions
+    dataset and of the open-source libraries that made this work
+    possible.</span>
   </p>
 
-  <h2>Contacto</h2>
+  <h2>
+    <span lang="es">Contacto</span><span lang="en">Contact</span>
+  </h2>
   <p>
     <a href="mailto:guido.biosca0@gmail.com">guido.biosca0@gmail.com</a>
   </p>
@@ -256,6 +338,36 @@
     <span>FIB · UPC · 2026</span>
   </footer>
 </main>
+
+<script>
+  (function() {
+    const html = document.documentElement;
+    const stored = localStorage.getItem('site-lang');
+    const initial = stored === 'es' || stored === 'en'
+      ? stored
+      : (navigator.language || 'es').toLowerCase().startsWith('en') ? 'en' : 'es';
+    html.lang = initial;
+
+    function updateBtn(lang) {
+      const cur = document.querySelector('.lang-current');
+      if (cur) cur.textContent = lang === 'es' ? 'EN' : 'ES';
+      document.title = lang === 'es'
+        ? 'Sobre · Anatomía Emocional'
+        : 'About · Emotional Anatomy';
+    }
+    updateBtn(initial);
+
+    const btn = document.getElementById('lang-btn');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        const next = html.lang === 'es' ? 'en' : 'es';
+        html.lang = next;
+        localStorage.setItem('site-lang', next);
+        updateBtn(next);
+      });
+    }
+  })();
+</script>
 
 </body>
 </html>

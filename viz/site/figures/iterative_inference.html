@@ -20,7 +20,7 @@
   }
   .panel-title {
     font-family: "Inter", sans-serif; font-size: 11px; font-weight: 500;
-    color: #C1553A; letter-spacing: 1.2px; text-transform: uppercase;
+    color: #4A4A4A; letter-spacing: 1.2px; text-transform: uppercase;
     margin: 8px 0 0 12px;
   }
   .panel-sub {
@@ -46,7 +46,7 @@
     color: #1A1A1A; border-color: #8A8A85;
   }
   .group-toggle button.active {
-    background: #C1553A; color: white; border-color: #C1553A;
+    background: #F4F2EC; color: #1A1A1A; border-color: #8A8A85;
   }
   select {
     padding: 5px 8px; border: 0.5px solid #C8C7C1;
@@ -78,7 +78,7 @@
     overflow-x: hidden !important;
   }
   body {
-    font-family: "TeX Gyre Pagella", "Palatino", "Palatino Linotype", "Book Antiqua", "Iowan Old Style", "DejaVu Serif", serif !important;
+    font-family: "Geist", "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif !important;
     color: #4A4A47 !important;
   }
   /* Make scrollbars unobtrusive if any appear */
@@ -88,16 +88,6 @@
 
 </head>
 <body>
-
-<h1>Iterative inference · <span class="acc">la curva en U del logit lens</span></h1>
-<div class="sub">
-  Aplicamos el pooler + classifier reales del modelo a cada una de las 13
-  capas ocultas (logit-lens). Lo que ves: las primeras capas explotan en
-  probabilidades difusas (todas un poco), las medias se hunden a casi cero
-  (transición), y las tardías cristalizan una decisión confiada. Es el
-  <b>patrón U canónico</b> de Nostalgebraist (2020) y la Tuned Lens de
-  Belrose et al. (NeurIPS 2023) — observable EN TU fine-tune.
-</div>
 
 <div class="grid">
   <div class="panel">
@@ -121,27 +111,6 @@
 <div class="controls">
   <label style="font-size: 12.5px; color: #4A4A4A">Frase:</label>
   <select id="sentence-select"></select>
-</div>
-
-<div class="narrative">
-  <h3>¿Por qué este patrón en U?</h3>
-  <b>Capas 0-3 (saturación):</b> el pooler aplica tanh, y las estadísticas del
-  CLS en estas capas saturan ±1 → el clasificador recibe vectores binarios
-  y dispara muchas emociones a la vez (probabilidades difusas).
-  <b>Capas 4-9 (valle de transición):</b> el CLS deja el régimen de embedding
-  pero todavía no llega al espacio del clasificador → tanh ≈ 0 → solo bias →
-  todas las sigmoides colapsan.
-  <b>Capas 10-11 (cristalización):</b> el CLS entra en su régimen natural
-  (donde el pooler+classifier fueron entrenados) → un peso del clasificador
-  se alinea → una emoción pega un salto, las demás se quedan bajas.
-  <br><br>
-  <b>Por qué importa para la memoria:</b> esto refuerza §5.1 (cristalización
-  emocional) y §5.2 (FFN-L11 como cuello de botella) desde un ángulo
-  complementario. El valle medio prueba que <b>la decisión emocional no
-  existe</b> hasta que la pipeline pooler+classifier se activa, lo que
-  ocurre exactamente al llegar a la representación de L11. Cuando la
-  capa 11 se restaura en el activation patching, el F1 vuelve al 100%
-  porque <b>se reactiva precisamente esta calibración</b>.
 </div>
 
 <script>

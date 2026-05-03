@@ -33,7 +33,75 @@ from viz import style as st
 CACHE_DIR = pathlib.Path(__file__).resolve().parents[1] / "data" / "cache"
 
 
-def build_decay_figure() -> go.Figure:
+LANG = {
+    "es": {
+        "subplot_3d":   "Galaxia de embeddings · L12 a varios rangos de compresión",
+        "subplot_line": "Métricas de degradación por rango",
+        "silhouette":   "Silhouette score (L12)",
+        "f1_ret":       "Retención F1 (Tabla 8)",
+        "axis_rank":    "Rango SVD (uniforme)",
+        "axis_f1":      "Retención F1",
+        "rank_prefix":  "Rango SVD: ",
+        "play":         "▶ Play decay",
+        "pause":        "⏸ Pause",
+        "reset":        "↺ Reset",
+        "baseline":     "baseline",
+        "sil_h":        "rango %{x}<br>silhouette: %{y:.3f}<extra></extra>",
+        "f1_h":         "rango %{x}<br>F1 retenida: %{y:.1%}<extra></extra>",
+        "captions":     {
+            768: ("Modelo sin compresión. Los 6 clusters psicológicos están "
+                  "limpios y separados. Silhouette ≈ {sil:.2f}."),
+            512: ("Compresión leve (rango 512). Apenas se nota — la "
+                  "geometría se mantiene. F1 retiene {f1:.0%}."),
+            384: ("Break-even de la compresión attention. La estructura aún "
+                  "es reconocible pero los clusters se rozan. F1 cae al {f1:.0%}."),
+            256: ("Cliff. La estructura se difumina notablemente. "
+                  "Silhouette baja a {sil:.2f}, F1 al {f1:.0%}. "
+                  "Aquí empieza la transición de fase."),
+            128: ("Modelo casi muerto. La galaxia es ya una nube amorfa. "
+                  "F1 ≈ 0%. Los clusters dejan de existir."),
+            64:  ("Colapso total. Los embeddings se han colapsado en un "
+                  "blob central. El modelo no diferencia ninguna emoción."),
+        },
+        "default":      "Rango {r}. Silhouette {sil:.2f}.",
+        "initial":      "<b>baseline</b> · Modelo sin compresión. Los 6 clusters psicológicos están limpios y separados. Silhouette ≈ {sil:.2f}.",
+    },
+    "en": {
+        "subplot_3d":   "Embedding galaxy · L12 across compression ranks",
+        "subplot_line": "Degradation metrics by rank",
+        "silhouette":   "Silhouette score (L12)",
+        "f1_ret":       "F1 retention (Table 8)",
+        "axis_rank":    "SVD rank (uniform)",
+        "axis_f1":      "F1 retention",
+        "rank_prefix":  "SVD rank: ",
+        "play":         "▶ Play decay",
+        "pause":        "⏸ Pause",
+        "reset":        "↺ Reset",
+        "baseline":     "baseline",
+        "sil_h":        "rank %{x}<br>silhouette: %{y:.3f}<extra></extra>",
+        "f1_h":         "rank %{x}<br>F1 retained: %{y:.1%}<extra></extra>",
+        "captions":     {
+            768: ("Uncompressed model. The 6 psychological clusters are "
+                  "clean and separated. Silhouette ≈ {sil:.2f}."),
+            512: ("Mild compression (rank 512). Barely noticeable — the "
+                  "geometry holds. F1 retains {f1:.0%}."),
+            384: ("Attention compression break-even. Structure is still "
+                  "recognisable but clusters start touching. F1 drops to {f1:.0%}."),
+            256: ("Cliff. The structure visibly blurs. Silhouette down to "
+                  "{sil:.2f}, F1 at {f1:.0%}. The phase transition starts here."),
+            128: ("Model nearly dead. The galaxy is now an amorphous cloud. "
+                  "F1 ≈ 0%. Clusters cease to exist."),
+            64:  ("Total collapse. The embeddings have collapsed into a "
+                  "central blob. The model can't tell any emotion apart."),
+        },
+        "default":      "Rank {r}. Silhouette {sil:.2f}.",
+        "initial":      "<b>baseline</b> · Uncompressed model. The 6 psychological clusters are clean and separated. Silhouette ≈ {sil:.2f}.",
+    },
+}
+
+
+def build_decay_figure(lang: str = "es") -> go.Figure:
+    L = LANG[lang]
     data = np.load(CACHE_DIR / "compression_decay.npz", allow_pickle=True)
     coords = data["coords"]    # (n_ranks, 13, N, 3)
     ranks = data["ranks"].tolist()
@@ -72,11 +140,8 @@ def build_decay_figure() -> go.Figure:
 
     fig = make_subplots(
         rows=1, cols=2, column_widths=[0.66, 0.34],
-        specs=[[{"type": "scene"}, {"type": "xy"}]],
-        subplot_titles=(
-            "Galaxia de embeddings · L12 a varios rangos de compresión",
-            "Métricas de degradación por rango",
-        ),
+        specs=[[{"type": "scene"}, {"type": "xy", "secondary_y": True}]],
+        subplot_titles=(L["subplot_3d"], L["subplot_line"]),
         horizontal_spacing=0.06,
     )
 
@@ -102,8 +167,8 @@ def build_decay_figure() -> go.Figure:
         mode="lines+markers",
         line=dict(color=st.BLUE, width=2.6, shape="spline", smoothing=0.5),
         marker=dict(size=10, color=st.BLUE, line=dict(color="white", width=1.5)),
-        name="Silhouette score (L12)",
-        hovertemplate="rango %{x}<br>silhouette: %{y:.3f}<extra></extra>",
+        name=L["silhouette"],
+        hovertemplate=L["sil_h"],
     ), row=1, col=2)
 
     # F1 retention overlaid (right axis)
@@ -116,10 +181,9 @@ def build_decay_figure() -> go.Figure:
             line=dict(color=st.TERRA, width=2.6, dash="dot"),
             marker=dict(size=9, color=st.TERRA, symbol="diamond",
                         line=dict(color="white", width=1.5)),
-            name="Retención F1 (Tabla 8)",
-            hovertemplate="rango %{x}<br>F1 retenida: %{y:.1%}<extra></extra>",
-            yaxis="y2",
-        ), row=1, col=2)
+            name=L["f1_ret"],
+            hovertemplate=L["f1_h"],
+        ), row=1, col=2, secondary_y=True)
 
     # Frames per rank — only update the 3D trace (trace 0)
     frames = []
@@ -127,27 +191,10 @@ def build_decay_figure() -> go.Figure:
         L12 = coords[ri, 12]
         sil = silhouettes[ri]
         f1_ret = rank_retentions[ri] if rank_retentions[ri] is not None else 0
-        rank_label = "baseline" if ranks[ri] >= 768 else f"r={ranks[ri]}"
+        rank_label = L["baseline"] if ranks[ri] >= 768 else f"r={ranks[ri]}"
 
-        # Story-line caption per frame
-        captions = {
-            768: ("Modelo sin compresión. Los 6 clusters psicológicos están "
-                  "limpios y separados. Silhouette ≈ {sil:.2f}."),
-            512: ("Compresión leve (rango 512). Apenas se nota — la "
-                  "geometría se mantiene. F1 retiene {f1:.0%}."),
-            384: ("Break-even de la compresión attention. La estructura aún "
-                  "es reconocible pero los clusters se rozan. "
-                  "F1 cae al {f1:.0%}."),
-            256: ("Cliff. La estructura se difumina notablemente. "
-                  "Silhouette baja a {sil:.2f}, F1 al {f1:.0%}. "
-                  "Aquí empieza la transición de fase."),
-            128: ("Modelo casi muerto. La galaxia es ya una nube amorfa. "
-                  "F1 ≈ 0%. Los clusters dejan de existir."),
-            64:  ("Colapso total. Los embeddings se han colapsado en un "
-                  "blob central. El modelo no diferencia ninguna emoción."),
-        }
-        caption_template = captions.get(ranks[ri],
-            "Rango {r}. Silhouette {sil:.2f}.")
+        # Story-line caption per frame (bilingual via LANG dict)
+        caption_template = L["captions"].get(ranks[ri], L["default"])
         caption = caption_template.format(r=ranks[ri], sil=sil, f1=f1_ret)
 
         frames.append(go.Frame(
@@ -164,10 +211,10 @@ def build_decay_figure() -> go.Figure:
             name=str(ranks[ri]),
             layout=dict(
                 annotations=[
-                    dict(text="Galaxia de embeddings · L12 a varios rangos de compresión",
+                    dict(text=L["subplot_3d"],
                          x=0.33, y=1.03, xref="paper", yref="paper", showarrow=False,
                          font=dict(size=12.5, color=st.INK_2, family="serif")),
-                    dict(text="Métricas de degradación por rango",
+                    dict(text=L["subplot_line"],
                          x=0.85, y=1.03, xref="paper", yref="paper", showarrow=False,
                          font=dict(size=12.5, color=st.INK_2, family="serif")),
                     dict(text=f"<b>{rank_label}</b> · {caption}",
@@ -187,13 +234,10 @@ def build_decay_figure() -> go.Figure:
         args=[[str(ranks[ri])],
               dict(mode="immediate", frame=dict(duration=0, redraw=True),
                    transition=dict(duration=500, easing="cubic-in-out"))],
-        label=("baseline" if ranks[ri] >= 768 else f"r={ranks[ri]}"),
+        label=(L["baseline"] if ranks[ri] >= 768 else f"r={ranks[ri]}"),
     ) for ri in range(n_ranks)]
 
-    initial_caption = (
-        "<b>baseline</b> · Modelo sin compresión. Los 6 clusters psicológicos "
-        f"están limpios y separados. Silhouette ≈ {silhouettes[0]:.2f}."
-    )
+    initial_caption = L["initial"].format(sil=silhouettes[0])
 
     fig.update_layout(
         **st.thesis_layout(
@@ -203,10 +247,10 @@ def build_decay_figure() -> go.Figure:
             height=720, width=1380,
         ),
         annotations=[
-            dict(text="Galaxia de embeddings · L12 a varios rangos de compresión",
+            dict(text=L["subplot_3d"],
                  x=0.33, y=1.03, xref="paper", yref="paper", showarrow=False,
                  font=dict(size=12.5, color=st.INK_2, family="serif")),
-            dict(text="Métricas de degradación por rango",
+            dict(text=L["subplot_line"],
                  x=0.85, y=1.03, xref="paper", yref="paper", showarrow=False,
                  font=dict(size=12.5, color=st.INK_2, family="serif")),
             dict(text=initial_caption,
@@ -228,7 +272,7 @@ def build_decay_figure() -> go.Figure:
         ),
         sliders=[dict(
             active=0, x=0.05, y=-0.04, len=0.55,
-            currentvalue=dict(prefix="Rango SVD: ",
+            currentvalue=dict(prefix=L["rank_prefix"],
                               font=dict(size=13, color=st.INK, family="serif"),
                               xanchor="left"),
             steps=steps,
@@ -241,14 +285,14 @@ def build_decay_figure() -> go.Figure:
             type="buttons", direction="left",
             x=0.05, y=-0.18, xanchor="left", yanchor="top",
             buttons=[
-                dict(label="▶ Play decay", method="animate",
+                dict(label=L["play"], method="animate",
                      args=[None, dict(frame=dict(duration=1500, redraw=True),
                                       transition=dict(duration=600, easing="cubic-in-out"),
                                       fromcurrent=True, mode="immediate")]),
-                dict(label="⏸ Pause", method="animate",
+                dict(label=L["pause"], method="animate",
                      args=[[None], dict(frame=dict(duration=0, redraw=False),
                                         mode="immediate")]),
-                dict(label="↺ Reset", method="animate",
+                dict(label=L["reset"], method="animate",
                      args=[[str(ranks[0])], dict(mode="immediate",
                                                   frame=dict(duration=0, redraw=True))]),
             ],
@@ -258,27 +302,33 @@ def build_decay_figure() -> go.Figure:
         legend=dict(font=dict(size=10), x=0.97, y=0.02,
                     xanchor="right", yanchor="bottom",
                     bgcolor="rgba(255,255,255,0.85)"),
-        yaxis2=dict(
-            title=dict(text="Retención F1", font=dict(size=11, color=st.TERRA)),
-            anchor="x2", overlaying="y2", side="right",
-            tickformat=".0%", range=[0, 1.05],
-            tickfont=dict(size=10, color=st.TERRA),
-        ),
+    )
+
+    fig.update_yaxes(
+        title=dict(text=L["axis_f1"], font=dict(size=11, color=st.TERRA)),
+        side="right",
+        tickformat=".0%", range=[0, 1.05],
+        tickfont=dict(size=10, color=st.TERRA),
+        showgrid=False,
+        row=1, col=2, secondary_y=True,
     )
 
     fig.update_xaxes(
-        title=dict(text="Rango SVD (uniforme)", font=dict(size=12, color=st.INK_2)),
+        title=dict(text=L["axis_rank"], font=dict(size=12, color=st.INK_2)),
         type="category",
         gridcolor=st.GRID, linecolor=st.SPINE, showline=True,
         tickfont=dict(size=10, color=st.INK_3),
         row=1, col=2,
     )
+    sil_min = min(silhouettes)
+    sil_max = max(silhouettes)
+    sil_pad = max(0.05, (sil_max - sil_min) * 0.20)
     fig.update_yaxes(
-        title=dict(text="Silhouette score (L12)", font=dict(size=11, color=st.BLUE)),
+        title=dict(text=L["silhouette"], font=dict(size=11, color=st.BLUE)),
         gridcolor=st.GRID, linecolor=st.SPINE, showline=True,
         tickfont=dict(size=10, color=st.BLUE),
-        range=[-0.05, max(silhouettes) * 1.15],
-        row=1, col=2,
+        range=[sil_min - sil_pad, sil_max + sil_pad],
+        row=1, col=2, secondary_y=False,
     )
 
     return fig
