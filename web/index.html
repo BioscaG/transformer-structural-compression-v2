@@ -1,0 +1,2052 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Anatomía Emocional · Guido Biosca</title>
+<meta name="description" content="Compresión selectiva e interpretabilidad mecánica de BERT-base sobre GoEmotions. TFG de Guido Biosca, FIB-UPC 2026." />
+<meta property="og:title" content="Anatomía emocional de un transformer" />
+<meta property="og:description" content="TFG de Guido Biosca. Compresión selectiva e interpretabilidad mecánica de BERT-base." />
+<meta property="og:type" content="website" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'&gt;&lt;rect width='32' height='32' rx='4' fill='%23F7F6F2'/&gt;&lt;circle cx='16' cy='16' r='5' fill='%231F4E6C'/&gt;&lt;/svg&gt;" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,30..100&family=Geist:wght@300..700&family=Geist+Mono:wght@300..600&display=swap" rel="stylesheet" />
+
+<style>
+  :root {
+    --bg:        #F7F6F2;
+    --bg-2:      #FFFFFF;
+    --bg-3:      #EFEEE9;
+    --ink:       #141413;
+    --ink-2:     #4A4A47;
+    --ink-3:     #8A8A82;
+    --ink-4:     #B8B8B0;
+    --line:      #D8D7D1;
+    --line-2:    #E8E7E2;
+    --accent:    #1F4E6C;
+    --accent-d:  #163D55;
+    --accent-l:  #3A7AA0;
+
+    --serif:  "Fraunces", "Iowan Old Style", "Palatino", serif;
+    --sans:   "Geist", "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono:   "Geist Mono", "JetBrains Mono", "SF Mono", Menlo, monospace;
+
+    --max-narrow: 680px;
+    --max-wide:   1320px;
+    --pad-x:      max(28px, 5vw);
+    --easing:     cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+
+  /* ─── BILINGUAL ──────────────────────────────────────────────────── */
+  /* Hide the inactive language. Both versions are rendered; CSS picks. */
+  html[lang="es"] [lang="en"] { display: none !important; }
+  html[lang="en"] [lang="es"] { display: none !important; }
+
+  /* ─── HERO CANVAS (ambient particle animation) ──────────────────── */
+  #hero-canvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    z-index: 0; pointer-events: none;
+    opacity: 0.55;
+    mask-image: radial-gradient(ellipse 80% 70% at 70% 50%, #000 30%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 70% at 70% 50%, #000 30%, transparent 80%);
+  }
+
+  /* ─── HERO-FIGURE (full-bleed key visualizations) ───────────────── */
+  section.chapter.hero-figure .figure {
+    max-width: none;
+    width: 100%;
+    margin: 56px 0 0 0;
+  }
+  section.chapter.hero-figure .figure-wrap {
+    border-radius: 0;
+    border-left: none; border-right: none;
+    box-shadow:
+      0 1px 0 rgba(20,20,19,0.02),
+      0 24px 60px -32px rgba(20,20,19,0.18);
+    padding-left: max(28px, 5vw);
+    padding-right: max(28px, 5vw);
+  }
+  section.chapter.hero-figure .figure-meta {
+    max-width: var(--max-wide);
+    margin: 18px auto 0 auto;
+    padding: 0 max(28px, 5vw);
+  }
+
+  /* ─── PRESENTATION MODE ──────────────────────────────────────────── */
+  body.present-mode { overflow: hidden; }
+  body.present-mode #progress,
+  body.present-mode footer.foot,
+  body.present-mode section.outro,
+  body.present-mode .ch-body,
+  body.present-mode .pull,
+  body.present-mode .figure-meta,
+  body.present-mode .part-intro,
+  body.present-mode .part-meta,
+  body.present-mode .hero-meta,
+  body.present-mode .hero-stats,
+  body.present-mode .hero-foot,
+  body.present-mode .hero-tag,
+  body.present-mode .hero-title .small,
+  body.present-mode #toc-overlay,
+  body.present-mode #toc-panel { display: none !important; }
+  body.present-mode nav.top { background: transparent; border-bottom: none; }
+  body.present-mode nav.top ul.nav-links { display: none; }
+  body.present-mode nav.top .brand { opacity: 0.4; }
+  body.present-mode main {
+    height: 100vh;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+  }
+  body.present-mode section.hero,
+  body.present-mode section.part {
+    min-height: 100vh; height: 100vh;
+    padding: 12vh max(28px, 4vw) 8vh max(28px, 4vw);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    display: flex; flex-direction: column;
+    justify-content: center;
+    margin: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  body.present-mode section.hero .hero-content { align-self: center; }
+
+  /* Asymmetric split layout for figure slides:
+     left ~34% (chapter num + title + subtitle on top, caption + fig
+     id at bottom), right ~66% (figure spanning full slide height). */
+  body.present-mode section.chapter {
+    min-height: 100vh; height: 100vh;
+    padding: 5vh max(28px, 3vw);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    display: grid;
+    grid-template-columns: minmax(280px, 34%) 1fr;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      "head fig"
+      "head fig"
+      "meta fig";
+    column-gap: 4vw;
+    row-gap: 0;
+    align-items: stretch;
+    margin: 0;
+    position: relative;
+    overflow: hidden;
+  }
+  body.present-mode section.chapter .ch-head {
+    grid-area: head;
+    max-width: none;
+    margin: 0;
+    width: 100%;
+    text-align: left;
+    align-self: center;
+    display: flex; flex-direction: column;
+    gap: 14px;
+  }
+  body.present-mode .ch-title {
+    font-size: clamp(24px, 2.6vw, 40px);
+    margin: 0;
+    line-height: 1.08;
+  }
+  body.present-mode .ch-sub {
+    font-size: clamp(13px, 1.05vw, 17px);
+    margin: 0;
+    color: var(--ink-2);
+    line-height: 1.5;
+  }
+  /* Flatten .figure so its children (figure-wrap + figure-meta)
+     become direct grid items of the section. */
+  body.present-mode section.chapter .figure {
+    display: contents;
+  }
+  body.present-mode section.chapter .figure-wrap {
+    grid-area: fig;
+    height: 100% !important;
+    width: 100%;
+    border-radius: 4px;
+    padding: 14px;
+    align-self: stretch;
+  }
+  body.present-mode section.chapter .figure-meta {
+    grid-area: meta;
+    display: flex !important;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0;
+    padding: 16px 0 0 0;
+    max-width: none;
+    border-top: 0.5px solid var(--line);
+    align-self: end;
+  }
+  body.present-mode section.chapter .figure-meta .caption {
+    font-family: var(--serif);
+    font-size: 13.5px; font-style: italic;
+    color: var(--ink-3); line-height: 1.45;
+  }
+  body.present-mode section.chapter .figure-meta .id {
+    font-family: var(--mono); font-size: 10.5px;
+    color: var(--ink-3); letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  body.present-mode section.part .part-grid {
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 32px;
+    max-width: var(--max-wide); margin: 0 auto;
+    text-align: center;
+    height: 100%;
+  }
+  body.present-mode section.part .part-numeral {
+    font-size: clamp(96px, 14vw, 200px);
+    text-align: center; opacity: 1;
+    position: static;
+    color: var(--accent);
+    line-height: 1;
+    padding: 0;
+    font-variation-settings: "opsz" 144, "SOFT" 30;
+  }
+  body.present-mode section.part .part-content {
+    text-align: center;
+    max-width: var(--max-wide);
+  }
+  body.present-mode section.part .part-content .part-title {
+    margin: 0;
+  }
+  body.present-mode section.part .part-content {
+    text-align: center; position: relative; z-index: 2;
+  }
+  body.present-mode #present-overlay {
+    display: block;
+    position: fixed; inset: 0; pointer-events: none; z-index: 80;
+  }
+  #present-overlay { display: none; }
+  .present-progress {
+    position: absolute; bottom: 24px; right: 32px;
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.1em; color: var(--ink-3);
+    background: rgba(247,246,242,0.85); padding: 6px 12px;
+    border: 0.5px solid var(--line); border-radius: 2px;
+  }
+  .present-hint {
+    position: absolute; bottom: 24px; left: 32px;
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.08em; color: var(--ink-3);
+    text-transform: uppercase;
+  }
+  nav.top button.present-btn {
+    font-family: var(--mono); font-size: 11.5px;
+    color: var(--ink); background: transparent;
+    border: 0.5px solid var(--line);
+    padding: 7px 12px; border-radius: 1px; cursor: pointer;
+    transition: all 0.2s var(--easing);
+    line-height: 1;
+  }
+  nav.top button.present-btn:hover {
+    border-color: var(--accent); color: var(--accent);
+    background: var(--bg-2);
+  }
+
+  /* ─── PART DIVIDER (asymmetric) ─────────────────────────────────── */
+  .part-grid {
+    display: grid;
+    grid-template-columns: minmax(140px, 0.42fr) minmax(0, 0.58fr);
+    gap: clamp(36px, 6vw, 96px);
+    align-items: start;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  .part-numeral {
+    font-family: var(--serif);
+    font-weight: 250;
+    font-size: clamp(120px, 17vw, 240px);
+    line-height: 0.84;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+    font-variation-settings: "opsz" 144, "SOFT" 30;
+    align-self: start;
+    text-align: right;
+    padding-top: 18px;
+    font-feature-settings: "tnum";
+  }
+  .part-content { padding-top: 0; }
+  @media (max-width: 980px) {
+    .part-grid {
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+    .part-numeral { text-align: left; padding-top: 0; font-size: clamp(96px, 22vw, 160px); }
+  }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16.5px;
+    line-height: 1.6;
+    font-feature-settings: "ss01", "ss02", "cv01";
+    text-rendering: optimizeLegibility;
+  }
+  ::selection { background: var(--accent); color: var(--bg-2); }
+
+  /* ─── NAV ───────────────────────────────────────────────────────── */
+  nav.top {
+    position: fixed; top: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px var(--pad-x);
+    background: rgba(247,246,242,0.78);
+    backdrop-filter: blur(20px) saturate(1.4);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    border-bottom: 0.5px solid var(--line);
+    z-index: 50;
+    transition: transform 0.32s var(--easing);
+  }
+  nav.top.hidden { transform: translateY(-100%); }
+  nav.top .brand {
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.08em; color: var(--ink);
+    text-decoration: none; text-transform: uppercase;
+  }
+  nav.top .brand .dot {
+    display: inline-block; width: 5px; height: 5px;
+    background: var(--accent); border-radius: 50%;
+    margin-right: 10px; transform: translateY(-1px);
+  }
+  nav.top ul.nav-links {
+    display: flex; gap: 22px; list-style: none; padding: 0; margin: 0;
+  }
+  nav.top a.link {
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.05em;
+    color: var(--ink-2); text-decoration: none;
+    transition: color 0.18s var(--easing);
+    text-transform: uppercase;
+  }
+  nav.top a.link:hover { color: var(--accent); }
+  nav.top .nav-tools {
+    display: flex; align-items: center; gap: 10px;
+  }
+  nav.top button.toc-btn,
+  nav.top button.lang-btn {
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.05em;
+    color: var(--ink); background: transparent;
+    border: 0.5px solid var(--line);
+    padding: 7px 12px; border-radius: 1px; cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s var(--easing);
+  }
+  nav.top button.toc-btn:hover,
+  nav.top button.lang-btn:hover {
+    border-color: var(--accent); color: var(--accent);
+    background: var(--bg-2);
+  }
+  nav.top button.lang-btn {
+    min-width: 38px;
+  }
+
+  #progress {
+    position: fixed; top: 0; left: 0; height: 1.5px;
+    background: var(--accent);
+    width: var(--scroll, 0%);
+    z-index: 60;
+    transition: width 0.05s linear;
+  }
+
+  /* ─── TOC PANEL (slide-out) ─────────────────────────────────────── */
+  aside.toc-panel {
+    position: fixed; top: 0; right: -480px;
+    width: 460px; max-width: 90vw; height: 100vh;
+    background: var(--bg-2);
+    border-left: 0.5px solid var(--line);
+    box-shadow: -20px 0 60px -30px rgba(20,20,19,0.18);
+    z-index: 70;
+    transition: right 0.4s var(--easing);
+    overflow-y: auto;
+    padding: 24px 32px 60px 32px;
+  }
+  aside.toc-panel.open { right: 0; }
+  .toc-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 18px; border-bottom: 0.5px solid var(--line);
+    margin-bottom: 22px;
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3);
+  }
+  #toc-close {
+    background: transparent; border: 0; cursor: pointer;
+    font-size: 26px; line-height: 1; color: var(--ink-2);
+    padding: 0 6px;
+  }
+  #toc-close:hover { color: var(--accent); }
+  .toc-part { margin-bottom: 26px; }
+  .toc-part-title {
+    display: block; text-decoration: none;
+    font-family: var(--serif); font-size: 19px;
+    color: var(--ink); margin-bottom: 10px;
+    font-variation-settings: "opsz" 36, "SOFT" 60;
+    line-height: 1.2;
+  }
+  .toc-num {
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.1em; color: var(--accent);
+    margin-right: 8px; text-transform: uppercase;
+    display: block; margin-bottom: 2px;
+  }
+  .toc-part ul {
+    list-style: none; padding: 0; margin: 0 0 0 18px;
+    border-left: 0.5px solid var(--line-2);
+  }
+  .toc-part ul li a {
+    display: flex; gap: 14px;
+    padding: 7px 0 7px 14px;
+    font-family: var(--sans); font-size: 14px;
+    color: var(--ink-2); text-decoration: none;
+    transition: color 0.18s var(--easing);
+    line-height: 1.3;
+  }
+  .toc-part ul li a:hover { color: var(--accent); }
+  .toc-fig {
+    font-family: var(--mono); font-size: 10.5px;
+    color: var(--ink-3); flex-shrink: 0; padding-top: 1px;
+  }
+  #toc-overlay {
+    position: fixed; inset: 0;
+    background: rgba(20,20,19,0.18);
+    backdrop-filter: blur(4px);
+    z-index: 65;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.35s var(--easing);
+  }
+  #toc-overlay.show { opacity: 1; pointer-events: auto; }
+
+  /* ─── HERO ─────────────────────────────────────────────────────── */
+  section.hero {
+    min-height: 100vh;
+    padding: 14vh var(--pad-x) 6vh var(--pad-x);
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    position: relative;
+    overflow: hidden;
+  }
+  section.hero::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(to right, var(--line-2) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--line-2) 1px, transparent 1px);
+    background-size: 88px 88px;
+    background-position: -1px -1px;
+    mask-image: radial-gradient(ellipse 90% 70% at 50% 45%, #000 30%, transparent 78%);
+    -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 45%, #000 30%, transparent 78%);
+    opacity: 0.85;
+    pointer-events: none;
+  }
+  .hero-meta {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em;
+    color: var(--ink-3); text-transform: uppercase;
+    z-index: 2;
+  }
+  .hero-meta .left, .hero-meta .right { line-height: 1.7; }
+  .hero-meta .right { text-align: right; }
+  .hero-meta strong { color: var(--ink-2); font-weight: 500; }
+  .hero-content { align-self: center; max-width: 1200px; z-index: 2; }
+  .hero-tag {
+    font-family: var(--mono); font-size: 11.5px;
+    color: var(--accent); letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    display: inline-flex; align-items: center; gap: 12px;
+  }
+  .hero-tag::before {
+    content: ""; display: inline-block;
+    width: 28px; height: 1px; background: var(--accent);
+  }
+  .hero-title {
+    font-family: var(--serif);
+    font-weight: 280;
+    font-size: clamp(48px, 7.5vw, 108px);
+    line-height: 0.96;
+    letter-spacing: -0.025em;
+    margin: 0;
+    font-variation-settings: "opsz" 144, "SOFT" 30;
+    color: var(--ink);
+  }
+  .hero-title em {
+    font-style: italic; font-weight: 280; color: var(--accent);
+    font-variation-settings: "opsz" 144, "SOFT" 100;
+  }
+  .hero-title .small {
+    display: block;
+    font-size: 0.42em; color: var(--ink-2);
+    font-weight: 320; margin-top: 22px;
+    letter-spacing: -0.01em; line-height: 1.32;
+    max-width: 720px;
+    font-variation-settings: "opsz" 72, "SOFT" 100;
+  }
+  .hero-stats {
+    display: flex; gap: 56px;
+    margin-top: 60px; flex-wrap: wrap;
+  }
+  .hero-stats .stat {
+    border-left: 0.5px solid var(--line);
+    padding-left: 16px;
+  }
+  .hero-stats .stat .num {
+    font-family: var(--serif); font-size: 32px;
+    font-weight: 350; color: var(--ink);
+    letter-spacing: -0.02em; line-height: 1;
+    display: block;
+    font-feature-settings: "tnum";
+    font-variation-settings: "opsz" 36, "SOFT" 80;
+  }
+  .hero-stats .stat .label {
+    font-family: var(--mono); font-size: 10.5px;
+    color: var(--ink-3); letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 9px; display: block;
+  }
+  .hero-foot {
+    display: flex; justify-content: space-between;
+    align-items: flex-end;
+    font-family: var(--mono); font-size: 11px;
+    color: var(--ink-3); letter-spacing: 0.06em;
+    text-transform: uppercase; z-index: 2;
+  }
+  .hero-foot .scroll-cue {
+    display: flex; align-items: center; gap: 12px;
+    color: var(--ink-2);
+  }
+  .hero-foot .scroll-cue .arrow {
+    width: 1px; height: 28px; background: var(--ink-2);
+    position: relative;
+  }
+  .hero-foot .scroll-cue .arrow::after {
+    content: ""; position: absolute;
+    left: -3px; bottom: -1px;
+    width: 7px; height: 7px;
+    border-right: 1px solid var(--ink-2);
+    border-bottom: 1px solid var(--ink-2);
+    transform: rotate(45deg) translate(-1px,-1px);
+  }
+  .hero-foot a {
+    color: var(--ink-2); text-decoration: none;
+    transition: color 0.2s var(--easing);
+  }
+  .hero-foot a:hover { color: var(--accent); }
+
+  /* ─── PART DIVIDER ─────────────────────────────────────────────── */
+  section.part {
+    padding: 22vh var(--pad-x) 14vh var(--pad-x);
+    text-align: left;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .part-meta {
+    font-family: var(--mono); font-size: 11.5px;
+    color: var(--accent); letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 32px;
+    display: inline-flex; align-items: center; gap: 14px;
+  }
+  .part-meta::before {
+    content: ""; display: inline-block;
+    width: 36px; height: 1px; background: var(--accent);
+  }
+  .part-title {
+    font-family: var(--serif);
+    font-weight: 300;
+    font-size: clamp(48px, 6.5vw, 88px);
+    line-height: 1.0;
+    letter-spacing: -0.025em;
+    margin: 0 0 32px 0;
+    color: var(--ink);
+    font-variation-settings: "opsz" 144, "SOFT" 50;
+  }
+  .part-intro {
+    max-width: 660px;
+  }
+  .part-intro p {
+    font-family: var(--serif);
+    font-size: clamp(19px, 1.8vw, 23px);
+    line-height: 1.45;
+    color: var(--ink-2);
+    margin: 0 0 18px 0;
+    font-style: italic;
+    font-weight: 350;
+    font-variation-settings: "opsz" 36, "SOFT" 80;
+  }
+
+  /* ─── CHAPTER (figure section) ─────────────────────────────────── */
+  section.chapter {
+    padding: 14vh var(--pad-x) 8vh var(--pad-x);
+    position: relative;
+  }
+  .ch-head { max-width: var(--max-wide); margin: 0 auto 64px auto; }
+  .ch-num {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--accent); letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    display: inline-flex; align-items: center; gap: 12px;
+  }
+  .ch-num::before {
+    content: ""; display: inline-block;
+    width: 36px; height: 0.5px; background: var(--accent);
+  }
+  .ch-title {
+    font-family: var(--serif);
+    font-weight: 320;
+    font-size: clamp(36px, 4.5vw, 64px);
+    line-height: 1.02;
+    letter-spacing: -0.022em;
+    margin: 0 0 18px 0;
+    color: var(--ink);
+    max-width: 980px;
+    font-variation-settings: "opsz" 96, "SOFT" 50;
+  }
+  .ch-title em {
+    font-style: italic; font-weight: 320; color: var(--ink);
+    font-variation-settings: "opsz" 96, "SOFT" 100;
+  }
+  .ch-sub {
+    font-family: var(--serif);
+    font-size: clamp(18px, 1.8vw, 22px);
+    font-style: italic;
+    font-weight: 350;
+    color: var(--ink-2);
+    margin: 0; max-width: 780px;
+    line-height: 1.4;
+    font-variation-settings: "opsz" 36, "SOFT" 70;
+  }
+  .ch-body {
+    max-width: var(--max-narrow);
+    margin: 0 auto;
+    color: var(--ink-2);
+  }
+  .ch-body p {
+    margin: 0 0 22px 0; font-size: 17px; line-height: 1.65;
+    hyphens: auto;
+  }
+  .ch-body > p.lead::first-letter {
+    font-family: var(--serif);
+    font-size: 4.6em; line-height: 0.9;
+    float: left; color: var(--ink);
+    padding: 6px 12px 0 0;
+    font-weight: 320;
+    font-variation-settings: "opsz" 144, "SOFT" 30;
+  }
+  .ch-body > p.lead { color: var(--ink); }
+  .ch-body strong { color: var(--ink); font-weight: 500; }
+  .ch-body em { font-style: italic; color: var(--ink-2); }
+  .ch-body code {
+    font-family: var(--mono); font-size: 0.86em;
+    background: var(--bg-3); padding: 2px 6px;
+    border-radius: 1px; color: var(--ink);
+    border: 0.5px solid var(--line);
+  }
+  .ch-body a {
+    color: var(--accent); text-decoration: none;
+    border-bottom: 0.5px solid var(--accent-l);
+    padding-bottom: 1px;
+    transition: opacity 0.2s var(--easing);
+  }
+  .ch-body a:hover { opacity: 0.7; }
+
+  /* Pull quote */
+  .pull {
+    max-width: 1080px; margin: 84px auto 56px auto;
+    border-top: 0.5px solid var(--line);
+    border-bottom: 0.5px solid var(--line);
+    padding: 42px 0;
+    font-family: var(--serif);
+    font-size: clamp(24px, 2.4vw, 34px);
+    font-style: italic;
+    line-height: 1.25;
+    color: var(--ink);
+    font-weight: 320;
+    letter-spacing: -0.012em;
+    font-variation-settings: "opsz" 60, "SOFT" 100;
+    text-align: left;
+  }
+  .pull::before {
+    content: "\201C"; color: var(--accent);
+    font-size: 1.4em; line-height: 0;
+    vertical-align: -0.18em; margin-right: 4px;
+  }
+  .pull::after {
+    content: "\201D"; color: var(--accent);
+    font-size: 1.4em; line-height: 0;
+    vertical-align: -0.18em; margin-left: 2px;
+  }
+
+  /* Figure */
+  .figure { max-width: var(--max-wide); margin: 56px auto 0 auto; }
+  .figure-wrap {
+    position: relative;
+    background: var(--bg-2);
+    border-radius: 3px;
+    padding: 32px;
+    overflow: hidden;
+    border: 0.5px solid var(--line-2);
+    box-shadow:
+      0 1px 0 rgba(20,20,19,0.02),
+      0 12px 32px -16px rgba(20,20,19,0.10),
+      0 36px 80px -40px rgba(20,20,19,0.10);
+    transition: height 0.45s var(--easing),
+                box-shadow 0.4s var(--easing),
+                transform 0.4s var(--easing);
+  }
+  .figure-wrap:hover {
+    box-shadow:
+      0 1px 0 rgba(20,20,19,0.03),
+      0 16px 40px -16px rgba(20,20,19,0.14),
+      0 48px 100px -40px rgba(20,20,19,0.14);
+    transform: translateY(-1px);
+  }
+  .figure-wrap iframe {
+    width: 100%; height: 100%;
+    border: none; display: block; background: transparent;
+  }
+  .figure-wrap::before {
+    content: "Cargando figura\2026";
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg-2); color: var(--ink-3);
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    z-index: 0; transition: opacity 0.4s var(--easing);
+  }
+  .figure-wrap.loaded::before { opacity: 0; pointer-events: none; }
+
+  .figure-meta {
+    display: flex; justify-content: space-between;
+    align-items: flex-start; gap: 32px;
+    margin-top: 18px; padding: 0 4px;
+  }
+  .figure-meta .caption {
+    flex: 1; max-width: 720px;
+    font-family: var(--mono); font-size: 11.5px;
+    line-height: 1.55; color: var(--ink-2);
+    letter-spacing: 0.01em;
+  }
+  .figure-meta .id {
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--ink-3); white-space: nowrap;
+  }
+  .figure-meta .id strong { color: var(--accent); font-weight: 500; }
+
+  /* ─── OUTRO ────────────────────────────────────────────────────── */
+  section.outro {
+    padding: 14vh var(--pad-x) 8vh var(--pad-x);
+  }
+  section.outro .ch-num,
+  section.outro .ch-title,
+  section.outro .ch-sub,
+  section.outro .ch-body {
+    max-width: var(--max-narrow);
+    margin-left: auto; margin-right: auto;
+  }
+  section.outro .ch-num { display: inline-flex; }
+
+  /* ─── REVEAL ────────────────────────────────────────────────────── */
+  .reveal {
+    opacity: 0; transform: translateY(14px);
+    transition: opacity 0.85s var(--easing), transform 0.85s var(--easing);
+    transition-delay: var(--delay, 0ms);
+  }
+  .reveal.in { opacity: 1; transform: translateY(0); }
+
+  /* ─── FOOTER ────────────────────────────────────────────────────── */
+  footer.foot {
+    margin-top: 18vh;
+    padding: 80px var(--pad-x) 52px var(--pad-x);
+    border-top: 0.5px solid var(--line);
+    background: var(--bg);
+  }
+  .foot-grid {
+    max-width: var(--max-wide); margin: 0 auto;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 56px; align-items: start;
+  }
+  .foot-grid h3 {
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.12em; color: var(--ink-3);
+    text-transform: uppercase;
+    margin: 0 0 18px 0; font-weight: 500;
+  }
+  .foot-grid p {
+    font-family: var(--sans); font-size: 13.5px;
+    color: var(--ink-2); margin: 0 0 8px 0;
+    line-height: 1.55;
+  }
+  .foot-grid a {
+    display: block;
+    font-family: var(--mono); font-size: 12px;
+    color: var(--ink); text-decoration: none;
+    margin-bottom: 8px;
+    border-bottom: 0.5px solid transparent;
+    width: fit-content; padding-bottom: 1px;
+    transition: all 0.2s var(--easing);
+  }
+  .foot-grid a:hover {
+    color: var(--accent); border-bottom-color: var(--accent);
+  }
+  .foot-grid .brand-cell h2 {
+    font-family: var(--serif); font-weight: 350;
+    font-size: 24px; margin: 0 0 14px 0;
+    color: var(--ink); letter-spacing: -0.012em;
+    line-height: 1.15;
+    font-variation-settings: "opsz" 36, "SOFT" 80;
+  }
+  .foot-grid .brand-cell em {
+    font-style: italic; color: var(--accent);
+  }
+  .foot-bottom {
+    max-width: var(--max-wide);
+    margin: 56px auto 0 auto;
+    padding-top: 24px;
+    border-top: 0.5px solid var(--line-2);
+    display: flex; justify-content: space-between;
+    align-items: center; gap: 24px;
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.06em; color: var(--ink-3);
+    text-transform: uppercase;
+  }
+
+  /* ─── MOBILE ────────────────────────────────────────────────────── */
+  @media (max-width: 980px) {
+    nav.top ul.nav-links { display: none; }
+    .hero-stats { gap: 32px; }
+    .hero-foot { flex-direction: column; gap: 24px; align-items: flex-start; }
+    .foot-grid { grid-template-columns: 1fr 1fr; gap: 40px 32px; }
+    .ch-body > p:first-of-type::first-letter {
+      font-size: 3.6em; padding: 4px 10px 0 0;
+    }
+    section.part { padding: 14vh var(--pad-x) 8vh var(--pad-x); }
+  }
+  @media (max-width: 620px) {
+    .foot-grid { grid-template-columns: 1fr; }
+    .hero-meta { font-size: 10px; }
+    .pull { font-size: 22px; padding: 28px 0; margin: 56px auto; }
+    .figure-meta { flex-direction: column; gap: 12px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    nav.top { transition: none; }
+  }
+</style>
+
+</head>
+<body>
+
+<div id="progress"></div>
+
+
+<nav class="top" id="topnav">
+  <a href="#top" class="brand"><span class="dot"></span><span lang="es">Anatomía Emocional</span><span lang="en">Emotional Anatomy</span></a>
+  <ul class="nav-links">
+    <li><a class="link" href="#parte-1"><span lang="es">Capítulos</span><span lang="en">Chapters</span></a></li>
+    <li><a class="link" href="#cierre"><span lang="es">Datos</span><span lang="en">Data</span></a></li>
+    <li><a class="link" href="sobre.html"><span lang="es">Sobre</span><span lang="en">About</span></a></li>
+  </ul>
+  <div class="nav-tools">
+    <button class="lang-btn" id="lang-btn" aria-label="Toggle language">
+      <span class="lang-current"></span>
+    </button>
+    <button class="present-btn" id="present-btn" aria-label="Presentation mode" title="Presentation mode (P)">▶</button>
+    <button class="toc-btn" id="toc-btn"><span lang="es">Índice</span><span lang="en">Index</span></button>
+  </div>
+</nav>
+
+<div id="present-overlay" aria-hidden="true">
+  <div class="present-progress"><span id="present-counter">1 / 1</span></div>
+  <div class="present-hint">← →   ESC to exit</div>
+</div>
+
+<aside id="toc-panel" class="toc-panel">
+  <div class="toc-head">
+    <span lang="es">Índice</span><span lang="en">Index</span>
+    <button id="toc-close" aria-label="Cerrar">×</button>
+  </div>
+  <div class="toc-body">
+    <div class="toc-part"><a href="#parte-1" class="toc-part-title"><span class="toc-num"><span lang="es">Parte 01</span><span lang="en">Part 01</span></span> <span lang="es">El sujeto</span><span lang="en">The subject</span></a><ul><li><a href="#arquitectura"><span class="toc-fig">01.1</span> <span lang="es">BERT entero, en 3D</span><span lang="en">All of BERT, in 3D</span></a></li><li><a href="#lex2sem"><span class="toc-fig">01.2</span> <span lang="es">De diccionario a clasificador</span><span lang="en">From dictionary to classifier</span></a></li></ul></div><div class="toc-part"><a href="#parte-2" class="toc-part-title"><span class="toc-num"><span lang="es">Parte 02</span><span lang="en">Part 02</span></span> <span lang="es">El cuerpo en pedazos</span><span lang="en">The body in pieces</span></a><ul><li><a href="#internal-compression"><span class="toc-fig">02.1</span> <span lang="es">El modelo se comprime a sí mismo</span><span lang="en">The model compresses itself</span></a></li><li><a href="#pareto"><span class="toc-fig">02.2</span> <span lang="es">22 estrategias, una transición de fase</span><span lang="en">22 strategies, one phase transition</span></a></li><li><a href="#spectral-landscape"><span class="toc-fig">02.3</span> <span lang="es">La asimetría espectral, hecha topografía</span><span lang="en">Spectral asymmetry as a landscape</span></a></li><li><a href="#decay"><span class="toc-fig">02.4</span> <span lang="es">La galaxia se deshace</span><span lang="en">The galaxy dissolves</span></a></li><li><a href="#ft-diff"><span class="toc-fig">02.5</span> <span lang="es">Qué cambió el fine-tuning</span><span lang="en">What the fine-tune actually changed</span></a></li></ul></div><div class="toc-part"><a href="#parte-3" class="toc-part-title"><span class="toc-num"><span lang="es">Parte 03</span><span lang="en">Part 03</span></span> <span lang="es">Dónde viven las emociones</span><span lang="en">Where the emotions live</span></a><ul><li><a href="#crystallization"><span class="toc-fig">03.1</span> <span lang="es">Cristalización por capas</span><span lang="en">Layer-wise crystallisation</span></a></li><li><a href="#galaxy"><span class="toc-fig">03.2</span> <span lang="es">Galaxy formation</span><span lang="en">Galaxy formation</span></a></li><li><a href="#iterative"><span class="toc-fig">03.3</span> <span lang="es">La curva en U</span><span lang="en">The U curve</span></a></li><li><a href="#lens-vs-probe"><span class="toc-fig">03.4</span> <span lang="es">Lo que sabe vs lo que sabe leer</span><span lang="en">What it knows vs what it can read</span></a></li><li><a href="#fingerprint"><span class="toc-fig">03.5</span> <span lang="es">Decision fingerprint</span><span lang="en">Decision fingerprint</span></a></li></ul></div><div class="toc-part"><a href="#parte-4" class="toc-part-title"><span class="toc-num"><span lang="es">Parte 04</span><span lang="en">Part 04</span></span> <span lang="es">144 cabezas</span><span lang="en">144 heads</span></a><ul><li><a href="#heads"><span class="toc-fig">04.1</span> <span lang="es">Las 144 cabezas</span><span lang="en">The 144 heads</span></a></li><li><a href="#atlas"><span class="toc-fig">04.2</span> <span lang="es">Attention atlas</span><span lang="en">Attention atlas</span></a></li><li><a href="#constellations"><span class="toc-fig">04.3</span> <span lang="es">Las 23 emociones como direcciones</span><span lang="en">The 23 emotions as directions</span></a></li><li><a href="#circuit"><span class="toc-fig">04.4</span> <span lang="es">El circuito compartido</span><span lang="en">The shared circuit</span></a></li></ul></div><div class="toc-part"><a href="#parte-5" class="toc-part-title"><span class="toc-num"><span lang="es">Parte 05</span><span lang="en">Part 05</span></span> <span lang="es">Causalidad</span><span lang="en">Causality</span></a><ul><li><a href="#lesion"><span class="toc-fig">05.1</span> <span lang="es">Lesion theater</span><span lang="en">Lesion theatre</span></a></li></ul></div><div class="toc-part"><a href="#parte-6" class="toc-part-title"><span class="toc-num"><span lang="es">Parte 06</span><span lang="en">Part 06</span></span> <span lang="es">Síntesis</span><span lang="en">Synthesis</span></a><ul><li><a href="#clusters"><span class="toc-fig">06.1</span> <span lang="es">Seis clusters que aparecen solos</span><span lang="en">Six clusters emerging on their own</span></a></li><li><a href="#landscape"><span class="toc-fig">06.2</span> <span lang="es">El paisaje emocional</span><span lang="en">The emotional landscape</span></a></li><li><a href="#trajectory"><span class="toc-fig">06.3</span> <span lang="es">Una frase, cuatro vistas</span><span lang="en">One sentence, four views</span></a></li><li><a href="#greedy"><span class="toc-fig">06.4</span> <span lang="es">Greedy en acción</span><span lang="en">Greedy in action</span></a></li></ul></div>
+  </div>
+</aside>
+<div id="toc-overlay"></div>
+
+
+<main>
+
+<section class="hero" id="top">
+  <canvas id="hero-canvas" aria-hidden="true"></canvas>
+
+  <div class="hero-meta reveal">
+    <div class="left">
+      <span lang="es">TFG · 2026<br>Universitat Politècnica<br>de Catalunya · FIB</span><span lang="en">Thesis · 2026<br>Universitat Politècnica<br>de Catalunya · FIB</span>
+    </div>
+    <div class="right">
+      <span lang="es">Vol. 01<br>Compresión selectiva<br>Interpretabilidad mecánica</span><span lang="en">Vol. 01<br>Selective compression<br>Mechanistic interpretability</span>
+    </div>
+  </div>
+
+  <div class="hero-content reveal" style="--delay: 120ms">
+    <div lang="es" class="hero-tag">Trabajo de fin de grado · 2026</div><div lang="en" class="hero-tag">Bachelor's thesis · 2026</div>
+    <h1 class="hero-title">
+      <span lang="es">Anatomía<br>emocional<br><em>de un transformer</em></span>
+      <span lang="en">Anatomy<br>of an<br><em>emotional transformer</em></span>
+      <span class="small">
+        <span lang="es">Compresión selectiva e interpretabilidad mecánica de BERT-base sobre GoEmotions. Un manual visual para desarmar el modelo capa por capa.</span>
+        <span lang="en">Selective compression and mechanistic interpretability of BERT-base on GoEmotions. A visual manual that takes the model apart layer by layer.</span>
+      </span>
+    </h1>
+
+    <div class="hero-stats">
+      <div class="stat">
+        <span class="num">12 × 144</span>
+        <span lang="es" class="label">capas × cabezas</span><span lang="en" class="label">layers × heads</span>
+      </div>
+      <div class="stat">
+        <span class="num">36 864</span>
+        <span lang="es" class="label">neuronas FFN</span><span lang="en" class="label">FFN neurons</span>
+      </div>
+      <div class="stat">
+        <span class="num">23</span>
+        <span lang="es" class="label">emociones, multi-label</span><span lang="en" class="label">emotions, multi-label</span>
+      </div>
+      <div class="stat">
+        <span class="num">21</span>
+        <span lang="es" class="label">visualizaciones</span><span lang="en" class="label">visualisations</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-foot reveal" style="--delay: 240ms">
+    <div class="scroll-cue">
+      <span class="arrow"></span>
+      <span lang="es">Scroll · Empezar el recorrido</span><span lang="en">Scroll · Begin the tour</span>
+    </div>
+    <div>
+      <a href="sobre.html">Guido Biosca Lasa</a> · <span lang="es">Director: Lluís Padró Cirera</span><span lang="en">Advisor: Lluís Padró Cirera</span>
+    </div>
+  </div>
+</section>
+
+<section class="part" id="parte-1">
+  <div class="part-grid">
+    <div class="part-numeral reveal" aria-hidden="true">
+      <span lang="es">01</span><span lang="en">01</span>
+    </div>
+    <div class="part-content">
+      <div lang="es" class="part-meta reveal">Parte 01</div><div lang="en" class="part-meta reveal">Part 01</div>
+      <h2 lang="es" class="part-title reveal">El sujeto</h2><h2 lang="en" class="part-title reveal">The subject</h2>
+      <div class="part-intro reveal" style="--delay: 200ms">
+    <p lang="es">BERT-base. 12 capas. 144 cabezas de atención. 36 864 neuronas en los bloques FFN. 109,5 millones de parámetros.</p><p lang="en">BERT-base. 12 layers. 144 attention heads. 36,864 neurons across the FFN blocks. 109.5 million parameters.</p>
+    <p lang="es">Encima, un fine-tune sobre GoEmotions: 23 emociones, etiquetado multi-label. Cada frase puede llevar varias emociones a la vez.</p><p lang="en">On top of it, a fine-tune on GoEmotions: 23 emotions with multi-label tagging. A single sentence can carry several emotions at once.</p>
+    <p lang="es">Antes de operar nada, primero hay que conocer al sujeto.</p><p lang="en">Before cutting anything open, you have to meet the subject.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="arquitectura">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 01.1 · Arquitectura</div><div lang="en" class="ch-num reveal">§ 01.1 · Architecture</div>
+    <h2 lang="es" class="ch-title reveal">BERT entero, en 3D</h2><h2 lang="en" class="ch-title reveal">All of BERT, in 3D</h2>
+    <p lang="es" class="ch-sub reveal">12 capas apiladas, cada una con 12 cabezas de atención y un bloque FFN.</p><p lang="en" class="ch-sub reveal">12 stacked layers, each with 12 attention heads and an FFN block.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Cada esfera es una cabeza de atención. Cada anillo turquesa es un bloque FFN. Por la columna central viaja el residual stream con el [CLS] desde abajo hasta el classifier de arriba.</p><p lang="en" class="reveal lead">Each sphere is an attention head. Each turquoise ring is an FFN block. The dotted central column is the residual stream that carries [CLS] from the bottom to the classifier on top.</p>
+    <p lang="es" class="reveal">El color codifica la categoría funcional según el ablation study (notebook 6). Roja: critical specialist. Azul: critical generalist. Amarilla: minor. Gris: prescindible. El tamaño es el impacto agregado al ablacionar.</p><p lang="en" class="reveal">Color encodes the functional category from the ablation study (notebook 6). Red: critical specialist. Blue: critical generalist. Yellow: minor. Grey: dispensable. Size encodes aggregate impact when the head is ablated.</p>
+    <p lang="es" class="reveal">Compara la capa 11 con la capa 0. Arriba casi todo es rojo y azul. Abajo casi todo es gris. El trabajo emocional no está distribuido uniformemente — vive concentrado al final.</p><p lang="en" class="reveal">Compare layer 11 with layer 0. Up top almost everything is red and blue. Down at the bottom it's mostly grey. Emotional work isn't spread evenly — it's concentrated at the end of the stack.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 944px">
+      <iframe
+        data-src-es="figures/bert_architecture.html"
+        data-src-en="figures/bert_architecture.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Esferas: cabezas. Anillos: bloques FFN. Columna punteada: residual stream. Diamante rojo: token [CLS]. Cuadrado verde: classifier de 23 emociones. Datos: head_categories.csv.</div><div lang="en" class="caption">Spheres: heads. Rings: FFN blocks. Dotted column: residual stream. Red diamond: [CLS] token. Green square: 23-emotion classifier. Data: head_categories.csv.</div>
+      <div class="id">Fig. <strong>01.1</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="lex2sem">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 01.2 · Base teórica</div><div lang="en" class="ch-num reveal">§ 01.2 · Theoretical base</div>
+    <h2 lang="es" class="ch-title reveal">De diccionario a clasificador</h2><h2 lang="en" class="ch-title reveal">From dictionary to classifier</h2>
+    <p lang="es" class="ch-sub reveal">Cómo BERT olvida palabras y aprende emociones.</p><p lang="en" class="ch-sub reveal">How BERT forgets words and learns emotions.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Una palabra entra en BERT y, al salir, ya no es esa palabra. El modelo sustituye "qué palabra es" por "qué papel juega" capa a capa. Es un fenómeno conocido (Tenney 2019, Ethayarajh 2019).</p><p lang="en" class="reveal lead">A word enters BERT and on the way out it isn't that word anymore. The model replaces "which word is this" with "what role does it play" layer by layer. The phenomenon is well documented (Tenney 2019, Ethayarajh 2019).</p>
+    <p lang="es" class="reveal">Tres curvas miden la transición. Azul: retención léxica, cuánto del embedding original sobrevive. Amarilla: anisotropía, cuán parecidos son los tokens entre sí. Roja: F1 del probe lineal de emoción, cuánta información de la etiqueta es linealmente extraíble.</p><p lang="en" class="reveal">Three curves track the transition. Blue: lexical retention — how much of the original embedding survives. Yellow: anisotropy — how similar the tokens look to each other. Red: linear-probe F1 for emotion — how much of the label is linearly recoverable.</p>
+    <p lang="es" class="reveal">Las tres se cruzan en L8–L9. Antes, fase léxica. Después, fase semántica. Los cuatro mini-heatmaps lo hacen visceral: filas tempranas con colores variados (cada token preserva identidad), filas tardías monocromas (todos los tokens han colapsado al mismo vector contextual).</p><p lang="en" class="reveal">The three curves cross around L8–L9. Before that, lexical phase. After that, semantic phase. The four mini-heatmaps make it tangible: early rows show varied colors (each token keeps its identity), late rows go monochrome (every token has collapsed onto the same contextual vector).</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 1004px">
+      <iframe
+        data-src-es="figures/lexical_to_semantic.html"
+        data-src-en="figures/lexical_to_semantic.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Tres curvas sobre 46 frases del test set. Heatmaps de cuatro frases ejemplo: cos(hidden[L,t], hidden[0,t]). Refs: Tenney et al. ACL 2019; Ethayarajh EMNLP 2019.</div><div lang="en" class="caption">Three curves over 46 test-set sentences. Heatmaps of four example sentences: cos(hidden[L,t], hidden[0,t]). Refs: Tenney et al. ACL 2019; Ethayarajh EMNLP 2019.</div>
+      <div class="id">Fig. <strong>01.2</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="part" id="parte-2">
+  <div class="part-grid">
+    <div class="part-numeral reveal" aria-hidden="true">
+      <span lang="es">02</span><span lang="en">02</span>
+    </div>
+    <div class="part-content">
+      <div lang="es" class="part-meta reveal">Parte 02</div><div lang="en" class="part-meta reveal">Part 02</div>
+      <h2 lang="es" class="part-title reveal">El cuerpo en pedazos</h2><h2 lang="en" class="part-title reveal">The body in pieces</h2>
+      <div class="part-intro reveal" style="--delay: 200ms">
+    <p lang="es">El plan: aplicar SVD a las matrices de pesos del modelo, quedarte con los k mayores valores singulares y ver cuánto cae el F1.</p><p lang="en">The plan: apply SVD to the model's weight matrices, keep the top-k singular values and watch how much F1 drops.</p>
+    <p lang="es">La sorpresa: el modelo ya está comprimiendo por dentro. Los tokens al final viven en un subespacio de baja dimensión. La SVD no introduce compresión donde no la había. Materializa la que ya existe.</p><p lang="en">The surprise: the model is already compressing itself internally. Tokens at the end live in a low-dimensional subspace. SVD doesn't introduce compression where there wasn't any — it just makes explicit what's already there.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="internal-compression">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 02.1 · El puente</div><div lang="en" class="ch-num reveal">§ 02.1 · The bridge</div>
+    <h2 lang="es" class="ch-title reveal">El modelo se comprime <em>a sí mismo</em></h2><h2 lang="en" class="ch-title reveal">The model compresses <em>itself</em></h2>
+    <p lang="es" class="ch-sub reveal">Antes de aplicar SVD, la red ya está reduciendo dimensión.</p><p lang="en" class="ch-sub reveal">Before SVD touches anything, the network is already reducing dimensionality.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Apilas las representaciones de tokens de cada capa en una matriz 469 × 768 y le aplicas SVD. La pregunta: cuántas dimensiones está usando realmente el modelo capa a capa.</p><p lang="en" class="reveal lead">Stack each layer's token representations into a 469 × 768 matrix and run SVD on it. The question: how many dimensions does the model actually use at each layer?</p>
+    <p lang="es" class="reveal">Las curvas azules son norma euclídea de los vectores. Crecen con la profundidad (Kobayashi 2021). Las rojas son rango efectivo y k95 — cuántos valores singulares cubren el 95 % de la varianza. Caen en pico: de ~130 dimensiones en capas tempranas a 22 en L12. El k95 baja hasta 35.</p><p lang="en" class="reveal">The blue curves are vector L2 norms. They grow with depth (Kobayashi 2021). The red ones are effective rank and k95 — how many singular values cover 95 % of the variance. They collapse: ~130 dimensions in early layers down to 22 by L12. k95 drops to 35.</p>
+    <p lang="es" class="reveal">De 768 dimensiones disponibles, el modelo termina usando un 5 %. El heatmap inferior es la prueba completa: energía espectral acumulada por capa, con la línea negra del k95 desplazándose a la izquierda en L9–L12.</p><p lang="en" class="reveal">Out of 768 available dimensions, the model ends up using around 5 %. The bottom heatmap shows the full picture: cumulative spectral energy per layer, with the black k95 line drifting left from L9 to L12.</p>
+  </div>
+
+  <blockquote lang="es" class="pull reveal">Si la representación interna en L12 vive en 22 de 768 dimensiones, las matrices que la producen son aproximables por low-rank. La SVD no introduce compresión donde no la había. Materializa la que ya existe.</blockquote><blockquote lang="en" class="pull reveal">If the internal representation at L12 lives in 22 of 768 dimensions, the matrices producing it are amenable to low-rank approximation. SVD doesn't introduce compression where there wasn't any — it just makes the existing compression explicit.</blockquote>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 1004px">
+      <iframe
+        data-src-es="figures/internal_compression.html"
+        data-src-en="figures/internal_compression.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Norma media de hidden states (azul) vs rango efectivo y k95 (terra). Heatmap de energía espectral acumulada. Datos: 46 frases del test set sobre 23emo-final. Refs: Kobayashi EMNLP 2021; Dong et al. ICML 2021.</div><div lang="en" class="caption">Mean hidden-state norm (blue) vs effective rank and k95 (terra). Heatmap of cumulative spectral energy. Data: 46 test-set sentences on 23emo-final. Refs: Kobayashi EMNLP 2021; Dong et al. ICML 2021.</div>
+      <div class="id">Fig. <strong>02.1</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="pareto">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 02.2 · El acantilado</div><div lang="en" class="ch-num reveal">§ 02.2 · The cliff</div>
+    <h2 lang="es" class="ch-title reveal">22 estrategias, una transición de fase</h2><h2 lang="en" class="ch-title reveal">22 strategies, one phase transition</h2>
+    <p lang="es" class="ch-sub reveal">SVD uniforme a todas las capas. Entre rango 384 y 256 el F1 se desploma.</p><p lang="en" class="ch-sub reveal">Uniform SVD across every layer. Between rank 384 and 256, F1 falls off the cliff.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">La superficie de la derecha es F1 sobre el plano (rango × profundidad). Cada celda es una configuración. El color es retención de F1.</p><p lang="en" class="reveal lead">The right-hand surface is F1 over the (rank × depth) plane. Each cell is a configuration. Color is F1 retention.</p>
+    <p lang="es" class="reveal">Las capas tardías (8–11) caen al vacío antes que las tempranas. Esa asimetría es lo que motiva la compresión informada del capítulo 6.</p><p lang="en" class="reveal">Late layers (8–11) plunge into the void before the early ones. That asymmetry is what motivates the informed compression of chapter 6.</p>
+    <p lang="es" class="reveal">El algoritmo greedy domina la frontera de Pareto en 8 de 9 puntos óptimos. La estrategia greedy_90 retiene un 93 % del F1 con un 14 % menos de parámetros.</p><p lang="en" class="reveal">The greedy algorithm dominates the Pareto frontier in 8 out of 9 optimal points. The greedy_90 strategy retains 93 % of F1 with 14 % fewer parameters.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 684px">
+      <iframe
+        data-src-es="figures/pareto_3d.html"
+        data-src-en="figures/pareto_3d.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Frontera de Pareto: 22 estrategias evaluadas. Datos: compression_comparison.csv. Eje rango uniforme, eje profundidad de capa, color F1 macro.</div><div lang="en" class="caption">Pareto frontier: 22 evaluated strategies. Data: compression_comparison.csv. Axes: uniform rank, layer depth, color F1 macro.</div>
+      <div class="id">Fig. <strong>02.2</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="spectral-landscape">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 02.3 · 3D</div><div lang="en" class="ch-num reveal">§ 02.3 · 3D</div>
+    <h2 lang="es" class="ch-title reveal">La asimetría espectral, hecha topografía</h2><h2 lang="en" class="ch-title reveal">Spectral asymmetry as a landscape</h2>
+    <p lang="es" class="ch-sub reveal">Las 72 matrices del modelo apiladas como filas de un terreno.</p><p lang="en" class="ch-sub reveal">All 72 weight matrices stacked as rows of a relief map.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Cada fila es una matriz de pesos. Eje X: índice del valor singular. Eje Z: magnitud normalizada σᵢ/σ₁.</p><p lang="en" class="reveal lead">Each row is one weight matrix. X-axis: singular-value index. Z-axis: normalised magnitude σᵢ/σ₁.</p>
+    <p lang="es" class="reveal">Q y K forman picos abruptos: pocos valores singulares dominan, espectro concentrado, rango efectivo bajo, fácil de comprimir. Las FFN forman mesetas casi planas: espectro distribuido, cada dimensión aporta, frágiles bajo SVD.</p><p lang="en" class="reveal">Q and K form sharp peaks: a few singular values dominate, concentrated spectrum, low effective rank, easy to compress. The FFN matrices form near-flat plateaus: distributed spectrum, every dimension contributes, fragile under SVD.</p>
+    <p lang="es" class="reveal">Los diamantes marcan k95 por matriz. Q/K cerca de 395. FFN cerca de 620. Es la Tabla 6 de la memoria, en relieve.</p><p lang="en" class="reveal">The diamonds mark k95 per matrix. Q/K hover around 395. FFN around 620. It's Table 6 of the thesis, but in 3D.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 944px">
+      <iframe
+        data-src-es="figures/spectral_landscape.html"
+        data-src-en="figures/spectral_landscape.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">SVD computada sobre el checkpoint 23emo-final. 72 matrices = 12 capas × 6 componentes (Q, K, V, Attn-O, FFN-i, FFN-o).</div><div lang="en" class="caption">SVD computed on the 23emo-final checkpoint. 72 matrices = 12 layers × 6 components (Q, K, V, Attn-O, FFN-i, FFN-o).</div>
+      <div class="id">Fig. <strong>02.3</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="decay">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 02.4 · Animación</div><div lang="en" class="ch-num reveal">§ 02.4 · Animation</div>
+    <h2 lang="es" class="ch-title reveal">La galaxia se deshace</h2><h2 lang="en" class="ch-title reveal">The galaxy dissolves</h2>
+    <p lang="es" class="ch-sub reveal">Misma proyección que galaxy formation, ahora con SVD activa.</p><p lang="en" class="ch-sub reveal">Same projection as galaxy formation, now with SVD turned on.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Las mismas 588 frases en L12, proyectadas con LDA. Seis configuraciones de compresión: rangos 768 (sin tocar), 512, 384, 256, 128, 64.</p><p lang="en" class="reveal lead">The same 588 sentences at L12, projected with LDA. Six compression configs: ranks 768 (untouched), 512, 384, 256, 128, 64.</p>
+    <p lang="es" class="reveal">A r=512 todo casi igual. Entre r=384 y r=256 está el acantilado: los clusters se difuminan. A r=128 la geometría desaparece. A r=64 todos los embeddings colapsan en un blob.</p><p lang="en" class="reveal">At r=512 almost nothing changes. Between r=384 and r=256 is the cliff: clusters blur. At r=128 the geometry is gone. At r=64 the embeddings collapse into a single blob.</p>
+    <p lang="es" class="reveal">La gráfica de la derecha lo cuantifica: silhouette en azul, retención de F1 en terra. Caen juntas a partir de r=384. La transición de fase, vista como geometría que se deshace.</p><p lang="en" class="reveal">The right-hand chart quantifies the same story: silhouette in blue, F1 retention in terra. They drop together from r=384 onwards. Phase transition, seen as geometry coming apart.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 884px">
+      <iframe
+        data-src-es="figures/compression_decay.html"
+        data-src-en="figures/compression_decay.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">588 frases del test set, L12, LDA-3D fija. SVD aplicada uniformemente. Slider o Play.</div><div lang="en" class="caption">588 test-set sentences, L12, fixed LDA-3D. SVD applied uniformly. Use the slider or Play.</div>
+      <div class="id">Fig. <strong>02.4</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="ft-diff">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 02.5 · Pre vs post</div><div lang="en" class="ch-num reveal">§ 02.5 · Pre vs post</div>
+    <h2 lang="es" class="ch-title reveal">Qué cambió el fine-tuning</h2><h2 lang="en" class="ch-title reveal">What the fine-tune actually changed</h2>
+    <p lang="es" class="ch-sub reveal">Diff Frobenius entre bert-base-uncased y 23emo-final.</p><p lang="en" class="ch-sub reveal">Frobenius diff between bert-base-uncased and 23emo-final.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Cargo los dos modelos. Para cada una de las 72 matrices calculo el cambio relativo: ‖W_ft − W_pre‖ / ‖W_pre‖. Cuánto se ha movido cada matriz durante el fine-tune.</p><p lang="en" class="reveal lead">Load both models. For each of the 72 matrices, compute relative change ‖W_ft − W_pre‖ / ‖W_pre‖ — how far each matrix moved during the fine-tune.</p>
+    <p lang="es" class="reveal">La predicción de §5.5 era simple. El gradiente fluye más fuerte hacia las capas finales. Las tardías deberían cambiar mucho. Las tempranas, ya buenas en el pre-entrenamiento, deberían quedarse casi igual.</p><p lang="en" class="reveal">The prediction in §5.5 was simple. Gradient flows harder into late layers. Late ones should change a lot; early ones, already serviceable from pre-training, should barely move.</p>
+    <p lang="es" class="reveal">El heatmap lo confirma. Los valores en capas 8–11 son claramente más altos. Evidencia empírica directa de la arquitectura de dos fases.</p><p lang="en" class="reveal">The heatmap confirms it. Values across layers 8–11 are clearly higher. Direct empirical evidence of the two-phase architecture.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 984px">
+      <iframe
+        data-src-es="figures/finetuning_diff.html"
+        data-src-en="figures/finetuning_diff.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Norma Frobenius del cambio relativo, 72 matrices del encoder. bert-base-uncased vs 23emo-final.</div><div lang="en" class="caption">Frobenius norm of relative change, 72 encoder matrices. bert-base-uncased vs 23emo-final.</div>
+      <div class="id">Fig. <strong>02.5</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="part" id="parte-3">
+  <div class="part-grid">
+    <div class="part-numeral reveal" aria-hidden="true">
+      <span lang="es">03</span><span lang="en">03</span>
+    </div>
+    <div class="part-content">
+      <div lang="es" class="part-meta reveal">Parte 03</div><div lang="en" class="part-meta reveal">Part 03</div>
+      <h2 lang="es" class="part-title reveal">Dónde viven las emociones</h2><h2 lang="en" class="part-title reveal">Where the emotions live</h2>
+      <div class="part-intro reveal" style="--delay: 200ms">
+    <p lang="es">Si las capas tardías son las que más cambian con el fine-tune y las que más rango efectivo pierden, también deberían ser donde se decide qué emoción detectar.</p><p lang="en">If late layers are the ones that change most during the fine-tune and the ones losing the most effective rank, they should also be where the decision lives.</p>
+    <p lang="es">Probing por capa, geometría 3D, logit lens. Tres maneras distintas de decir lo mismo.</p><p lang="en">Layer-wise probing, 3D geometry, logit lens. Three different ways of saying the same thing.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="crystallization">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 03.1 · Probing</div><div lang="en" class="ch-num reveal">§ 03.1 · Probing</div>
+    <h2 lang="es" class="ch-title reveal">Cristalización por capas</h2><h2 lang="en" class="ch-title reveal">Layer-wise crystallisation</h2>
+    <p lang="es" class="ch-sub reveal">Cuándo aparece cada emoción dentro del modelo.</p><p lang="en" class="ch-sub reveal">When each emotion shows up inside the model.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Para cada capa entrenas un clasificador lineal sobre el [CLS]. Te dice cuánta información de cada emoción es linealmente extraíble en ese punto.</p><p lang="en" class="reveal lead">For each layer you train a linear classifier on top of [CLS]. It tells you how much of each emotion is linearly recoverable at that point.</p>
+    <p lang="es" class="reveal">Gratitude sale ya en L0. Tiene vocabulario obvio ("thanks", "thank you"). Realization aguanta hasta L11. Necesita contexto entero para diferenciarse.</p><p lang="en" class="reveal">Gratitude shows up as early as L0. The vocabulary is obvious ("thanks", "thank you"). Realization holds out until L11. It needs the full context to be told apart.</p>
+    <p lang="es" class="reveal">La frecuencia en el dataset NO predice la profundidad. Annoyance tiene 3× más ejemplos que disgust. Cristaliza 6 capas más tarde. Lo que importa es la complejidad semántica, no el volumen de datos.</p><p lang="en" class="reveal">Frequency in the dataset does NOT predict depth. Annoyance has 3× more examples than disgust, yet crystallises 6 layers later. What matters is semantic complexity, not data volume.</p>
+    <p lang="es" class="reveal">Los diamantes marcan la capa de cristalización: donde el F1 alcanza el 80 % de su máximo. La barra de la izquierda es el cluster psicológico de cada emoción.</p><p lang="en" class="reveal">The diamonds mark the crystallisation layer — where F1 reaches 80 % of its maximum. The left ribbon is each emotion's psychological cluster.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 844px">
+      <iframe
+        data-src-es="figures/crystallization.html"
+        data-src-en="figures/crystallization.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Probing lineal por capa, 23 emociones × 13 capas. Datos: probe_results.csv del notebook 4.</div><div lang="en" class="caption">Layer-wise linear probing, 23 emotions × 13 layers. Data: probe_results.csv from notebook 4.</div>
+      <div class="id">Fig. <strong>03.1</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter hero-figure" id="galaxy">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 03.2 · Geometría</div><div lang="en" class="ch-num reveal">§ 03.2 · Geometry</div>
+    <h2 lang="es" class="ch-title reveal">Galaxy formation</h2><h2 lang="en" class="ch-title reveal">Galaxy formation</h2>
+    <p lang="es" class="ch-sub reveal">23 emociones cristalizando en el espacio LDA, capa por capa.</p><p lang="en" class="ch-sub reveal">23 emotions crystallising in LDA space, layer by layer.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Tomamos el [CLS] de cada capa, le aplicamos el pooler real del modelo (Linear + tanh) y proyectamos con LDA supervisada ajustada en L12. Los tres ejes son las direcciones que mejor separan las 23 emociones.</p><p lang="en" class="reveal lead">Take the [CLS] from each layer, apply the model's real pooler (Linear + tanh), and project with supervised LDA fitted at L12. The three axes are the directions that best separate the 23 emotions.</p>
+    <p lang="es" class="reveal">En L0 los 23 diamantes (los centroides de cada emoción) están casi superpuestos en el origen. En L11 ocupan regiones separadas, cerca de las frases que les corresponden.</p><p lang="en" class="reveal">At L0 the 23 diamonds (one centroid per emotion) sit almost on top of the origin. By L11 they occupy distinct regions, next to the sentences they belong to.</p>
+    <p lang="es" class="reveal">Cuantitativo: separation ratio de 4,3 (los centroides están 4× más separados que la dispersión interna). 40 % de accuracy por nearest-centroid contra 4 % de un baseline aleatorio.</p><p lang="en" class="reveal">Quantitative: separation ratio of 4.3 (centroids are 4× farther apart than the within-cluster spread). Nearest-centroid accuracy of 40 % vs a 4 % random baseline.</p>
+    <p lang="es" class="reveal">Click en la leyenda para aislar una emoción.</p><p lang="en" class="reveal">Click an emotion in the legend to isolate it.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 944px">
+      <iframe
+        data-src-es="figures/galaxy_formation.html"
+        data-src-en="figures/galaxy_formation.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">2300 frases del test set. Pooler aplicado, LDA-3D fija ajustada en L12. Mismas coordenadas para todas las capas.</div><div lang="en" class="caption">2,300 test-set sentences. Pooler applied, fixed LDA-3D fitted at L12. Same coordinates across every layer.</div>
+      <div class="id">Fig. <strong>03.2</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="iterative">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 03.3 · Logit lens</div><div lang="en" class="ch-num reveal">§ 03.3 · Logit lens</div>
+    <h2 lang="es" class="ch-title reveal">La curva en U</h2><h2 lang="en" class="ch-title reveal">The U curve</h2>
+    <p lang="es" class="ch-sub reveal">Aplicar el classifier real a cada capa, no sólo a la última.</p><p lang="en" class="ch-sub reveal">Applying the real classifier to every layer, not just the last.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Logit lens. Técnica de Nostalgebraist (2020), refinada por Belrose et al. (NeurIPS 2023). Aplicas el pooler + classifier reales del modelo a las 13 representaciones intermedias.</p><p lang="en" class="reveal lead">Logit lens. Originally Nostalgebraist (2020), refined by Belrose et al. (NeurIPS 2023). You take the model's real pooler + classifier and apply them to all 13 intermediate representations.</p>
+    <p lang="es" class="reveal">Promediado sobre 2300 frases, el sigmoid medio traza una U. Capas 0–3: las estadísticas del [CLS] saturan el tanh del pooler — muchas emociones se disparan a la vez con magnitud media. Capas 4–9: transición, tanh cerca de cero, todas las sigmoides colapsan. Capas 10–11: el [CLS] alcanza su régimen entrenado y una emoción pega un salto.</p><p lang="en" class="reveal">Averaged over 2,300 sentences, the mean sigmoid traces a U. Layers 0–3: [CLS] statistics saturate the pooler's tanh — several emotions fire at once with medium magnitude. Layers 4–9: transition zone, tanh near zero, every sigmoid collapses. Layers 10–11: [CLS] reaches its trained regime and one emotion jumps.</p>
+    <p lang="es" class="reveal">Esto explica por qué el activation patching de L11 recupera el 100 % del F1: lo que restauras es justamente esta calibración.</p><p lang="en" class="reveal">This is why activation-patching layer 11 alone recovers 100 % of F1: what you're restoring is exactly this calibration.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 624px">
+      <iframe
+        data-src-es="figures/iterative_inference.html"
+        data-src-en="figures/iterative_inference.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Sigmoid promedio del pooler+classifier aplicado por capa. Top-1, gold, suma de las 23. 2300 frases.</div><div lang="en" class="caption">Mean sigmoid of pooler+classifier applied per layer. Top-1, gold, sum of all 23. 2,300 sentences.</div>
+      <div class="id">Fig. <strong>03.3</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="lens-vs-probe">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 03.4 · Comparación</div><div lang="en" class="ch-num reveal">§ 03.4 · Comparison</div>
+    <h2 lang="es" class="ch-title reveal">Lo que sabe vs lo que <em>sabe leer</em></h2><h2 lang="en" class="ch-title reveal">What it knows vs what it can <em>read</em></h2>
+    <p lang="es" class="ch-sub reveal">Probing y logit lens contestan preguntas distintas. La diferencia es informativa.</p><p lang="en" class="ch-sub reveal">Probing and logit lens answer different questions. The gap between them is informative.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Dos curvas, tres paneles. Las dos miden información de emoción en cada capa. Mismos datos. Preguntas distintas.</p><p lang="en" class="reveal lead">Two curves, three panels. Both measure emotion information at every layer. Same data. Different questions.</p>
+    <p lang="es" class="reveal">El probe lineal (rojo) es un clasificador nuevo entrenado sobre cada capa. Te dice cuánta información hay ahí, linealmente extraíble. Sube monótonamente: la información se acumula con la profundidad.</p><p lang="en" class="reveal">The linear probe (red) is a fresh classifier trained on each layer. It tells you how much information is there, linearly recoverable. It rises monotonically: information accumulates with depth.</p>
+    <p lang="es" class="reveal">El logit lens (verde) es la cabeza entrenada en L11, aplicada en cada capa. Hace U porque sólo sabe leer activaciones estilo L11. En las capas tempranas y medias lee mal aunque la información esté ahí.</p><p lang="en" class="reveal">The logit lens (green) is the head trained at L11, applied at each layer. It makes a U because it can only read L11-style activations. Early and middle layers fool it even though the information is there.</p>
+    <p lang="es" class="reveal">La banda gris entre las dos curvas es la diferencia: información que <strong>existe pero el modelo no usa</strong>. Por eso basta con restaurar L11 en el activation patching para recuperar el 100 % del F1: no falta información en el resto del modelo, falta una cabeza que sepa leerla.</p><p lang="en" class="reveal">The grey band between the two curves is the gap: information that <strong>exists but the model doesn't use</strong>. That's why restoring just L11 via activation patching recovers 100 % of F1 — the rest of the model isn't missing information, it's missing a head that knows how to read it.</p>
+    <p lang="es" class="reveal">Los tres paneles separan emociones por capa de cristalización. Tempranas: probe alto en L0 pero el lens aún no decide, brecha máxima. Tardías: probe y lens suben a la vez, brecha mínima.</p><p lang="en" class="reveal">The three panels split emotions by crystallisation layer. Early: probe is already high at L0 but the lens hasn't decided — maximum gap. Late: probe and lens rise together — minimum gap.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 1024px">
+      <iframe
+        data-src-es="figures/lens_vs_probe.html"
+        data-src-en="figures/lens_vs_probe.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Probe F1 macro de notebook 4 contra logit lens (pooler+classifier reales aplicados al [CLS] de cada capa) sobre 2300 frases del test set. Bandas de fase compartidas con la curva U.</div><div lang="en" class="caption">Probe F1 macro from notebook 4 vs logit lens (real pooler+classifier applied to [CLS] at each layer) over 2,300 test-set sentences. Phase bands shared with the U curve.</div>
+      <div class="id">Fig. <strong>03.4</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="fingerprint">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 03.5 · Multi-label</div><div lang="en" class="ch-num reveal">§ 03.5 · Multi-label</div>
+    <h2 lang="es" class="ch-title reveal">Decision fingerprint</h2><h2 lang="en" class="ch-title reveal">Decision fingerprint</h2>
+    <p lang="es" class="ch-sub reveal">Las métricas agregadas esconden la firma multi-label de cada frase.</p><p lang="en" class="ch-sub reveal">Aggregate metrics hide the multi-label signature of each sentence.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Multi-label significa que el modelo no produce una emoción. Produce un vector de 23 sigmoides, varias activas a la vez. Ese vector es la firma de la frase.</p><p lang="en" class="reveal lead">Multi-label means the model doesn't produce an emotion. It produces a vector of 23 sigmoids, several of them active at once. That vector is the sentence's signature.</p>
+    <p lang="es" class="reveal">Aplico el classifier real al [CLS] de cada capa. Cada pétalo del polar es una emoción. Su longitud es el sigmoid. El pétalo con borde negro grueso es la emoción gold.</p><p lang="en" class="reveal">I apply the real classifier to [CLS] at each layer. Each petal of the polar is one emotion. Its length is the sigmoid. The petal with the thick black border is the gold emotion.</p>
+    <p lang="es" class="reveal">Selecciona una frase y dale a Play. Vas viendo el fingerprint emerger desde el ruido (Emb) hasta la decisión cristalizada (L11). Cuando varios pétalos crecen juntos, el modelo cree que coexisten varias emociones — eso es lo que la BCE multi-label produce y ningún heatmap promediado deja ver.</p><p lang="en" class="reveal">Pick a sentence and hit Play. You watch the fingerprint emerge from noise (Emb) into a crystallised decision (L11). When several petals grow together, the model thinks multiple emotions coexist — that's what multi-label BCE produces and no averaged heatmap can show you.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 744px">
+      <iframe
+        data-src-es="figures/decision_fingerprint.html"
+        data-src-en="figures/decision_fingerprint.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Sigmoid de las 23 emociones por capa, vector polar. Aplicado al pooler+classifier real.</div><div lang="en" class="caption">Sigmoid of all 23 emotions per layer, polar vector. Applied with the real pooler+classifier.</div>
+      <div class="id">Fig. <strong>03.5</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="part" id="parte-4">
+  <div class="part-grid">
+    <div class="part-numeral reveal" aria-hidden="true">
+      <span lang="es">04</span><span lang="en">04</span>
+    </div>
+    <div class="part-content">
+      <div lang="es" class="part-meta reveal">Parte 04</div><div lang="en" class="part-meta reveal">Part 04</div>
+      <h2 lang="es" class="part-title reveal">144 cabezas</h2><h2 lang="en" class="part-title reveal">144 heads</h2>
+      <div class="part-intro reveal" style="--delay: 200ms">
+    <p lang="es">En cada capa hay 12 cabezas de atención. 12 × 12 = 144 en total. Cada una con su propio patrón y su propia función.</p><p lang="en">Each layer has 12 attention heads. 12 × 12 = 144 in total. Each one with its own pattern and its own role.</p>
+    <p lang="es">No todas son iguales. No todas son críticas. No todas hacen lo mismo.</p><p lang="en">Not all are equal. Not all are critical. Not all do the same job.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="heads">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 04.1 · Categorías</div><div lang="en" class="ch-num reveal">§ 04.1 · Categories</div>
+    <h2 lang="es" class="ch-title reveal">Las 144 cabezas</h2><h2 lang="en" class="ch-title reveal">The 144 heads</h2>
+    <p lang="es" class="ch-sub reveal">Critical specialist, critical generalist, minor, prescindible.</p><p lang="en" class="ch-sub reveal">Critical specialist, critical generalist, minor, dispensable.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Cada cabeza es una celda en una matriz 12 × 12. Color = categoría según el ablation study. La capa 11 (fila inferior) no contiene ni una cabeza prescindible. Sus 12 son críticas.</p><p lang="en" class="reveal lead">Each head is a cell in a 12 × 12 matrix. Color = category from the ablation study. Layer 11 (bottom row) has zero dispensable heads. All 12 are critical.</p>
+    <p lang="es" class="reveal">Los puntos negros marcan las cabezas que cada emoción necesita específicamente, según la Tabla 19. L11-H6 aparece dos veces — la comparten sadness y realization.</p><p lang="en" class="reveal">The black dots mark the heads each emotion needs specifically, from Table 19. L11-H6 appears twice — shared between sadness and realization.</p>
+    <p lang="es" class="reveal">El 77 % de las cabezas en capas 8–11 son críticas. En capas 0–4 es sólo el 25 %. Hay un gradiente que no aparece en arquitecturas no fine-tuneadas.</p><p lang="en" class="reveal">77 % of heads in layers 8–11 are critical. In layers 0–4 it's only 25 %. A gradient that doesn't show up in non-fine-tuned architectures.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 804px">
+      <iframe
+        data-src-es="figures/heads_matrix.html"
+        data-src-en="figures/heads_matrix.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">12 capas × 12 cabezas = 144 celdas. Datos: head_categories.csv del notebook 6.</div><div lang="en" class="caption">12 layers × 12 heads = 144 cells. Data: head_categories.csv from notebook 6.</div>
+      <div class="id">Fig. <strong>04.1</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="atlas">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 04.2 · Patrones</div><div lang="en" class="ch-num reveal">§ 04.2 · Patterns</div>
+    <h2 lang="es" class="ch-title reveal">Attention atlas</h2><h2 lang="en" class="ch-title reveal">Attention atlas</h2>
+    <p lang="es" class="ch-sub reveal">Las 144 cabezas, todas a la vez, sobre una frase.</p><p lang="en" class="ch-sub reveal">All 144 heads, simultaneously, over one sentence.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Eliges una frase. El sistema te enseña los 144 patrones de atención simultáneamente. El borde de cada celda codifica su categoría funcional.</p><p lang="en" class="reveal lead">Pick a sentence. The system shows you all 144 attention patterns at once. Each cell's border encodes its functional category.</p>
+    <p lang="es" class="reveal">Patrones reconocibles. Las capas tempranas atienden diagonalmente: token a sí mismo, vecinos. Las tardías concentran atención en [CLS] o [SEP] — rayas verticales. Es el patrón típico de las cabezas agregadoras.</p><p lang="en" class="reveal">Recognisable shapes. Early layers attend diagonally: token to itself, neighbours. Late layers concentrate attention on [CLS] or [SEP] — vertical stripes. The classic aggregator pattern.</p>
+    <p lang="es" class="reveal">Click en cualquier cabeza para ampliarla con etiquetas de tokens.</p><p lang="en" class="reveal">Click any head to enlarge it with token labels.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 1384px">
+      <iframe
+        data-src-es="figures/attention_atlas.html"
+        data-src-en="figures/attention_atlas.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Pesos de atención reales sobre 46 frases del test set. 12 capas × 12 cabezas = 144 mini-mapas.</div><div lang="en" class="caption">Real attention weights over 46 test-set sentences. 12 layers × 12 heads = 144 mini-maps.</div>
+      <div class="id">Fig. <strong>04.2</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="constellations">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 04.3 · Superposition</div><div lang="en" class="ch-num reveal">§ 04.3 · Superposition</div>
+    <h2 lang="es" class="ch-title reveal">Las 23 emociones como direcciones</h2><h2 lang="en" class="ch-title reveal">The 23 emotions as directions</h2>
+    <p lang="es" class="ch-sub reveal">Los vectores de peso del classifier, proyectados a 3D.</p><p lang="en" class="ch-sub reveal">The classifier's weight vectors, projected into 3D.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">El classifier tiene 23 vectores de 768 dimensiones, uno por emoción. Esos vectores son las direcciones que el modelo usa para detectar cada emoción. Los proyecto a PCA-3D y los pinto como flechas radiando del origen.</p><p lang="en" class="reveal lead">The classifier has 23 vectors of 768 dimensions, one per emotion. Those vectors are the directions the model uses to detect each emotion. I project them into PCA-3D and draw them as arrows from the origin.</p>
+    <p lang="es" class="reveal">Vectores casi-ortogonales: emociones que el modelo distingue limpiamente. Casi-paralelos: emociones que confunde. Gratitude y love apuntan parecido.</p><p lang="en" class="reveal">Near-orthogonal vectors: emotions the model distinguishes cleanly. Near-parallel: emotions it confuses. Gratitude and love point in similar directions.</p>
+    <p lang="es" class="reveal">El heatmap es la similitud coseno completa en 768 dimensiones, reordenada por cluster. Los bloques diagonales muestran alta similitud dentro de un cluster.</p><p lang="en" class="reveal">The heatmap is the full cosine similarity in 768 dimensions, reordered by cluster. Diagonal blocks show high similarity within a cluster.</p>
+    <p lang="es" class="reveal">Esto es §2.7.5 (superposition) hecho geometría. El modelo codifica más conceptos que dimensiones tendría si todos fueran ortogonales puros.</p><p lang="en" class="reveal">This is §2.7.5 (superposition) made geometric. The model encodes more concepts than dimensions would allow if they were all strictly orthogonal.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 864px">
+      <iframe
+        data-src-es="figures/probe_constellations.html"
+        data-src-en="figures/probe_constellations.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">23 vectores del classifier proyectados con PCA fija. Heatmap de cosine similarity en 768 dimensiones, reordenado por cluster.</div><div lang="en" class="caption">23 classifier vectors projected with fixed PCA. Cosine-similarity heatmap in 768 dimensions, reordered by cluster.</div>
+      <div class="id">Fig. <strong>04.3</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="circuit">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 04.4 · Circuitos</div><div lang="en" class="ch-num reveal">§ 04.4 · Circuits</div>
+    <h2 lang="es" class="ch-title reveal">El circuito compartido</h2><h2 lang="en" class="ch-title reveal">The shared circuit</h2>
+    <p lang="es" class="ch-sub reveal">Cuando dos emociones reutilizan la misma maquinaria.</p><p lang="en" class="ch-sub reveal">When two emotions reuse the same machinery.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Aquí el grafo se construye en D3.js. Sin Plotly. Cada emoción a la izquierda. Cabezas críticas en el centro. Clusters psicológicos a la derecha.</p><p lang="en" class="reveal lead">Here the graph is built in D3.js. No Plotly. Emotions on the left. Critical heads in the middle. Psychological clusters on the right.</p>
+    <p lang="es" class="reveal">L11-H6 es el nodo rojo. Es la única cabeza compartida por más de una emoción. La usan sadness y realization. Probable circuito de "expectativa frustrada" que el fine-tune reutiliza.</p><p lang="en" class="reveal">L11-H6 is the red node. The only head shared by more than one emotion. Used by sadness and realization. Likely a "frustrated expectation" circuit the fine-tune is reusing.</p>
+    <p lang="es" class="reveal">Click en cualquier nodo para ver su entorno.</p><p lang="en" class="reveal">Click any node to inspect its neighbourhood.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 884px">
+      <iframe
+        data-src-es="figures/circuit_network.html"
+        data-src-en="figures/circuit_network.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Grafo construido a partir de top_heads_per_emotion.csv. Nodos en rojo: cabezas compartidas.</div><div lang="en" class="caption">Graph built from top_heads_per_emotion.csv. Red nodes: shared heads.</div>
+      <div class="id">Fig. <strong>04.4</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="part" id="parte-5">
+  <div class="part-grid">
+    <div class="part-numeral reveal" aria-hidden="true">
+      <span lang="es">05</span><span lang="en">05</span>
+    </div>
+    <div class="part-content">
+      <div lang="es" class="part-meta reveal">Parte 05</div><div lang="en" class="part-meta reveal">Part 05</div>
+      <h2 lang="es" class="part-title reveal">Causalidad</h2><h2 lang="en" class="part-title reveal">Causality</h2>
+      <div class="part-intro reveal" style="--delay: 200ms">
+    <p lang="es">Hasta aquí, correlación. Saber que el F1 sube en una capa no demuestra que esa capa cause la decisión. Para eso, lesionar.</p><p lang="en">Up to here, correlation. Knowing F1 rises at a layer doesn't prove that layer causes the decision. To prove it, you have to lesion.</p>
+    <p lang="es">Apagar una capa. Apagar una neurona. Ver qué se rompe.</p><p lang="en">Turn off a layer. Turn off a neuron. See what breaks.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter hero-figure" id="lesion">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 05.1 · Lesion</div><div lang="en" class="ch-num reveal">§ 05.1 · Lesion</div>
+    <h2 lang="es" class="ch-title reveal">Lesion theater</h2><h2 lang="en" class="ch-title reveal">Lesion theatre</h2>
+    <p lang="es" class="ch-sub reveal">Restaurar capa por capa, ver el modelo revivir.</p><p lang="en" class="ch-sub reveal">Restore the model layer by layer and watch it come back.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Empezamos con un modelo a F1 = 0. Todas las barras a cero. Cada etapa restaura los pesos originales de UNA capa más. 12 etapas en total.</p><p lang="en" class="reveal lead">Start with a model at F1 = 0. Every bar at zero. Each stage restores the original weights of one more layer. 12 stages in total.</p>
+    <p lang="es" class="reveal">Las primeras 8 etapas no mueven nada. L8 enciende un destello. L9 empuja arriba a las emociones léxicas. L10 recupera la mitad. L11 hace explotar todas las barras al baseline simultáneamente.</p><p lang="en" class="reveal">The first 8 stages move nothing. L8 sets off a flicker. L9 lifts the lexical emotions. L10 recovers half. L11 blows every bar back to baseline simultaneously.</p>
+    <p lang="es" class="reveal">La capacidad emocional del modelo no está distribuida. Vive concentrada en las capas finales.</p><p lang="en" class="reveal">The model's emotional capacity isn't distributed. It lives concentrated in the final layers.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 964px">
+      <iframe
+        data-src-es="figures/lesion_theater.html"
+        data-src-en="figures/lesion_theater.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Activation patching secuencial por capa. F1 macro y por emoción. 12 etapas + estado inicial.</div><div lang="en" class="caption">Sequential layer-wise activation patching. F1 macro and per emotion. 12 stages plus initial state.</div>
+      <div class="id">Fig. <strong>05.1</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="part" id="parte-6">
+  <div class="part-grid">
+    <div class="part-numeral reveal" aria-hidden="true">
+      <span lang="es">06</span><span lang="en">06</span>
+    </div>
+    <div class="part-content">
+      <div lang="es" class="part-meta reveal">Parte 06</div><div lang="en" class="part-meta reveal">Part 06</div>
+      <h2 lang="es" class="part-title reveal">Síntesis</h2><h2 lang="en" class="part-title reveal">Synthesis</h2>
+      <div class="part-intro reveal" style="--delay: 200ms">
+    <p lang="es">Una taxonomía emocional emergente, una compresión informada por interpretabilidad, y una vista que junta todo.</p><p lang="en">An emergent emotional taxonomy, a compression informed by interpretability, and a view that brings it all together.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="clusters">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 06.1 · Taxonomía</div><div lang="en" class="ch-num reveal">§ 06.1 · Taxonomy</div>
+    <h2 lang="es" class="ch-title reveal">Seis clusters que aparecen solos</h2><h2 lang="en" class="ch-title reveal">Six clusters emerging on their own</h2>
+    <p lang="es" class="ch-sub reveal">El modelo redescubre la psicología sin que se la impongan.</p><p lang="en" class="ch-sub reveal">The model rediscovers psychology without being told to.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Sin pedirle nada, un clustering jerárquico sobre los vectores de selectividad neuronal produce seis grupos con coherencia psicológica reconocible. Positivas energéticas. Negativas reactivas. Internas. Epistémicas. Orientadas al otro. Baja especificidad.</p><p lang="en" class="reveal lead">Without asking for anything, hierarchical clustering on the neural-selectivity vectors yields six groups with recognisable psychological coherence. High-energy positives. Reactive negatives. Internal. Epistemic. Other-oriented. Low specificity.</p>
+    <p lang="es" class="reveal">La barra de la derecha mide la norma de selectividad. Es el mejor predictor (ρ = 0.64, p = 0.001) de la caída de F1 bajo SVD. Las emociones "escritas en negrita" en los pesos del modelo son las más vulnerables.</p><p lang="en" class="reveal">The right-hand bar shows the selectivity norm. Best predictor (ρ = 0.64, p = 0.001) of F1 drop under SVD. Emotions "written in bold" in the model's weights are the most fragile.</p>
+    <p lang="es" class="reveal">La SVD no ataca selectivamente las neuronas emocionales. La geometría espectral es ortogonal a la función. Pero las emociones que requieren más capacidad neuronal son más frágiles a CUALQUIER perturbación.</p><p lang="en" class="reveal">SVD doesn't selectively target emotional neurons. The spectral geometry is orthogonal to function. But the emotions that demand more neural capacity are more fragile under ANY perturbation.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 744px">
+      <iframe
+        data-src-es="figures/sunburst.html"
+        data-src-en="figures/sunburst.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Sunburst con 6 clusters, 23 emociones. Áreas proporcionales a frecuencia en train. Bibliografía: Russell 1980 (circumplex).</div><div lang="en" class="caption">Sunburst with 6 clusters, 23 emotions. Areas proportional to train-set frequency. Reference: Russell 1980 (circumplex).</div>
+      <div class="id">Fig. <strong>06.1</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="landscape">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 06.2 · Mapa</div><div lang="en" class="ch-num reveal">§ 06.2 · Map</div>
+    <h2 lang="es" class="ch-title reveal">El paisaje emocional</h2><h2 lang="en" class="ch-title reveal">The emotional landscape</h2>
+    <p lang="es" class="ch-sub reveal">Cada emoción en (cristalización × intensidad).</p><p lang="en" class="ch-sub reveal">Each emotion plotted in (crystallisation × intensity).</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Las 23 emociones, posicionadas en un plano 2D. Eje X: capa de cristalización. Eje Y: norma de selectividad.</p><p lang="en" class="reveal lead">The 23 emotions placed in a 2D plane. X-axis: crystallisation layer. Y-axis: selectivity norm.</p>
+    <p lang="es" class="reveal">Cuadrante superior izquierdo: gratitude, love. Tempranas e intensas. Cuadrante inferior derecho: realization, disappointment. Tardías y difusas.</p><p lang="en" class="reveal">Top-left quadrant: gratitude, love. Early and intense. Bottom-right quadrant: realization, disappointment. Late and diffuse.</p>
+    <p lang="es" class="reveal">La línea punteada conecta sadness y realization. Comparten L11-H6.</p><p lang="en" class="reveal">The dotted line connects sadness and realization. They share L11-H6.</p>
+    <p lang="es" class="reveal">Selecciona una emoción en el menú de la derecha y verás su huella radial: 6 dimensiones funcionales en una figura polar.</p><p lang="en" class="reveal">Pick an emotion in the right-hand menu to see its radial fingerprint — 6 functional dimensions on a polar plot.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 784px">
+      <iframe
+        data-src-es="figures/emotional_landscape.html"
+        data-src-en="figures/emotional_landscape.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">23 emociones sobre el plano (cristalización × norma de selectividad). Datos: crystallization_layers.csv y neuron_catalog.csv.</div><div lang="en" class="caption">23 emotions on the (crystallisation × selectivity-norm) plane. Data: crystallization_layers.csv and neuron_catalog.csv.</div>
+      <div class="id">Fig. <strong>06.2</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter hero-figure" id="trajectory">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 06.3 · Síntesis</div><div lang="en" class="ch-num reveal">§ 06.3 · Synthesis</div>
+    <h2 lang="es" class="ch-title reveal">Una frase, cuatro vistas</h2><h2 lang="en" class="ch-title reveal">One sentence, four views</h2>
+    <p lang="es" class="ch-sub reveal">El experimento que se pide al inicio: ver BERT pensar.</p><p lang="en" class="ch-sub reveal">The experiment you ask for at the start: watching BERT think.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Aquí se juntan todas las vistas en una sola experiencia. Eliges una frase. Arrastras el slider de capa. Los cuatro paneles se mueven sincronizados. Trayectoria 3D del [CLS]. Atención de las 3 cabezas más críticas. Sigmoides multi-label. Curva del gold.</p><p lang="en" class="reveal lead">All the previous views collapse into a single experience. Pick a sentence. Drag the layer slider. The four panels move in sync. 3D trajectory of [CLS]. Attention of the 3 most critical heads. Multi-label sigmoids. Gold curve.</p>
+    <p lang="es" class="reveal">Pulsa Play. El [CLS] arranca cerca del origen y se desplaza hacia su centroide. Las cabezas críticas se activan capa a capa. Los pétalos saltan del valle a la cristalización. La curva del gold traza la U.</p><p lang="en" class="reveal">Hit Play. [CLS] starts near the origin and slides toward its centroid. The critical heads activate layer by layer. The petals jump from valley to crystallisation. The gold curve traces the U.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 1084px">
+      <iframe
+        data-src-es="figures/sentence_trajectory.html"
+        data-src-en="figures/sentence_trajectory.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Cuatro paneles síncronos. Datos reales del modelo 23emo-final aplicado en vivo a la frase elegida.</div><div lang="en" class="caption">Four synchronised panels. Real data from the 23emo-final model applied live to the selected sentence.</div>
+      <div class="id">Fig. <strong>06.3</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="greedy">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 06.4 · Algoritmo</div><div lang="en" class="ch-num reveal">§ 06.4 · Algorithm</div>
+    <h2 lang="es" class="ch-title reveal">Greedy en acción</h2><h2 lang="en" class="ch-title reveal">Greedy in action</h2>
+    <p lang="es" class="ch-sub reveal">Cómo el algoritmo construye la compresión paso a paso.</p><p lang="en" class="ch-sub reveal">How the algorithm builds the compression step by step.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">El greedy elige movimientos por eficiencia: parámetros ahorrados / coste F1. Aquí lo ves en acción. Empezamos con baseline (todo a rango 768) y avanzamos: greedy_95 → greedy_90 → … → greedy_50.</p><p lang="en" class="reveal lead">Greedy picks moves by efficiency: parameters saved / F1 cost. Here you watch it work. Start at baseline (every rank 768) and step through: greedy_95 → greedy_90 → … → greedy_50.</p>
+    <p lang="es" class="reveal">La matriz 12 × 6 se va iluminando célula a célula. Las primeras decisiones son Q y K — gratis, sin coste F1. Exactamente lo que predice §4.3 sobre la inmunidad de Q/K. Después vienen FFN-output en capas tempranas. Las tardías (8–11) se mantienen intactas hasta el final.</p><p lang="en" class="reveal">The 12 × 6 matrix lights up cell by cell. The first decisions are Q and K — free, zero F1 cost. Exactly what §4.3 predicts about Q/K immunity. Then FFN-output in early layers. The late layers (8–11) stay untouched until the very end.</p>
+    <p lang="es" class="reveal">La línea derecha sigue el F1 vs ratio de compresión paso a paso. Es la prueba algorítmica de que el greedy reproduce los hallazgos de interpretabilidad sin acceso a ellos. Se entera sólo con datos empíricos de sensibilidad.</p><p lang="en" class="reveal">The right-hand line tracks F1 vs compression ratio at each step. Algorithmic proof that greedy reproduces the interpretability findings without access to them. It figures it out from empirical sensitivity data alone.</p>
+  </div>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 884px">
+      <iframe
+        data-src-es="figures/greedy_replay.html"
+        data-src-en="figures/greedy_replay.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Replay del algoritmo greedy_50, _60, …, _95. Datos: greedy_*_ranks.csv del notebook 9.</div><div lang="en" class="caption">Replay of the greedy_50, _60, …, _95 algorithm. Data: greedy_*_ranks.csv from notebook 9.</div>
+      <div class="id">Fig. <strong>06.4</strong></div>
+    </div>
+  </div>
+</section>
+
+<section class="outro" id="cierre">
+  <div lang="es" class="ch-num reveal">Cierre</div><div lang="en" class="ch-num reveal">Closing</div>
+  <h2 lang="es" class="ch-title reveal">Cómo está hecho</h2><h2 lang="en" class="ch-title reveal">How it's built</h2>
+  <p lang="es" class="ch-sub reveal">Stack, datos y créditos.</p><p lang="en" class="ch-sub reveal">Stack, data, credits.</p>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal">Datos numéricos. Las visualizaciones se alimentan directamente de los CSVs de los notebooks 2 al 9. Resultados reales del fine-tune sobre BERT-base-uncased y 23 emociones de GoEmotions. 61 tablas exportadas: probing por capa, ablación de 144 cabezas, especialización neuronal, activation patching, frontera de Pareto completa con 22 estrategias evaluadas.</p><p lang="en" class="reveal">Numbers. The visualisations read directly from the CSVs of notebooks 2–9. Real results from the fine-tune of bert-base-uncased on the 23 GoEmotions classes. 61 exported tables: layer-wise probing, 144-head ablation, neural specialisation, activation patching, full Pareto frontier with 22 evaluated strategies.</p>
+    <p lang="es" class="reveal">Activaciones y geometría. Galaxy formation, sentence trajectory, compression decay y spectral flowers se computan ejecutando el checkpoint <code>23emo-final</code> (109,5 M parámetros, 23 emociones) sobre frases del test set. Pooler y classifier reales aplicados en cada paso. LDA fija ajustada en L12 para coordenadas consistentes capa a capa.</p><p lang="en" class="reveal">Activations and geometry. Galaxy formation, sentence trajectory, compression decay and spectral flowers are computed by running the <code>23emo-final</code> checkpoint (109.5 M parameters, 23 emotions) on test-set sentences. The real pooler and classifier are applied at every step. Fixed LDA fitted at L12 for consistent layer-by-layer coordinates.</p>
+    <p lang="es" class="reveal">Visualización. 21 piezas: 14 estáticas en Plotly, 6 interactivas con HTML+JS custom, 1 grafo en D3.js puro. Cada figura es un HTML autocontenido. La página que las une es static HTML+CSS+JS. Sin frameworks, sin servidor, sin backend.</p><p lang="en" class="reveal">Visualisation. 21 pieces: 14 static Plotly figures, 6 custom HTML+JS, 1 pure D3.js graph. Each figure is a self-contained HTML. The page that ties them together is static HTML+CSS+JS. No frameworks, no server, no backend.</p>
+    <p lang="es" class="reveal">Memoria. Guido Biosca Lasa. Director: Lluís Padró Cirera. FIB-UPC, 2026. <a href="sobre.html">Más sobre el proyecto</a>.</p><p lang="en" class="reveal">Thesis. Guido Biosca Lasa. Advisor: Lluís Padró Cirera. FIB-UPC, 2026. <a href="sobre.html">More about the project</a>.</p>
+  </div>
+</section>
+
+<footer class="foot">
+  <div class="foot-grid">
+    <div class="brand-cell">
+      <h2 lang="es">Anatomía emocional<br><em>de un transformer.</em></h2><h2 lang="en">Anatomy of an<br><em>emotional transformer.</em></h2>
+      <p lang="es">Trabajo de fin de grado.</p><p lang="en">Bachelor's thesis.</p>
+      <p lang="es">Facultat d'Informàtica de Barcelona · 2026.</p><p lang="en">Facultat d'Informàtica de Barcelona · 2026.</p>
+    </div>
+    <div>
+      <h3 lang="es">Proyecto</h3><h3 lang="en">Project</h3>
+      <a href="#"><span lang="es">Repositorio</span><span lang="en">Repository</span></a>
+      <a href="#"><span lang="es">Memoria · PDF</span><span lang="en">Thesis · PDF</span></a>
+      <a href="sobre.html"><span lang="es">Cómo está hecho</span><span lang="en">How it's built</span></a>
+    </div>
+    <div>
+      <h3 lang="es">Autor</h3><h3 lang="en">Author</h3>
+      <a href="mailto:guido.biosca0@gmail.com">guido.biosca0@gmail.com</a>
+      <a href="#">LinkedIn</a>
+      <a href="#">GitHub</a>
+    </div>
+    <div>
+      <h3 lang="es">Tribunal</h3><h3 lang="en">Committee</h3>
+      <p lang="es">Director: Lluís Padró Cirera</p><p lang="en">Advisor: Lluís Padró Cirera</p>
+      <p>FIB · UPC · 2026</p>
+    </div>
+  </div>
+  <div class="foot-bottom">
+    <span>© 2026 Guido Biosca Lasa</span>
+    <span lang="es">Built with Python · Plotly · D3 · no frameworks</span><span lang="en">Built with Python · Plotly · D3 · no frameworks</span>
+  </div>
+</footer>
+
+</main>
+
+
+<script>
+  // ─── Hero canvas: ambient particle drift ────────────────────────
+  // Six color groups, each gently orbiting its own anchor on the
+  // right half of the hero. Anchors are spread apart enough that
+  // groups stay visually distinct; particles never fully merge.
+  // Pure aesthetics — no semantic claim.
+  (function() {
+    const canvas = document.getElementById('hero-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    const COLORS = [
+      "#D4A843", "#C1553A", "#7B5E7B",
+      "#3A6EA5", "#5A8F7B", "#A0A09A",
+    ];
+
+    let W = 0, H = 0, particles = [], centers = [], t0 = performance.now();
+
+    function layout() {
+      const rect = canvas.getBoundingClientRect();
+      W = rect.width; H = rect.height;
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      // 6 anchors spread across the right two thirds of the hero.
+      // Pseudo-random offsets keep them feeling organic rather than
+      // a tight, geometric hexagon.
+      const xs = [0.55, 0.92, 0.62, 0.86, 0.70, 0.95];
+      const ys = [0.18, 0.28, 0.52, 0.62, 0.82, 0.78];
+      centers = xs.map((fx, i) => ({ x: W * fx, y: H * ys[i] }));
+    }
+
+    function spawn() {
+      particles = [];
+      const N = Math.min(160, Math.max(72, Math.floor(W * H / 9500)));
+      for (let i = 0; i < N; i++) {
+        const cluster = i % 6;
+        const c = centers[cluster] || { x: W * 0.7, y: H * 0.5 };
+        const a = Math.random() * Math.PI * 2;
+        const r = 30 + Math.random() * 60;
+        particles.push({
+          x: c.x + Math.cos(a) * r,
+          y: c.y + Math.sin(a) * r,
+          cluster,
+          color: COLORS[cluster],
+          phase: Math.random() * Math.PI * 2,
+          orbitR: 22 + Math.random() * 34,   // local orbit radius
+          orbitW: 0.14 + Math.random() * 0.18, // angular speed
+          radius: 1.3 + Math.random() * 1.8,
+        });
+      }
+    }
+
+    function frame(now) {
+      const t = (now - t0) / 1000;
+      ctx.clearRect(0, 0, W, H);
+
+      for (const p of particles) {
+        const c = centers[p.cluster];
+        // Each particle orbits its own anchor with a unique phase.
+        // Anchors don't move; particles never merge into one blob.
+        const tx = c.x + Math.cos(t * p.orbitW + p.phase) * p.orbitR;
+        const ty = c.y + Math.sin(t * p.orbitW * 1.3 + p.phase) * p.orbitR * 0.7;
+        p.x += (tx - p.x) * 0.05;
+        p.y += (ty - p.y) * 0.05;
+
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = 0.7;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function resize() { layout(); spawn(); }
+    window.addEventListener('resize', resize, { passive: true });
+    resize();
+    requestAnimationFrame(frame);
+  })();
+
+  // Language toggle (ES ↔ EN). Persists in localStorage, applied
+  // before any reveal/scroll logic so the right text is visible from
+  // the first paint.
+  (function() {
+    const html = document.documentElement;
+    const stored = localStorage.getItem('site-lang');
+    const initial = stored === 'es' || stored === 'en'
+      ? stored
+      : (navigator.language || 'es').toLowerCase().startsWith('en') ? 'en' : 'es';
+    html.lang = initial;
+
+    function updateBtn(lang) {
+      const cur = document.querySelector('.lang-current');
+      if (cur) cur.textContent = lang === 'es' ? 'EN' : 'ES';
+    }
+    updateBtn(initial);
+
+    const btn = document.getElementById('lang-btn');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        const next = html.lang === 'es' ? 'en' : 'es';
+        html.lang = next;
+        localStorage.setItem('site-lang', next);
+        updateBtn(next);
+        window.dispatchEvent(new CustomEvent('site-lang-change',
+          { detail: { lang: next } }));
+      });
+    }
+  })();
+
+  // Reading progress
+  function progress() {
+    const s = window.scrollY;
+    const t = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = Math.min(100, (s / Math.max(t, 1)) * 100);
+    document.documentElement.style.setProperty('--scroll', pct + '%');
+  }
+  window.addEventListener('scroll', progress, { passive: true });
+  progress();
+
+  // Hide nav on scroll-down
+  let lastY = 0;
+  const topnav = document.getElementById('topnav');
+  window.addEventListener('scroll', () => {
+    const y = window.scrollY;
+    if (y > 100 && y > lastY) topnav.classList.add('hidden');
+    else topnav.classList.remove('hidden');
+    lastY = y;
+  }, { passive: true });
+
+  // Reveal on scroll
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.08, rootMargin: '0px 0px -8% 0px' });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // Lazy-load iframes (language-aware). Each iframe carries
+  // data-src-es and data-src-en; pick the one matching <html lang>.
+  function srcForLang(iframe, lang) {
+    return lang === 'en' ? iframe.dataset.srcEn : iframe.dataset.srcEs;
+  }
+  const figObserver = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const wrap = e.target;
+      const iframe = wrap.querySelector('iframe');
+      const lang = document.documentElement.lang || 'es';
+      if (iframe && !iframe.src) {
+        iframe.src = srcForLang(iframe, lang);
+        iframe.addEventListener('load', () => wrap.classList.add('loaded'),
+          { once: true });
+      }
+      figObserver.unobserve(wrap);
+    });
+  }, { rootMargin: '300px 0px' });
+  document.querySelectorAll('.figure-wrap').forEach(w => figObserver.observe(w));
+
+  // When language changes, swap every loaded iframe to its other-language
+  // sibling. iframes that haven't been lazy-loaded yet pick up automatically
+  // because srcForLang reads the current lang at observe time.
+  window.addEventListener('site-lang-change', (ev) => {
+    const lang = ev.detail.lang;
+    document.querySelectorAll('.figure-wrap iframe').forEach(iframe => {
+      const wantedSrc = srcForLang(iframe, lang);
+      if (!wantedSrc) return;
+      // Only swap if already loaded (has src) and target differs.
+      if (iframe.src && !iframe.src.endsWith(wantedSrc)) {
+        const wrap = iframe.closest('.figure-wrap');
+        if (wrap) wrap.classList.remove('loaded');
+        iframe.src = wantedSrc;
+        iframe.addEventListener('load', () => {
+          if (wrap) wrap.classList.add('loaded');
+        }, { once: true });
+      }
+    });
+  });
+
+  // TOC toggle
+  const tocBtn     = document.getElementById('toc-btn');
+  const tocPanel   = document.getElementById('toc-panel');
+  const tocClose   = document.getElementById('toc-close');
+  const tocOverlay = document.getElementById('toc-overlay');
+  function openToc() {
+    tocPanel.classList.add('open');
+    tocOverlay.classList.add('show');
+  }
+  function closeToc() {
+    tocPanel.classList.remove('open');
+    tocOverlay.classList.remove('show');
+  }
+  tocBtn.addEventListener('click', openToc);
+  tocClose.addEventListener('click', closeToc);
+  tocOverlay.addEventListener('click', closeToc);
+  tocPanel.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => setTimeout(closeToc, 180));
+  });
+
+  // ─── Presentation mode ──────────────────────────────────────────
+  // Activated via ?present=1 URL param OR the ▶ button in the nav.
+  // Hides body text, captions, footer; converts the page into
+  // viewport-snapped slides; ← → navigate between them; ESC exits.
+  (function() {
+    const body = document.body;
+    const main = document.querySelector('main');
+    const presentBtn = document.getElementById('present-btn');
+    const counter = document.getElementById('present-counter');
+
+    function getSlides() {
+      return Array.from(document.querySelectorAll(
+        'main > section.hero, main > section.part, main > section.chapter'
+      ));
+    }
+    let slides = getSlides();
+    let idx = 0;
+
+    function snapToCurrent() {
+      slides = getSlides();
+      const target = slides[idx];
+      if (target) target.scrollIntoView({ block: 'start' });
+      updateCounter();
+    }
+    function updateCounter() {
+      if (counter) counter.textContent = `${idx + 1} / ${slides.length}`;
+    }
+    function findCurrentIndex() {
+      // Pick the slide whose top is closest to the viewport top
+      let best = 0, bestDist = Infinity;
+      for (let i = 0; i < slides.length; i++) {
+        const r = slides[i].getBoundingClientRect();
+        const d = Math.abs(r.top);
+        if (d < bestDist) { bestDist = d; best = i; }
+      }
+      return best;
+    }
+    function loadIframe(s) {
+      const fr = s && s.querySelector('iframe[data-src-es]');
+      if (!fr || fr.src) return null;
+      const lang = document.documentElement.lang || 'es';
+      fr.src = lang === 'en' ? fr.dataset.srcEn : fr.dataset.srcEs;
+      const wrap = fr.closest('.figure-wrap');
+      if (wrap) {
+        fr.addEventListener('load', () => wrap.classList.add('loaded'),
+          { once: true });
+      }
+      return fr;
+    }
+
+    // Sliding-window bg-loader. Keeps at most PRELOAD_AHEAD slides
+    // loaded ahead of the current position. When user navigates, the
+    // window slides with them and the next gap fills in. One load at
+    // a time so Plotly never initializes multiple figures concurrently.
+    const PRELOAD_AHEAD = 8;
+    let queueRunning = false;
+    function ensureQueue() {
+      if (queueRunning) return;
+      if (!body.classList.contains('present-mode')) return;
+      const limit = Math.min(slides.length, idx + PRELOAD_AHEAD + 1);
+      for (let i = idx; i < limit; i++) {
+        const s = slides[i];
+        const fr = s && s.querySelector('iframe[data-src-es]');
+        if (!fr || fr.src) continue;
+        queueRunning = true;
+        loadIframe(s);
+        let advanced = false;
+        const advance = () => {
+          if (advanced) return;
+          advanced = true;
+          queueRunning = false;
+          setTimeout(ensureQueue, 500);
+        };
+        fr.addEventListener('load', advance, { once: true });
+        setTimeout(advance, 3000);
+        return;
+      }
+    }
+
+    function enter() {
+      body.classList.add('present-mode');
+      slides = getSlides();
+      idx = findCurrentIndex();
+      // Preload immediate window inline so the first few slides feel instant
+      slides.slice(Math.max(0, idx - 1), idx + 4).forEach(loadIframe);
+      snapToCurrent();
+      const url = new URL(window.location);
+      if (url.searchParams.get('present') !== '1') {
+        url.searchParams.set('present', '1');
+        history.replaceState(null, '', url.toString());
+      }
+      // Then start the bounded sliding-window queue.
+      setTimeout(ensureQueue, 1200);
+    }
+    function exit() {
+      body.classList.remove('present-mode');
+      const url = new URL(window.location);
+      url.searchParams.delete('present');
+      history.replaceState(null, '', url.toString());
+    }
+    function go(delta) {
+      slides = getSlides();
+      idx = findCurrentIndex();
+      idx = Math.max(0, Math.min(slides.length - 1, idx + delta));
+      snapToCurrent();
+      // Snap-load destination + next in case queue hasn't reached
+      // them yet (user racing through slides faster than queue).
+      loadIframe(slides[idx]);
+      if (slides[idx + 1]) loadIframe(slides[idx + 1]);
+      // Slide the bg-load window forward.
+      ensureQueue();
+    }
+
+    if (presentBtn) {
+      presentBtn.addEventListener('click', () => {
+        if (body.classList.contains('present-mode')) exit();
+        else enter();
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if (body.classList.contains('present-mode')) { exit(); return; }
+        closeToc();
+        return;
+      }
+      const inPresent = body.classList.contains('present-mode');
+      if (e.key === 'p' || e.key === 'P') {
+        if (inPresent) exit(); else enter();
+        return;
+      }
+      if (!inPresent) return;
+      if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+        e.preventDefault(); go(+1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault(); go(-1);
+      } else if (e.key === 'Home') {
+        idx = 0; snapToCurrent();
+      } else if (e.key === 'End') {
+        idx = getSlides().length - 1; snapToCurrent();
+      }
+    });
+
+    // Update counter as the user scrolls inside present mode
+    if (main) {
+      main.addEventListener('scroll', () => {
+        if (!body.classList.contains('present-mode')) return;
+        idx = findCurrentIndex();
+        updateCounter();
+      }, { passive: true });
+    }
+
+    // Auto-enter from URL param
+    const initial = new URL(window.location).searchParams.get('present');
+    if (initial === '1') enter();
+    updateCounter();
+  })();
+</script>
+
+
+</body>
+</html>

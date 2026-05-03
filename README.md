@@ -71,12 +71,12 @@ transformer-structural-compression-v2/
     + tfg_plot_style.py                 + _site_mode.py
     + generate_cap{N}.ipynb             + build_figures.py
     ↓                                   ↓
-  latex_figures/figures/              viz/site/figures/
+  latex_figures/figures/              web/figures/
     cap{N}_*_es.png                     *.html
-    cap{N}_*_en.png                   viz/site/index.html
+    cap{N}_*_en.png                   web/index.html
 ```
 
-**Y un puente opcional**: `viz/site/build_pdf_figures.py` exporta figuras
+**Y un puente opcional**: `web/build_pdf_figures.py` exporta figuras
 Plotly como PNG estáticos directamente en `latex_figures/figures/` con el
 naming `cap{N}_{name}_es.png`. Lo usas si una figura existe en la web pero
 no quieres redibujarla en matplotlib.
@@ -101,24 +101,24 @@ Es Plotly, vive en `viz/interactive/X.py` o `viz/plots/X.py`. Editas el
 fichero. Luego:
 
 ```bash
-python viz/site/build_figures.py     # regenera todas
-python viz/site/build_index.py       # actualiza el index
+python web/build_figures.py     # regenera todas
+python web/build_index.py       # actualiza el index
 ```
 
 O todo de golpe:
 
 ```bash
-python viz/site/build_all.py
+python web/build_all.py
 ```
 
-Aparece en `viz/site/figures/X.html`.
+Aparece en `web/figures/X.html`.
 
 ### 3. Cuando quieres una figura de la web también en el PDF
 
 Sin redibujarla en matplotlib:
 
 ```bash
-python viz/site/build_pdf_figures.py
+python web/build_pdf_figures.py
 ```
 
 Aparece en `latex_figures/figures/cap{N}_{name}_es.png` (mismo naming
@@ -135,13 +135,13 @@ automáticamente. La estructura de paths se calcula.
 ## Convenciones (lo que NO tienes que pensar)
 
 - **Tipografía**: Pagella en TODO (PDF y web). Misma cadena de fallback en
-  `tfg_plot_style.py` y `viz/site/_site_mode.py`.
+  `tfg_plot_style.py` y `web/_site_mode.py`.
 - **Paleta**: misma en ambos. `INK #1A1A1A · TERRA #C1553A · BLUE #3A6EA5
   · SAGE #5A8F7B · SAND #D4A843` (definidos a la vez en los dos archivos
   de estilo, bit a bit idénticos).
 - **Naming de figuras del PDF**: `cap{N}_{name}_{es,en}.png` siempre. Da
   igual si la generó matplotlib o Plotly.
-- **Naming en la web**: `viz/site/figures/{name}.html` (sin capítulo,
+- **Naming en la web**: `web/figures/{name}.html` (sin capítulo,
   sin idioma).
 - **Etiquetas**: `Emb · L0 · L1 · … · L11` para las 13 capas. Siempre.
 
@@ -177,7 +177,7 @@ del PDF y la de la web es estricta.
 ## Para abrir la web localmente
 
 ```bash
-python -m http.server -d viz/site 8080
+python -m http.server -d web 8080
 # luego abre http://localhost:8080
 ```
 
@@ -188,9 +188,9 @@ python -m http.server -d viz/site 8080
 ```bash
 pip install -r requirements.txt
 # Para regenerar la web:
-.viz_venv/bin/python viz/site/build_all.py
+.viz_venv/bin/python web/build_all.py
 # Para regenerar las figuras del PDF:
 jupyter notebook latex_figures/
 # Para una figura específica de la web hacia el PDF:
-.viz_venv/bin/python viz/site/build_pdf_figures.py NOMBRE
+.viz_venv/bin/python web/build_pdf_figures.py NOMBRE
 ```

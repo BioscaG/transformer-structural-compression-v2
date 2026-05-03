@@ -1,0 +1,31 @@
+"""One-shot build of the entire site.
+
+  .viz_venv/bin/python web/build_all.py
+
+Produces:
+  web/figures/*.html
+  web/index.html
+  web/sobre.html      (already authored, not generated)
+"""
+
+from __future__ import annotations
+
+import pathlib
+import sys
+
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
+
+from web import build_figures, build_index
+
+
+if __name__ == "__main__":
+    print("─" * 60)
+    print("Anatomía Emocional · build")
+    print("─" * 60)
+    build_figures.build_all()
+    print()
+    build_index.build()
+    print("─" * 60)
+    print("Done. Open web/index.html (or serve via local HTTP).")
+    print("  python3 -m http.server -d web 8080")
+    print("─" * 60)

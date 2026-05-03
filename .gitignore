@@ -37,8 +37,11 @@ viz/data/cache/*.npz
 .viz_venv/
 
 # Temp build dirs
-viz/site/_tmp/
+web/_tmp/
 *.log
+
+# Stale legacy build outputs (regenerable via web/build_figures.py)
+viz/output/
 
 # Environment variables
 .env
