@@ -14,6 +14,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 from web.sections import (
     SECTIONS, HERO_STATS, FIG_HEIGHTS, HERO, OUTRO, NAV, FOOTER,
+    COMMENTS,
 )
 
 
@@ -208,6 +209,61 @@ def render_outro() -> str:
     {blocks_html}
     {coda_html}
   </div>
+</section>
+"""
+
+
+def render_comments() -> str:
+    """Giscus-backed comments block. Lives between OUTRO and footer.
+
+    Renders a single discussion thread per page (mapping=pathname).
+    The Giscus iframe is themed `light` because it integrates better
+    with the editorial palette than `dark`. Lang is initialised from
+    document.documentElement.lang at load time and re-emits on the
+    site-lang-change event.
+    """
+    g = COMMENTS["giscus"]
+    label_html = bi(COMMENTS["label"], tag="div", classes="ch-num reveal")
+    title_html = bi(COMMENTS["title"], tag="h2", classes="ch-title reveal")
+    sub_html   = bi(COMMENTS["sub"],   tag="p",  classes="ch-sub reveal")
+
+    return f"""
+<section class="comments" id="comentarios">
+  {label_html}
+  {title_html}
+  {sub_html}
+  <div id="giscus-container" class="reveal"></div>
+
+  <script>
+    (function() {{
+      const container = document.getElementById('giscus-container');
+      function loadGiscus(lang) {{
+        container.innerHTML = '';
+        const s = document.createElement('script');
+        s.src = 'https://giscus.app/client.js';
+        s.setAttribute('data-repo', '{g["repo"]}');
+        s.setAttribute('data-repo-id', '{g["repo_id"]}');
+        s.setAttribute('data-category', '{g["category"]}');
+        s.setAttribute('data-category-id', '{g["category_id"]}');
+        s.setAttribute('data-mapping', '{g["mapping"]}');
+        s.setAttribute('data-strict', '0');
+        s.setAttribute('data-reactions-enabled', '{g["reactions"]}');
+        s.setAttribute('data-emit-metadata', '0');
+        s.setAttribute('data-input-position', '{g["input_pos"]}');
+        s.setAttribute('data-theme', 'light');
+        s.setAttribute('data-lang', lang === 'en' ? 'en' : 'es');
+        s.setAttribute('data-loading', 'lazy');
+        s.crossOrigin = 'anonymous';
+        s.async = true;
+        container.appendChild(s);
+      }}
+      const initial = document.documentElement.lang || 'es';
+      loadGiscus(initial);
+      window.addEventListener('site-lang-change', (ev) => {{
+        loadGiscus(ev.detail.lang);
+      }});
+    }})();
+  </script>
 </section>
 """
 
@@ -1113,6 +1169,25 @@ def render_styles() -> str:
     line-height: 1.55;
   }
 
+  /* ─── COMMENTS (Giscus) ────────────────────────────────────────── */
+  section.comments {
+    padding: 8vh var(--pad-x) 12vh var(--pad-x);
+    border-top: 0.5px solid var(--line);
+  }
+  section.comments .ch-num,
+  section.comments .ch-title,
+  section.comments .ch-sub,
+  section.comments #giscus-container {
+    max-width: var(--max-narrow);
+    margin-left: auto; margin-right: auto;
+  }
+  section.comments .ch-num { display: inline-flex; }
+  section.comments #giscus-container {
+    margin-top: 32px;
+  }
+  /* Hide presentation mode + section is irrelevant when projected */
+  body.present-mode section.comments { display: none !important; }
+
   /* ─── REVEAL ────────────────────────────────────────────────────── */
   .reveal {
     opacity: 0; transform: translateY(14px);
@@ -1587,7 +1662,7 @@ def build() -> pathlib.Path:
         render_part(s) if s["kind"] == "part" else
         render_figure(s) if s["kind"] == "figure" else ""
         for s in SECTIONS
-    ) + render_outro() + render_footer()
+    ) + render_outro() + render_comments() + render_footer()
 
     fonts = (
         '<link rel="preconnect" href="https://fonts.googleapis.com" />\n'

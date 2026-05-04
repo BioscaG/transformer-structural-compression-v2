@@ -795,6 +795,25 @@
     line-height: 1.55;
   }
 
+  /* ─── COMMENTS (Giscus) ────────────────────────────────────────── */
+  section.comments {
+    padding: 8vh var(--pad-x) 12vh var(--pad-x);
+    border-top: 0.5px solid var(--line);
+  }
+  section.comments .ch-num,
+  section.comments .ch-title,
+  section.comments .ch-sub,
+  section.comments #giscus-container {
+    max-width: var(--max-narrow);
+    margin-left: auto; margin-right: auto;
+  }
+  section.comments .ch-num { display: inline-flex; }
+  section.comments #giscus-container {
+    margin-top: 32px;
+  }
+  /* Hide presentation mode + section is irrelevant when projected */
+  body.present-mode section.comments { display: none !important; }
+
   /* ─── REVEAL ────────────────────────────────────────────────────── */
   .reveal {
     opacity: 0; transform: translateY(14px);
@@ -1884,6 +1903,44 @@
 
     <p lang="es" class="reveal outro-coda">BERT no fue diseñado para clasificar emociones. La arquitectura funcional que aparece aquí — cristalización progresiva, dominio de la FFN tardía, la U del logit lens, los seis clusters con coherencia psicológica — no se programó. Salió sola. Lo que hace la interpretabilidad mecánica es documentar lo que el gradiente decidió, no lo que nadie prescribió.<br><br><a href="sobre.html">Cómo está hecho · Stack y créditos</a></p><p lang="en" class="reveal outro-coda">BERT wasn't designed for emotion classification. The functional architecture that shows up here — progressive crystallisation, late-FFN dominance, the logit-lens U, six clusters with psychological coherence — wasn't programmed. It came out on its own. What mechanistic interpretability does is document what gradient descent decided, not what anyone prescribed.<br><br><a href="sobre.html">How it's built · Stack and credits</a></p>
   </div>
+</section>
+
+<section class="comments" id="comentarios">
+  <div lang="es" class="ch-num reveal">Discusión</div><div lang="en" class="ch-num reveal">Discussion</div>
+  <h2 lang="es" class="ch-title reveal">Comentarios</h2><h2 lang="en" class="ch-title reveal">Comments</h2>
+  <p lang="es" class="ch-sub reveal">Si algo te ha llamado la atención, o discrepas, o quieres preguntar — abajo. Comentar requiere cuenta de GitHub.</p><p lang="en" class="ch-sub reveal">If something caught your eye, or you disagree, or you'd like to ask — below. Commenting requires a GitHub account.</p>
+  <div id="giscus-container" class="reveal"></div>
+
+  <script>
+    (function() {
+      const container = document.getElementById('giscus-container');
+      function loadGiscus(lang) {
+        container.innerHTML = '';
+        const s = document.createElement('script');
+        s.src = 'https://giscus.app/client.js';
+        s.setAttribute('data-repo', 'BioscaG/transformer-structural-compression-v2');
+        s.setAttribute('data-repo-id', 'R_kgDORWTOKA');
+        s.setAttribute('data-category', 'Announcements');
+        s.setAttribute('data-category-id', 'DIC_kwDORWTOKM4C8Tfx');
+        s.setAttribute('data-mapping', 'pathname');
+        s.setAttribute('data-strict', '0');
+        s.setAttribute('data-reactions-enabled', '1');
+        s.setAttribute('data-emit-metadata', '0');
+        s.setAttribute('data-input-position', 'top');
+        s.setAttribute('data-theme', 'light');
+        s.setAttribute('data-lang', lang === 'en' ? 'en' : 'es');
+        s.setAttribute('data-loading', 'lazy');
+        s.crossOrigin = 'anonymous';
+        s.async = true;
+        container.appendChild(s);
+      }
+      const initial = document.documentElement.lang || 'es';
+      loadGiscus(initial);
+      window.addEventListener('site-lang-change', (ev) => {
+        loadGiscus(ev.detail.lang);
+      });
+    })();
+  </script>
 </section>
 
 <footer class="foot">

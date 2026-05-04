@@ -1773,6 +1773,28 @@ NAV = {
 }
 
 
+COMMENTS = {
+    "label":   T("Discusión", "Discussion"),
+    "title":   T("Comentarios", "Comments"),
+    "sub":     T(
+        "Si algo te ha llamado la atención, o discrepas, o quieres "
+        "preguntar — abajo. Comentar requiere cuenta de GitHub.",
+        "If something caught your eye, or you disagree, or you'd like "
+        "to ask — below. Commenting requires a GitHub account."),
+    # Giscus config — replace data-category-id once you create the
+    # "Comments" category in GitHub Discussions (see web/COMMENTS.md).
+    "giscus": {
+        "repo":         "BioscaG/transformer-structural-compression-v2",
+        "repo_id":      "R_kgDORWTOKA",
+        "category":     "Announcements",
+        "category_id":  "DIC_kwDORWTOKM4C8Tfx",
+        "mapping":      "pathname",
+        "reactions":    "1",
+        "input_pos":    "top",
+    },
+}
+
+
 FOOTER = {
     "brand_title":    T("Anatomía emocional<br><em>de un transformer.</em>",
                         "Anatomy of an<br><em>emotional transformer.</em>"),
