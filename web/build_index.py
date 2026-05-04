@@ -1316,6 +1316,7 @@ def render_scripts() -> str:
     const COLORS = [
       "#D4A843", "#C1553A", "#7B5E7B",
       "#3A6EA5", "#5A8F7B", "#A0A09A",
+      "#B5555B", "#8E6E55",
     ];
 
     let W = 0, H = 0, particles = [], centers = [], t0 = performance.now();
@@ -1326,19 +1327,20 @@ def render_scripts() -> str:
       canvas.width = W * dpr; canvas.height = H * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-      // 6 anchors spread across the right two thirds of the hero.
+      // 8 anchors spread across the right two thirds of the hero.
       // Pseudo-random offsets keep them feeling organic rather than
-      // a tight, geometric hexagon.
-      const xs = [0.55, 0.92, 0.62, 0.86, 0.70, 0.95];
-      const ys = [0.18, 0.28, 0.52, 0.62, 0.82, 0.78];
+      // a tight grid.
+      const xs = [0.52, 0.92, 0.62, 0.86, 0.70, 0.95, 0.58, 0.80];
+      const ys = [0.16, 0.24, 0.46, 0.58, 0.78, 0.84, 0.68, 0.36];
       centers = xs.map((fx, i) => ({ x: W * fx, y: H * ys[i] }));
     }
 
     function spawn() {
       particles = [];
-      const N = Math.min(160, Math.max(72, Math.floor(W * H / 9500)));
+      const NC = centers.length;
+      const N = Math.min(190, Math.max(96, Math.floor(W * H / 8800)));
       for (let i = 0; i < N; i++) {
-        const cluster = i % 6;
+        const cluster = i % NC;
         const c = centers[cluster] || { x: W * 0.7, y: H * 0.5 };
         const a = Math.random() * Math.PI * 2;
         const r = 30 + Math.random() * 60;
