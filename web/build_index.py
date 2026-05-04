@@ -346,8 +346,19 @@ def render_nav() -> str:
     brand_html    = bi(NAV["brand"],    tag="span")
     chapters_html = bi(NAV["chapters"], tag="span")
     data_html     = bi(NAV["data"],     tag="span")
+    comments_html = bi(NAV["comments"], tag="span")
     about_html    = bi(NAV["about"],    tag="span")
     index_html    = bi(NAV["index"],    tag="span")
+
+    # TOC: append a Comments entry at the bottom so the panel index
+    # matches the actual page structure.
+    toc_html += (
+        '<div class="toc-part toc-comments">'
+        '<a href="#comentarios" class="toc-part-title">'
+        '<span class="toc-num">●</span> '
+        f'{comments_html}'
+        '</a></div>'
+    )
 
     return f"""
 <nav class="top" id="topnav">
@@ -355,6 +366,7 @@ def render_nav() -> str:
   <ul class="nav-links">
     <li><a class="link" href="#parte-1">{chapters_html}</a></li>
     <li><a class="link" href="#cierre">{data_html}</a></li>
+    <li><a class="link link-comments" href="#comentarios">{comments_html}</a></li>
     <li><a class="link" href="sobre.html">{about_html}</a></li>
   </ul>
   <div class="nav-tools">
@@ -1167,6 +1179,28 @@ def render_styles() -> str:
     color: var(--ink-2);
     font-size: 18px;
     line-height: 1.55;
+  }
+
+  /* Subtle visual cue on the Comments nav link */
+  nav.top .link-comments {
+    position: relative;
+  }
+  nav.top .link-comments::before {
+    content: "";
+    display: inline-block;
+    width: 5px; height: 5px;
+    background: var(--accent);
+    border-radius: 50%;
+    margin-right: 7px;
+    transform: translateY(-1px);
+    opacity: 0.85;
+  }
+
+  /* TOC: comments entry stands a bit apart from chapters */
+  aside.toc-panel .toc-comments {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 0.5px dashed var(--line);
   }
 
   /* ─── COMMENTS (Giscus) ────────────────────────────────────────── */

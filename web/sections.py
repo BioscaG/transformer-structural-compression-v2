@@ -1767,7 +1767,8 @@ OUTRO = {
 NAV = {
     "brand":    T("Anatomía Emocional", "Emotional Anatomy"),
     "chapters": T("Capítulos", "Chapters"),
-    "data":     T("Datos", "Data"),
+    "data":     T("Cierre", "Closing"),
+    "comments": T("Comentarios", "Comments"),
     "about":    T("Sobre", "About"),
     "index":    T("Índice", "Index"),
 }
