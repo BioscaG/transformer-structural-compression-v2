@@ -250,7 +250,7 @@ def render_comments() -> str:
         s.setAttribute('data-reactions-enabled', '{g["reactions"]}');
         s.setAttribute('data-emit-metadata', '0');
         s.setAttribute('data-input-position', '{g["input_pos"]}');
-        s.setAttribute('data-theme', 'light');
+        s.setAttribute('data-theme', 'https://anatomy.guidobiosca.com/giscus.css');
         s.setAttribute('data-lang', lang === 'en' ? 'en' : 'es');
         s.setAttribute('data-loading', 'lazy');
         s.crossOrigin = 'anonymous';
