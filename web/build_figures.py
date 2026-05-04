@@ -28,6 +28,7 @@ from viz.interactive import (bert_architecture, compression_decay,
 # HTML+JS custom
 from viz.interactive import (attention_atlas,
                              iterative_inference,
+                             methodology,
                              sentence_trajectory)
 
 from web._site_mode import write_site_figure, inject_site_mode_into_html
@@ -214,6 +215,7 @@ HTML_FIGS = [
     ("attention_atlas",       attention_atlas.build_html),
     ("iterative_inference",   iterative_inference.build_html),
     ("sentence_trajectory",   sentence_trajectory.build_html),
+    ("methodology",           methodology.build_html),
 ]
 
 

@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<style>
+  html, body {
+    margin: 0; padding: 0;
+    background: transparent;
+    font-family: "Geist", "Inter", -apple-system, sans-serif;
+    color: #141413;
+    height: 100%;
+    overflow: hidden;
+  }
+  .pipeline {
+    display: flex; flex-direction: column;
+    gap: 18px;
+    padding: 18px 22px 26px 22px;
+    height: 100%; box-sizing: border-box;
+  }
+  .pl-tag {
+    font-family: "Geist Mono", monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #1F4E6C;
+    margin-top: 4px;
+    padding-bottom: 6px;
+    border-bottom: 0.5px solid #D8D7D1;
+  }
+  .pl-tag:first-child { margin-top: 0; }
+  .pl-row {
+    display: flex; gap: 12px;
+    align-items: stretch;
+  }
+  .pl-row.setup { }
+  .pl-row.branches {
+    flex: 1 1 auto; min-height: 0;
+  }
+  .pl-row.synth { gap: 12px; }
+
+  .pl-box {
+    flex: 1 1 0;
+    background: #FFFFFF;
+    border: 0.5px solid #D8D7D1;
+    border-radius: 3px;
+    padding: 14px 16px;
+    text-decoration: none; color: inherit;
+    display: flex; flex-direction: column;
+    gap: 4px;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+  }
+  .pl-box:hover {
+    border-color: #1F4E6C;
+    background: #F7F6F2;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px -10px rgba(20,20,19,0.18);
+  }
+  .pl-box::after {
+    content: "↗";
+    position: absolute;
+    top: 12px; right: 12px;
+    font-size: 11px; color: #8A8A82;
+    opacity: 0;
+    transition: opacity 0.18s ease;
+  }
+  .pl-box:hover::after { opacity: 1; }
+
+  .pl-title {
+    font-family: "Geist Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #1F4E6C;
+    margin-bottom: 2px;
+  }
+  .pl-head {
+    font-family: "Fraunces", serif;
+    font-size: 16px;
+    line-height: 1.2;
+    color: #141413;
+    font-weight: 400;
+    font-variation-settings: "opsz" 36, "SOFT" 50;
+  }
+  .pl-stat {
+    font-size: 12.5px;
+    color: #4A4A47;
+    line-height: 1.35;
+  }
+  .pl-sub {
+    font-family: "Geist Mono", monospace;
+    font-size: 10.5px;
+    color: #8A8A82;
+    line-height: 1.4;
+    margin-top: auto;
+  }
+
+  .pl-branch {
+    flex: 1 1 0;
+  }
+  .pl-compression { background: #F7F6F2; }
+  .pl-interpret { background: #FFFFFF; }
+
+  .pl-items {
+    display: flex; flex-direction: column;
+    gap: 5px;
+    margin-top: 10px;
+  }
+  .pl-item {
+    display: flex; flex-direction: column;
+    gap: 1px;
+    padding: 6px 8px;
+    border-left: 2px solid #D8D7D1;
+    background: rgba(255,255,255,0.6);
+    border-radius: 0 2px 2px 0;
+    text-decoration: none; color: inherit;
+    transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .pl-link:hover {
+    border-left-color: #1F4E6C;
+    background: rgba(31,78,108,0.06);
+  }
+  .pl-item-label {
+    font-size: 12.5px; font-weight: 500;
+    color: #141413;
+  }
+  .pl-item-desc {
+    font-family: "Geist Mono", monospace;
+    font-size: 10px;
+    color: #8A8A82;
+  }
+
+  .pl-arrow {
+    text-align: center;
+    color: #8A8A82;
+    font-size: 16px;
+    line-height: 1;
+    height: 14px;
+    margin: -4px 0;
+  }
+
+  .pl-hint {
+    font-family: "Geist Mono", monospace;
+    font-size: 10px;
+    color: #8A8A82;
+    letter-spacing: 0.06em;
+    text-align: right;
+    margin-top: -8px;
+  }
+
+  @media (max-width: 720px) {
+    .pl-row { flex-direction: column; }
+  }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin /><link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,30..100&family=Geist:wght@300..700&family=Geist+Mono:wght@300..600&display=swap" rel="stylesheet" />
+
+<style id="site-mode-reset">
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    background: transparent !important;
+    overflow-x: hidden !important;
+  }
+  body {
+    font-family: "Geist", "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif !important;
+    color: #4A4A47 !important;
+  }
+  /* Make scrollbars unobtrusive if any appear */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-thumb { background: #D8D7D1; border-radius: 3px; }
+</style>
+
+</head>
+<body>
+
+<div class="pipeline">
+  <div class="pl-tag">Setup</div>
+  <div class="pl-row setup">
+    
+    <a class="pl-box pl-setup" href="#parte-1" target="_top">
+      <div class="pl-title">Datos</div>
+      <div class="pl-head">GoEmotions</div>
+      <div class="pl-stat">23 emociones · multi-label</div>
+      <div class="pl-sub">43 410 train · 5 426 val · 5 427 test</div>
+    </a>
+    
+    <a class="pl-box pl-setup" href="#arquitectura" target="_top">
+      <div class="pl-title">Modelo</div>
+      <div class="pl-head">BERT-base</div>
+      <div class="pl-stat">110 M parámetros · 12 capas</div>
+      <div class="pl-sub">84,9 M en las 72 matrices del encoder</div>
+    </a>
+    
+    <a class="pl-box pl-setup" href="#parte-1" target="_top">
+      <div class="pl-title">Fine-tune</div>
+      <div class="pl-head">AdamW · LR 2e-5</div>
+      <div class="pl-stat">4 épocas · batch 32 · warmup 10 %</div>
+      <div class="pl-sub">BCE multi-label · max_len 128</div>
+    </a>
+    
+    <a class="pl-box pl-setup" href="#parte-1" target="_top">
+      <div class="pl-title">Baseline</div>
+      <div class="pl-head">F1 macro 0,577</div>
+      <div class="pl-stat">F1 micro 0,627</div>
+      <div class="pl-sub">Checkpoint: 23emo-final</div>
+    </a>
+    
+  </div>
+
+  <div class="pl-arrow">↓</div>
+  <div class="pl-tag">Dos brazos</div>
+  <div class="pl-row branches">
+    
+    <a class="pl-box pl-branch pl-compression" href="#parte-2" target="_top">
+      <div class="pl-title">Compresión SVD</div>
+      <div class="pl-head">4 familias · 22 estrategias</div>
+      <div class="pl-items"><div class="pl-item"><span class="pl-item-label">Uniforme</span><span class="pl-item-desc">Mismo rango a 72 matrices</span></div><div class="pl-item"><span class="pl-item-label">Adaptativa</span><span class="pl-item-desc">Por umbral de energía espectral</span></div><div class="pl-item"><span class="pl-item-label">Heurística</span><span class="pl-item-desc">Reglas de interpretabilidad</span></div><div class="pl-item"><span class="pl-item-label">Greedy</span><span class="pl-item-desc">Data-driven · §07.2</span></div></div>
+    </a>
+    
+    <a class="pl-box pl-branch pl-interpret" href="#parte-3" target="_top">
+      <div class="pl-title">Interpretabilidad mecánica</div>
+      <div class="pl-head">5 técnicas complementarias</div>
+      <div class="pl-items"><a class="pl-item pl-link" href="#crystallization" target="_top"><span class="pl-item-label">Probing lineal</span><span class="pl-item-desc">276 probes · §03.1</span></a><a class="pl-item pl-link" href="#iterative" target="_top"><span class="pl-item-label">Logit lens</span><span class="pl-item-desc">2 300 frases · §03.4</span></a><a class="pl-item pl-link" href="#lesion" target="_top"><span class="pl-item-label">Activation patching</span><span class="pl-item-desc">Sobre rango 64 · §05.1</span></a><a class="pl-item pl-link" href="#heads" target="_top"><span class="pl-item-label">Ablación cabezas</span><span class="pl-item-desc">144 cabezas · §04.1</span></a><a class="pl-item pl-link" href="#neurons" target="_top"><span class="pl-item-label">Análisis neuronal</span><span class="pl-item-desc">36 864 neuronas · §06.1</span></a></div>
+    </a>
+    
+  </div>
+
+  <div class="pl-arrow">↓</div>
+  <div class="pl-tag">Síntesis</div>
+  <div class="pl-row synth">
+    
+    <a class="pl-box pl-setup" href="#greedy" target="_top">
+      <div class="pl-title">Compresión informada</div>
+      <div class="pl-head">Greedy data-driven</div>
+      <div class="pl-stat">Domina 8 de 9 puntos Pareto-óptimos</div>
+      <div class="pl-sub">Q y K primero · FFN tardía nunca tocada</div>
+    </a>
+    
+    <a class="pl-box pl-setup" href="#recovery" target="_top">
+      <div class="pl-title">Fine-tuning recovery</div>
+      <div class="pl-head">+3 épocas tras compresión</div>
+      <div class="pl-stat">F1 macro 0,591 con 86,4 % params</div>
+      <div class="pl-sub">embarrassment +90 % relativo</div>
+    </a>
+    
+  </div>
+
+  <div class="pl-hint">Click en cualquier bloque para saltar a la sección</div>
+</div>
+
+
+</body>
+</html>

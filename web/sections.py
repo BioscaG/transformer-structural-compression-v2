@@ -123,8 +123,68 @@ SECTIONS: list[dict] = [
     },
     {
         "kind": "figure",
+        "id": "metodologia",
+        "chapter": T("§ 01.2 · Pipeline", "§ 01.2 · Pipeline"),
+        "title": T("El experimento <em>entero</em>",
+                   "The <em>full</em> experiment"),
+        "subtitle": T(
+            "Mapa interactivo: dónde está cada cosa.",
+            "Interactive map: where everything lives."),
+        "body": [
+            T("Antes de bajar a las figuras una a una, una vista de "
+              "pájaro de qué se ha hecho. Tres bloques.",
+              "Before diving into the figures one by one, a "
+              "bird's-eye view of what was done. Three blocks."),
+            T("<strong>Setup</strong>: GoEmotions filtrado a 23 "
+              "emociones, BERT-base, fine-tune AdamW (LR 2e-5, 4 "
+              "epochs, batch 32) → checkpoint <em>23emo-final</em>, "
+              "F1 macro 0,577 sobre el test set. Es el baseline "
+              "contra el que se mide TODO lo demás.",
+              "<strong>Setup</strong>: GoEmotions filtered to 23 "
+              "emotions, BERT-base, AdamW fine-tune (LR 2e-5, 4 "
+              "epochs, batch 32) → checkpoint <em>23emo-final</em>, "
+              "F1 macro 0.577 on the test set. It's the baseline "
+              "EVERYTHING else is measured against."),
+            T("<strong>Dos brazos paralelos</strong>: en uno, "
+              "compresión SVD con cuatro familias de estrategias (22 "
+              "estrategias evaluadas en total). En el otro, cinco "
+              "técnicas de interpretabilidad mecánica con "
+              "granularidad creciente: capa, componente, cabeza, "
+              "neurona.",
+              "<strong>Two parallel arms</strong>: on one side, SVD "
+              "compression with four strategy families (22 evaluated "
+              "strategies total). On the other, five mechanistic "
+              "interpretability techniques at increasing granularity: "
+              "layer, component, head, neuron."),
+            T("<strong>Síntesis</strong>: los dos brazos confluyen en "
+              "una compresión informada por datos empíricos de "
+              "sensibilidad — el algoritmo greedy. Y un ciclo final "
+              "de fine-tuning que recupera (y supera) el baseline "
+              "con menos parámetros.",
+              "<strong>Synthesis</strong>: the two arms converge into "
+              "compression informed by empirical sensitivity data — "
+              "the greedy algorithm. And one final fine-tuning loop "
+              "that recovers (and surpasses) the baseline with fewer "
+              "parameters."),
+            T("Click en cualquier bloque del pipeline para saltar "
+              "directamente a la figura correspondiente.",
+              "Click any block in the pipeline to jump directly to "
+              "the corresponding figure."),
+        ],
+        "figure": "methodology",
+        "caption": T(
+            "Pipeline experimental interactivo. Equivalente a la "
+            "Figura 1 del Capítulo 3 de la memoria, con enlaces a "
+            "cada sección.",
+            "Interactive experimental pipeline. Equivalent to Figure "
+            "1 of Chapter 3 of the thesis, with links to each "
+            "section."),
+        "fig_id": "01.2",
+    },
+    {
+        "kind": "figure",
         "id": "lex2sem",
-        "chapter": T("§ 01.2 · Base teórica", "§ 01.2 · Theoretical base"),
+        "chapter": T("§ 01.3 · Base teórica", "§ 01.3 · Theoretical base"),
         "title": T("De diccionario a clasificador",
                    "From dictionary to classifier"),
         "subtitle": T("Cómo BERT olvida palabras y aprende emociones.",
@@ -169,7 +229,7 @@ SECTIONS: list[dict] = [
             "Three curves over 46 test-set sentences. Heatmaps of four "
             "example sentences: cos(hidden[L,t], hidden[0,t]). Refs: "
             "Tenney et al. ACL 2019; Ethayarajh EMNLP 2019."),
-        "fig_id": "01.2",
+        "fig_id": "01.3",
     },
 
     # ── PART 2: compresión ───────────────────────────────────────────────
@@ -1414,7 +1474,7 @@ HERO_STATS = [
     ("12 × 144",  T("capas × cabezas", "layers × heads")),
     ("36 864",    T("neuronas FFN", "FFN neurons")),
     ("23",        T("emociones, multi-label", "emotions, multi-label")),
-    ("25",        T("visualizaciones", "visualisations")),
+    ("26",        T("visualizaciones", "visualisations")),
 ]
 
 
@@ -1736,4 +1796,5 @@ FIG_HEIGHTS = {
     "finetuning_recovery":   600,
     "neurons":               600,
     "heuristic_negative":    620,
+    "methodology":           780,
 }
