@@ -1181,21 +1181,6 @@ def render_styles() -> str:
     line-height: 1.55;
   }
 
-  /* Subtle visual cue on the Comments nav link */
-  nav.top .link-comments {
-    position: relative;
-  }
-  nav.top .link-comments::before {
-    content: "";
-    display: inline-block;
-    width: 5px; height: 5px;
-    background: var(--accent);
-    border-radius: 50%;
-    margin-right: 7px;
-    transform: translateY(-1px);
-    opacity: 0.85;
-  }
-
   /* TOC: comments entry stands a bit apart from chapters */
   aside.toc-panel .toc-comments {
     margin-top: 28px;
