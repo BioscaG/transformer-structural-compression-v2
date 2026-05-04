@@ -36,40 +36,37 @@ SECTIONS: list[dict] = [
               "On top of it, a fine-tune on GoEmotions: 23 emotions, "
               "multi-label tagging. F1 macro of 0.577 on the test "
               "set — the baseline everything is measured against."),
-            T("El proyecto se articula en torno a tres preguntas. "
-              "<strong>Descriptiva</strong>: ¿cómo afecta la compresión "
-              "SVD selectiva al rendimiento y a las representaciones "
-              "internas? <strong>Explicativa</strong>: ¿qué revela la "
-              "interpretabilidad mecánica sobre cómo está organizada "
-              "la información emocional dentro del modelo? "
-              "<strong>Prescriptiva</strong>: ¿puede ese conocimiento "
-              "traducirse en estrategias de compresión que dominen a "
-              "las aproximaciones ciegas?",
-              "The project hinges on three questions. "
-              "<strong>Descriptive</strong>: how does selective SVD "
-              "compression affect performance and internal "
-              "representations? <strong>Explanatory</strong>: what "
-              "does mechanistic interpretability reveal about how "
-              "emotional information is organised inside the model? "
-              "<strong>Prescriptive</strong>: can that understanding "
-              "translate into compression strategies that beat "
-              "blind ones?"),
-            T("La compresión funciona aquí como un <em>bisturí "
-              "experimental</em>: cada configuración comprimida es una "
-              "intervención controlada que mide la importancia "
-              "funcional del componente afectado por la magnitud de "
-              "lo que se rompe. Eliminar selectivamente partes del "
-              "modelo y observar qué sobrevive produce un mapa "
-              "empírico de cómo está organizada por dentro la "
-              "información.",
-              "Compression here works as an <em>experimental "
-              "scalpel</em>: every compressed configuration is a "
-              "controlled intervention that measures the functional "
-              "importance of the affected component by the magnitude "
-              "of what breaks. Selectively removing parts of the "
-              "model and watching what survives produces an "
-              "empirical map of how the information is internally "
-              "organised."),
+            T("Hay tres preguntas en juego. La primera es descriptiva: "
+              "qué le pasa al modelo cuando le aplicas SVD a las "
+              "matrices que lo componen y cuánto puedes quitar antes "
+              "de romperlo. La segunda es explicativa: qué dice la "
+              "interpretabilidad mecánica sobre dónde y cómo vive la "
+              "información emocional dentro de la red. La tercera es "
+              "prescriptiva: si juntas las dos respuestas, ¿se puede "
+              "comprimir mejor que tirando rangos al tuntún?",
+              "There are three questions at play. The first is "
+              "descriptive: what happens when you apply SVD to the "
+              "matrices that make up the model, and how much you can "
+              "take away before it breaks. The second is explanatory: "
+              "what mechanistic interpretability says about where and "
+              "how emotional information lives inside the network. "
+              "The third is prescriptive: if you combine the two "
+              "answers, can you compress better than by picking ranks "
+              "at random?"),
+            T("La compresión funciona aquí como un bisturí "
+              "experimental. Cada configuración comprimida es una "
+              "intervención que mide la importancia funcional del "
+              "componente afectado por la magnitud de lo que se "
+              "rompe. Quitar partes del modelo y mirar qué se "
+              "sobrevive es una manera empírica de hacer el mapa "
+              "de cómo está organizado por dentro.",
+              "Compression here works as an experimental scalpel. "
+              "Every compressed configuration is an intervention that "
+              "measures the functional importance of the affected "
+              "component by the magnitude of what breaks. Removing "
+              "parts of the model and watching what survives is an "
+              "empirical way to map how the information is laid out "
+              "inside it."),
             T("Antes de operar nada, primero hay que conocer al "
               "sujeto.",
               "Before cutting anything open, you have to meet the "
@@ -362,41 +359,48 @@ SECTIONS: list[dict] = [
             "Aislando qué tipo de componente aguanta y cuál se rompe.",
             "Isolating which component type survives and which breaks."),
         "body": [
-            T("Para aislar el efecto de cada tipo de componente "
-              "comprimimos selectivamente las 12 matrices de UN tipo a "
-              "un rango fijo, manteniendo las otras 60 intactas. Repetido "
-              "para los seis tipos × tres rangos.",
-              "To isolate each component type, we selectively compress "
-              "the 12 matrices of ONE type to a fixed rank while keeping "
-              "the other 60 untouched. Repeated for six types × three "
-              "ranks."),
-            T("A rango 128 las diferencias son brutales. Q retiene el "
-              "99,4 % del F1, K el 98,4 %. La FFN Intermediate baja al "
-              "6,9 %. Una diferencia de 14× en retención absoluta. "
-              "Normalizada por porcentaje de parámetros eliminados, "
-              "alcanza 72×.",
-              "At rank 128 the differences are brutal. Q keeps 99.4 % of "
-              "F1, K 98.4 %. FFN Intermediate falls to 6.9 %. A 14× "
-              "asymmetry in absolute retention — 72× once normalised by "
+            T("Para ver el efecto de cada tipo por separado se "
+              "comprimen las 12 matrices de un solo tipo a un rango "
+              "fijo y se deja todo lo demás intacto. Se repite el "
+              "experimento para los seis tipos y tres rangos.",
+              "To see each type's effect on its own, the 12 matrices "
+              "of a single type get compressed to a fixed rank while "
+              "everything else stays intact. The experiment is "
+              "repeated for the six types and three ranks."),
+            T("A rango 128 las diferencias son enormes. Q retiene el "
+              "99,4 % del F1, K el 98,4 %. La FFN Intermediate, al "
+              "mismo rango, se queda en 6,9 %. Eso son 14× de "
+              "retención absoluta entre uno y otro, 72× si lo "
+              "normalizas por porcentaje de parámetros eliminados.",
+              "At rank 128 the differences are huge. Q keeps 99.4 % "
+              "of F1, K 98.4 %. FFN Intermediate, at the same rank, "
+              "drops to 6.9 %. That's 14× the absolute retention "
+              "between one and the other, 72× once you normalise by "
               "parameters eliminated."),
-            T("Tres regímenes emergen. Inmunes (Q, K): degradación lineal, "
-              "espectro concentrado, baja dimensionalidad efectiva. "
-              "Acantilado (V, Attn-O): aguantan rango 256 pero colapsan a "
-              "rango 64. Frágiles (FFN): ya muy dañadas a rango 256, "
-              "espectro plano, cada dimensión cuenta.",
-              "Three regimes emerge. Immune (Q, K): linear degradation, "
-              "concentrated spectrum, low effective dimensionality. Cliff "
-              "(V, Attn-O): survive rank 256 but collapse at 64. Fragile "
-              "(FFN): already wrecked at rank 256, flat spectrum, every "
-              "dimension matters."),
+            T("Aparecen tres regímenes. Q y K son inmunes: el "
+              "espectro está concentrado, la dimensionalidad efectiva "
+              "es baja, y la degradación con el rango es casi lineal. "
+              "V y Attn-O hacen un acantilado: aguantan rango 256 "
+              "pero colapsan en cuanto bajas a 64. Las dos FFN son "
+              "frágiles desde el principio: el espectro es plano, "
+              "cada dimensión aporta lo suyo, y a rango 256 ya están "
+              "rotas.",
+              "Three regimes show up. Q and K are immune: the "
+              "spectrum is concentrated, effective dimensionality is "
+              "low, and degradation with rank is roughly linear. V "
+              "and Attn-O hit a cliff: they survive rank 256 but "
+              "collapse the moment you drop to 64. The two FFNs are "
+              "fragile from the start: a flat spectrum, every "
+              "dimension contributing something, and at rank 256 "
+              "they're already broken."),
         ],
         "pull": T(
-            "La estructura espectral predice con precisión el "
-            "comportamiento bajo compresión. Tratar a Q igual que a FFN "
-            "es subóptimo en un factor de hasta 72×.",
-            "The spectral structure predicts the compression behaviour "
-            "with precision. Treating Q the same as FFN is suboptimal by "
-            "a factor of up to 72×."),
+            "La estructura del espectro predice bastante bien el "
+            "comportamiento bajo compresión. Tratar igual a Q y a "
+            "FFN es subóptimo por un factor de hasta 72×.",
+            "The spectral structure predicts compression behaviour "
+            "fairly accurately. Treating Q the same as FFN is "
+            "suboptimal by up to 72×."),
         "figure": "component_sensitivity",
         "caption": T(
             "Datos: notebook 3, component_sensitivity.csv. F1 retención "
@@ -596,43 +600,45 @@ SECTIONS: list[dict] = [
             "Cuánto F1 añade cada capa respecto a la anterior.",
             "How much F1 each layer adds over the previous one."),
         "body": [
-            T("La curva de probing acumulada del panel anterior sube de "
-              "forma engañosamente suave. Si en cambio miras la "
-              "DERIVADA — cuánto añade cada capa respecto a la anterior — "
-              "lo que ves es un salto enorme al principio y casi nada "
-              "después.",
-              "The cumulative probing curve in the previous panel rises "
-              "deceptively smoothly. If you look at the DERIVATIVE "
+            T("La curva de probing acumulada del panel anterior sube "
+              "de forma engañosamente suave. Si miras la derivada — "
+              "cuánto añade cada capa respecto a la anterior — el "
+              "perfil cambia bastante: hay un salto enorme al "
+              "principio y casi nada después.",
+              "The cumulative probing curve in the previous panel "
+              "rises deceptively smoothly. Look at the derivative "
               "instead — how much each layer adds over the previous "
-              "one — you see a giant jump at the start and almost "
-              "nothing after."),
-            T("Del embedding (F1 = 0) a L0, la media salta a 0.349. Eso "
-              "es un 61 % de la separabilidad final del modelo "
-              "(F1 medio en L11 = 0.569). En una sola capa.",
+              "one — and the picture shifts: there's a giant jump at "
+              "the start and almost nothing after."),
+            T("Del embedding (F1 = 0) a L0, la media salta a 0,349. "
+              "Eso es el 61 % de la separabilidad final del modelo "
+              "(F1 medio en L11 = 0,569). En una sola capa.",
               "From the embedding (F1 = 0) to L0, mean F1 jumps to "
-              "0.349. That's 61 % of the model's final linear "
-              "separability (mean F1 at L11 = 0.569). In a single layer."),
-            T("Lo que sigue es desarrollo, no creación. Las capas L1–L7 "
-              "añaden ganancias modestas (+0.010 a +0.048 cada una). En "
-              "L8 hay un pequeño rebote — desambiguación contextual de "
-              "emociones tardías como joy, desire, approval. Después, "
-              "L10 y L11 añaden prácticamente nada (<0.005).",
-              "What follows is refinement, not creation. Layers L1–L7 "
-              "add modest gains (+0.010 to +0.048 each). At L8 there's "
-              "a small bump — contextual disambiguation of late "
-              "emotions like joy, desire, approval. After that, L10 and "
-              "L11 add almost nothing (<0.005)."),
+              "0.349. That's 61 % of the model's final separability "
+              "(mean F1 at L11 = 0.569). In a single layer."),
+            T("Lo que viene después es desarrollo, no creación. Las "
+              "capas L1–L7 aportan ganancias modestas (+0,010 a "
+              "+0,048 cada una). En L8 hay un pequeño rebote — "
+              "desambiguación contextual de emociones tardías como "
+              "joy, desire, approval. Y después, L10 y L11 aportan "
+              "prácticamente nada (<0,005).",
+              "What comes after is refinement, not creation. Layers "
+              "L1–L7 add modest gains (+0.010 to +0.048 each). At L8 "
+              "there's a small bump — contextual disambiguation of "
+              "late emotions like joy, desire, approval. And after "
+              "that, L10 and L11 contribute almost nothing (<0.005)."),
         ],
         "pull": T(
-            "El probing dice que las capas tardías no aportan información "
-            "nueva. El activation patching dice que son las únicas "
-            "suficientes para revivir el modelo. La paradoja se resuelve "
-            "abajo: lo que hacen no es CREAR señal — la ROTAN hacia la "
-            "base del clasificador.",
-            "Probing says late layers add no new information. Activation "
-            "patching says they're the only ones sufficient to revive "
-            "the model. The paradox resolves below: what they do isn't "
-            "CREATE signal — they ROTATE it onto the classifier's basis."),
+            "El probing dice que las capas tardías no aportan "
+            "información nueva. El activation patching dice que son "
+            "las únicas suficientes para revivir el modelo. La "
+            "paradoja se resuelve más abajo: lo que hacen no es "
+            "crear señal, es rotarla hacia la base del clasificador.",
+            "Probing says the late layers don't add new information. "
+            "Activation patching says they're the only ones sufficient "
+            "to revive the model. The paradox resolves further down: "
+            "what they do isn't create signal, it's rotate it onto "
+            "the classifier's basis."),
         "figure": "info_gain",
         "caption": T(
             "Δ F1 macro por capa. Media sobre 23 emociones. Datos: "
@@ -1319,41 +1325,46 @@ SECTIONS: list[dict] = [
               "protect them; if Q and K are immune, compress them "
               "first. Three aggressiveness levels. Experimental "
               "result:"),
-            T("<strong>informed_aggressive</strong> ≡ uniform_r256 "
-              "(mismo ratio 0,612, mismo F1 0,025). "
-              "<strong>informed_moderate</strong> ≡ uniform_r512 "
-              "(mismo ratio 1,000, mismo F1 0,464). "
-              "<strong>informed_light</strong> requiere ratio 1,285 — "
-              "MÁS parámetros que el modelo original.",
-              "<strong>informed_aggressive</strong> ≡ uniform_r256 "
-              "(same ratio 0.612, same F1 0.025). "
-              "<strong>informed_moderate</strong> ≡ uniform_r512 "
-              "(same ratio 1.000, same F1 0.464). "
-              "<strong>informed_light</strong> requires ratio 1.285 — "
-              "MORE parameters than the original model."),
+            T("informed_aggressive coincide exactamente con "
+              "uniform_r256 (mismo ratio 0,612, mismo F1 0,025). "
+              "informed_moderate coincide con uniform_r512 (ratio "
+              "1,000, F1 0,464). Y informed_light necesita ratio "
+              "1,285, es decir, más parámetros que el modelo "
+              "original. Tres reglas escritas a mano y los tres "
+              "puntos caen literalmente sobre los baselines ciegos.",
+              "informed_aggressive matches uniform_r256 exactly "
+              "(same ratio 0.612, same F1 0.025). informed_moderate "
+              "matches uniform_r512 (ratio 1.000, F1 0.464). And "
+              "informed_light needs ratio 1.285, that is, more "
+              "parameters than the original model. Three hand-"
+              "written rules and the three points fall literally on "
+              "top of the blind baselines."),
             T("Ninguna está sobre la frontera de Pareto. Saber "
-              "cualitativamente qué es importante no convierte ese "
-              "conocimiento en una asignación óptima de rangos. La "
-              "interpretabilidad cualitativa identifica las variables; "
-              "los datos empíricos de sensibilidad — y solo ellos — "
-              "determinan los valores numéricos.",
-              "None lies on the Pareto frontier. Knowing qualitatively "
-              "what's important doesn't turn that knowledge into an "
-              "optimal rank assignment. Qualitative interpretability "
-              "identifies the variables; empirical sensitivity data — "
-              "and only those — fix the numeric values."),
+              "cualitativamente qué es importante no se convierte por "
+              "sí solo en una asignación óptima de rangos. La "
+              "interpretabilidad cualitativa identifica las variables "
+              "que importan; los valores numéricos los tienen que "
+              "fijar los datos empíricos de sensibilidad.",
+              "None of them lands on the Pareto frontier. Knowing "
+              "qualitatively what's important doesn't translate by "
+              "itself into an optimal rank assignment. Qualitative "
+              "interpretability identifies the variables that matter; "
+              "the actual numeric values have to come from empirical "
+              "sensitivity data."),
         ],
         "pull": T(
-            "Es un resultado negativo informativo. Habría sido fácil "
-            "publicarlo como éxito si las heurísticas hubiesen "
-            "funcionado. La narrativa completa — heurística no innova → "
-            "pivot data-driven → dominancia Pareto — es, en sí misma, "
-            "una observación metodológica transferible.",
-            "An informative negative result. It would have been easy "
-            "to spin a success story if the heuristics had worked. "
-            "The full narrative — heuristics don't innovate → pivot "
-            "data-driven → Pareto dominance — is itself a "
-            "transferable methodological observation."),
+            "Es un resultado negativo, pero informativo. Habría sido "
+            "fácil contar la historia como éxito si las heurísticas "
+            "hubiesen funcionado. La narrativa entera — la heurística "
+            "no aporta, pivot a data-driven, el greedy domina "
+            "Pareto — es en sí misma una observación metodológica "
+            "que se puede llevar a otros sitios.",
+            "It's a negative result, but an informative one. It "
+            "would have been easy to spin the story as a success if "
+            "the heuristics had worked. The whole arc — heuristics "
+            "don't add anything, pivot to data-driven, greedy "
+            "dominates Pareto — is in itself a methodological "
+            "observation that travels well."),
         "figure": "heuristic_negative",
         "caption": T(
             "Datos: notebook 9, compression_comparison.csv. 21 "
@@ -1419,37 +1430,39 @@ SECTIONS: list[dict] = [
             "Greedy_90 + 3 épocas de fine-tuning supera al baseline.",
             "Greedy_90 + 3 epochs of fine-tuning beat the baseline."),
         "body": [
-            T("Punto de partida: greedy_90, 86,4 % de los parámetros del "
-              "baseline. F1 macro 0.539 — habíamos perdido 6,7 % del "
-              "rendimiento. Lo razonable sería resignarse a esa pérdida "
-              "como precio de la compresión.",
-              "Starting point: greedy_90, 86.4 % of baseline parameters. "
-              "F1 macro 0.539 — we'd lost 6.7 % of performance. The "
-              "expected outcome would be accepting that drop as the "
-              "price of compression."),
-            T("Tres épocas de fine-tuning después: F1 macro 0.591. Por "
-              "encima del baseline original (0.577) con un 13,6 % menos "
-              "de parámetros. La compresión no es un coste — actúa como "
-              "regularización implícita.",
-              "Three epochs of fine-tuning later: F1 macro 0.591. Above "
-              "the original baseline (0.577) with 13.6 % fewer "
-              "parameters. Compression isn't a cost — it acts as "
-              "implicit regularisation."),
+            T("Punto de partida: greedy_90, 86,4 % de los parámetros "
+              "del baseline. F1 macro 0,539. Habíamos perdido un "
+              "6,7 % de rendimiento, que sería el coste razonable de "
+              "una compresión.",
+              "Starting point: greedy_90, 86.4 % of baseline "
+              "parameters. F1 macro 0.539. We'd lost 6.7 % of "
+              "performance, which would be the reasonable cost of "
+              "compression."),
+            T("Tres épocas de fine-tuning después, F1 macro 0,591. "
+              "Por encima del baseline original (0,577) con un 13,6 % "
+              "menos de parámetros. La compresión no es un coste; "
+              "está actuando como regularización implícita.",
+              "Three epochs of fine-tuning later, F1 macro 0.591. "
+              "Above the original baseline (0.577) with 13.6 % fewer "
+              "parameters. Compression isn't a cost; it's behaving "
+              "like implicit regularisation."),
             T("La ganancia se concentra donde más hace falta. "
-              "Embarrassment pasa de F1 = 0.267 a 0.509 — un 90 % "
-              "relativo más, en una emoción con sólo 303 ejemplos de "
-              "entrenamiento. Desire +16 %, excitement +9,5 %, "
-              "realization +10 %. La SVD parece haber eliminado "
-              "direcciones ruidosas en las que el baseline había "
-              "memorizado patrones espurios para emociones "
-              "infrarrepresentadas.",
+              "Embarrassment pasa de F1 0,267 a 0,509 — un 90 % "
+              "relativo más, en una emoción con sólo 303 ejemplos en "
+              "entrenamiento. Desire sube un 16 %, excitement un "
+              "9,5 %, realization un 10 %. La explicación más "
+              "plausible es que la SVD ha eliminado direcciones "
+              "ruidosas en las que el baseline había memorizado "
+              "patrones espurios para emociones con poca masa de "
+              "datos.",
               "The gain concentrates where it's needed most. "
-              "Embarrassment goes from F1 = 0.267 to 0.509 — a 90 % "
+              "Embarrassment goes from F1 0.267 to 0.509 — a 90 % "
               "relative jump, on an emotion with only 303 training "
-              "examples. Desire +16 %, excitement +9.5 %, realization "
-              "+10 %. SVD seems to have eliminated noisy directions "
-              "where the baseline had memorised spurious patterns for "
-              "underrepresented emotions."),
+              "examples. Desire goes up 16 %, excitement 9.5 %, "
+              "realization 10 %. The most plausible reading is that "
+              "SVD removed noisy directions where the baseline had "
+              "memorised spurious patterns for emotions with little "
+              "data behind them."),
         ],
         "pull": T(
             "Es un resultado preliminar — un modelo, una tarea, sin "
@@ -1520,71 +1533,68 @@ OUTRO = {
             "title": T("Tres hallazgos sustantivos",
                        "Three substantive findings"),
             "paragraphs": [
-                T("<strong>Arquitectura funcional de tres niveles.</strong> "
-                  "Las capas tempranas (Emb–L3) hacen señal léxica cruda — "
-                  "L0 absorbe el 61 % de la separabilidad final en un solo "
-                  "salto. Las medias (L4–L7) computan la transición en una "
-                  "geometría interna donde el F1 sigue subiendo pero el "
-                  "clasificador no sabe leer (la brecha probing-lens). Las "
-                  "tardías (L8–L11) cristalizan: rotan la representación "
-                  "hacia la base del classifier. Restaurar SOLO la FFN de "
-                  "L11 (un tercio de los parámetros de esa capa) recupera "
-                  "el 100 % del F1 desde un colapso total — un sub-"
-                  "componente concreto, no toda la capa.",
-                  "<strong>A three-level functional architecture.</strong> "
-                  "Early layers (Emb–L3) do raw lexical work — L0 alone "
-                  "absorbs 61 % of final linear separability in one jump. "
-                  "Middle layers (L4–L7) compute the transition in an "
-                  "internal geometry where F1 keeps rising but the "
-                  "classifier can't read it (the probing-lens gap). Late "
-                  "layers (L8–L11) crystallise: they rotate the "
-                  "representation onto the classifier's basis. Restoring "
-                  "ONLY the FFN of L11 (a third of that layer's "
-                  "parameters) recovers 100 % of F1 from total collapse — "
-                  "a specific sub-component, not the whole layer."),
-                T("<strong>Asimetría radical bajo compresión.</strong> Q "
-                  "a rango 128 conserva el 99,4 % del rendimiento. La FFN "
-                  "Intermediate al mismo rango colapsa a 6,9 %. Una "
-                  "diferencia de 14× en retención absoluta, 72× "
-                  "normalizada por parámetros eliminados. La compresión "
-                  "uniforme presenta una transición de fase entre rango "
-                  "384 (43 % retención) y 256 (4 %). Por debajo de rango "
-                  "128, muerte clínica: F1 = 0. Hasta donde sabemos, este "
-                  "factor cuantificado de 14×–72× no había sido "
-                  "documentado en la literatura previa de SVD sobre "
-                  "Transformers.",
-                  "<strong>Radical asymmetry under compression.</strong> "
-                  "Q at rank 128 keeps 99.4 % of performance. FFN "
-                  "Intermediate at the same rank collapses to 6.9 %. 14× "
-                  "in absolute retention, 72× when normalised by "
-                  "parameters eliminated. Uniform compression shows a "
-                  "phase transition between rank 384 (43 % retention) and "
-                  "256 (4 %). Below rank 128, clinical death: F1 = 0. As "
-                  "far as we know, this 14×–72× quantified factor hadn't "
-                  "been documented in the prior literature on SVD over "
-                  "Transformers."),
-                T("<strong>Greedy data-driven domina Pareto.</strong> 8 "
-                  "de los 9 puntos óptimos del estudio son del greedy. A "
-                  "80 % de parámetros retiene el 87 % del F1 frente al "
-                  "43 % de la compresión uniforme. Reproduce las "
-                  "jerarquías de interpretabilidad sin acceder a ellas — "
-                  "comprime Q y K primero, jamás toca la FFN Intermediate "
-                  "de las capas tardías. Y la FFN sobre el modelo "
-                  "comprimido + 3 épocas de fine-tuning supera al "
-                  "baseline original con un 13,6 % menos de parámetros, "
-                  "con ganancia +90 % relativo en embarrassment "
-                  "(infrarrepresentada con 303 ejemplos).",
-                  "<strong>Greedy data-driven dominates Pareto.</strong> "
-                  "8 of 9 Pareto-optimal points in the study come from "
-                  "greedy. At 80 % parameters it retains 87 % of F1, "
-                  "against 43 % for uniform compression. It reproduces "
-                  "the interpretability hierarchies without seeing them — "
-                  "compresses Q and K first, never touches the FFN "
-                  "Intermediate of late layers. And the compressed model "
-                  "+ 3 fine-tuning epochs beats the original baseline "
-                  "with 13.6 % fewer parameters, with a +90 % relative "
-                  "gain on embarrassment (underrepresented with 303 "
-                  "examples)."),
+                T("Arquitectura funcional de tres niveles. Las capas "
+                  "tempranas hacen señal léxica cruda; L0 sola absorbe "
+                  "el 61 % de la separabilidad final del modelo. Las "
+                  "medias computan una transición que el probing ve "
+                  "subir pero la cabeza de clasificación no sabe "
+                  "todavía leer. Las tardías hacen la rotación final, "
+                  "y restaurar sólo la FFN de la capa 11 ya recupera "
+                  "el 100 % del F1 desde un colapso total. No hace "
+                  "falta toda la capa: hace falta ese sub-componente "
+                  "concreto.",
+                  "A three-level functional architecture. The early "
+                  "layers do raw lexical work, with L0 alone absorbing "
+                  "61 % of the model's final separability. The middle "
+                  "layers compute a transition that probing sees rise "
+                  "but the classifier head can't yet read. The late "
+                  "ones do the final rotation, and restoring just the "
+                  "FFN of layer 11 already recovers 100 % of F1 from "
+                  "total collapse. You don't need the whole layer; you "
+                  "need that specific sub-component."),
+                T("Sensibilidad muy desigual entre componentes. Q a "
+                  "rango 128 conserva el 99,4 % del F1; la FFN "
+                  "Intermediate al mismo rango cae al 6,9 %. Catorce "
+                  "veces más de retención absoluta, setenta y dos "
+                  "veces si se normaliza por parámetros eliminados. La "
+                  "compresión uniforme cae por un acantilado entre "
+                  "rango 384 y 256, y por debajo de 128 el F1 es "
+                  "exactamente cero. Que yo sepa, este factor de "
+                  "14×–72× no estaba cuantificado en la literatura "
+                  "previa de SVD sobre Transformers.",
+                  "Wildly uneven sensitivity across components. Q at "
+                  "rank 128 keeps 99.4 % of F1; FFN Intermediate at "
+                  "the same rank drops to 6.9 %. Fourteen times the "
+                  "absolute retention, seventy-two times once you "
+                  "normalise by parameters eliminated. Uniform "
+                  "compression falls off a cliff between rank 384 and "
+                  "256, and below 128 F1 is exactly zero. As far as "
+                  "I'm aware, this 14×–72× factor wasn't quantified "
+                  "in the prior literature on SVD for Transformers."),
+                T("El algoritmo greedy se queda con 8 de los 9 puntos "
+                  "Pareto-óptimos. Al 80 % de parámetros retiene el "
+                  "87 % del F1, frente al 43 % de la compresión "
+                  "uniforme al mismo ratio. Y descubre la jerarquía "
+                  "que la interpretabilidad había encontrado por otra "
+                  "vía: comprime Q y K primero, no toca la FFN "
+                  "Intermediate de las capas tardías. Tras tres "
+                  "épocas de fine-tuning, el modelo comprimido al "
+                  "86,4 % de parámetros llega a F1 0,591 — por encima "
+                  "del baseline (0,577). La ganancia se concentra en "
+                  "emociones infrarrepresentadas: embarrassment pasa "
+                  "de 0,267 a 0,509.",
+                  "The greedy algorithm takes 8 of the 9 "
+                  "Pareto-optimal points. At 80 % parameters it keeps "
+                  "87 % of F1, versus 43 % for uniform at the same "
+                  "ratio. And it rediscovers the hierarchy that "
+                  "interpretability had found from a different angle: "
+                  "compress Q and K first, never touch the FFN "
+                  "Intermediate of the late layers. After three "
+                  "epochs of fine-tuning, the compressed model at "
+                  "86.4 % of parameters reaches F1 0.591 — above the "
+                  "baseline (0.577). The gain concentrates on "
+                  "underrepresented emotions: embarrassment goes "
+                  "from 0.267 to 0.509."),
             ],
         },
         # ── Limitaciones ────────────────────────────────────────────────
@@ -1594,62 +1604,70 @@ OUTRO = {
             "title": T("Lo que <em>no</em> se ha podido demostrar",
                        "What <em>couldn't</em> be demonstrated"),
             "paragraphs": [
-                T("<strong>Un modelo, una tarea.</strong> Todo este "
-                  "trabajo se hace sobre BERT-base y GoEmotions. La "
-                  "arquitectura encoder-only podría favorecer la "
-                  "concentración tardía. La generalización a BERT-large, "
-                  "RoBERTa, GPT-2 o LLaMA está propuesta como prioridad "
-                  "número uno de trabajo futuro pero NO se verifica aquí.",
-                  "<strong>One model, one task.</strong> All this work "
-                  "is done on BERT-base and GoEmotions. The encoder-only "
-                  "architecture could favour late-layer concentration. "
-                  "Generalisation to BERT-large, RoBERTa, GPT-2 or LLaMA "
-                  "is proposed as the top future-work priority but is "
-                  "NOT verified here."),
-                T("<strong>Compresión post-hoc, no durante el "
-                  "entrenamiento.</strong> La SVD se aplica una vez el "
-                  "modelo está fine-tuneado. Otros enfoques — pruning "
-                  "estructurado, cuantización, destilación — interactúan "
-                  "de forma distinta y no se evalúan en combinación.",
-                  "<strong>Post-hoc compression, not during training."
-                  "</strong> SVD is applied once the model is "
-                  "fine-tuned. Other approaches — structured pruning, "
-                  "quantisation, distillation — interact differently and "
-                  "are not evaluated in combination."),
-                T("<strong>Potencia estadística limitada.</strong> Las "
-                  "correlaciones se calculan sobre n = 23 emociones, lo "
-                  "que permite detectar efectos grandes con confianza "
-                  "(ρ > 0,556) pero no efectos moderados. Y la "
-                  "regularización por compresión observada (+90 % en "
-                  "embarrassment) carece de grupo de control con epochs "
-                  "adicionales sobre el baseline sin comprimir, así que "
-                  "se reporta como observación consistente con la "
-                  "hipótesis, no como causalidad establecida.",
-                  "<strong>Limited statistical power.</strong> "
-                  "Correlations are computed over n = 23 emotions, which "
-                  "lets us detect large effects with confidence "
-                  "(ρ > 0.556) but not moderate ones. And the "
-                  "regularisation-via-compression effect observed (+90 % "
-                  "on embarrassment) lacks a control group with extra "
-                  "epochs on the uncompressed baseline, so it's reported "
-                  "as an observation consistent with the hypothesis, not "
-                  "as established causation."),
-                T("<strong>Distorsión espectral, no ruido neutral.</strong> "
-                  "El activation patching parte de una corrupción "
-                  "estructurada (SVD a rango 64), no de ruido gaussiano "
-                  "como en el causal tracing original de Meng et al. Las "
-                  "conclusiones extraídas tienen naturaleza funcional "
-                  "—qué componentes son SUFICIENTES para reactivar el "
-                  "modelo desde el colapso— más que estrictamente causal "
-                  "en el sentido de Pearl.",
-                  "<strong>Spectral distortion, not neutral noise."
-                  "</strong> Activation patching starts from a "
-                  "structured corruption (SVD to rank 64), not Gaussian "
-                  "noise as in Meng et al.'s original causal tracing. "
-                  "The conclusions extracted are functional — which "
-                  "components are SUFFICIENT to reactivate the model "
-                  "from collapse — rather than strictly causal in "
-                  "Pearl's sense."),
+                T("Un modelo, una tarea. Todo lo que aparece aquí se "
+                  "ejecuta sobre BERT-base y GoEmotions. Que la "
+                  "arquitectura sea encoder-only puede estar "
+                  "favoreciendo la concentración tardía que "
+                  "documentamos; con BERT-large, RoBERTa, GPT-2 o "
+                  "LLaMA podría no replicar igual. Es la prioridad "
+                  "número uno del trabajo futuro, pero hoy no está "
+                  "verificada.",
+                  "One model, one task. Everything in here runs on "
+                  "BERT-base and GoEmotions. The encoder-only "
+                  "architecture might be helping the late-layer "
+                  "concentration we documented; with BERT-large, "
+                  "RoBERTa, GPT-2 or LLaMA it might not replicate the "
+                  "same. It's the top item on the future-work list, "
+                  "but as of today it's not verified."),
+                T("Compresión post-hoc, no durante el entrenamiento. "
+                  "La SVD entra cuando el modelo ya está fine-tuneado. "
+                  "Otros caminos (pruning estructurado, cuantización, "
+                  "destilación) interactúan de forma distinta y no se "
+                  "evalúan en combinación. Lo razonable sería un "
+                  "pipeline que los apile, pero queda fuera del "
+                  "alcance.",
+                  "Post-hoc compression, not during training. SVD "
+                  "comes in once the model is already fine-tuned. "
+                  "Other paths (structured pruning, quantisation, "
+                  "distillation) interact differently and aren't "
+                  "evaluated in combination. The reasonable next step "
+                  "is a pipeline that stacks them, but it's out of "
+                  "scope here."),
+                T("Potencia estadística limitada. Las correlaciones "
+                  "se calculan sobre n = 23 emociones; eso da "
+                  "confianza para detectar efectos grandes (ρ > 0,556) "
+                  "pero no efectos moderados. La regularización que "
+                  "se observa al fine-tunear el modelo comprimido "
+                  "(+90 % en embarrassment) carece de grupo de control "
+                  "con épocas extra sobre el baseline sin comprimir, "
+                  "así que se reporta como observación consistente "
+                  "con la hipótesis y no como causalidad establecida.",
+                  "Limited statistical power. Correlations are "
+                  "computed over n = 23 emotions; that gives confidence "
+                  "for detecting large effects (ρ > 0.556) but not "
+                  "moderate ones. The regularisation observed when "
+                  "fine-tuning the compressed model (+90 % on "
+                  "embarrassment) doesn't have a control with extra "
+                  "epochs on the uncompressed baseline, so it's "
+                  "reported as an observation consistent with the "
+                  "hypothesis rather than established causation."),
+                T("Distorsión espectral, no ruido neutral. El "
+                  "activation patching parte de una corrupción "
+                  "estructurada (SVD a rango 64), no de ruido "
+                  "gaussiano como en el causal tracing original de "
+                  "Meng et al. Las conclusiones que se sacan son "
+                  "funcionales —qué componentes bastan para revivir "
+                  "el modelo desde el colapso— más que estrictamente "
+                  "causales en el sentido de Pearl. Es una distinción "
+                  "que conviene tener clara.",
+                  "Spectral distortion, not neutral noise. Activation "
+                  "patching starts from a structured corruption (SVD "
+                  "to rank 64), not Gaussian noise as in Meng et al.'s "
+                  "original causal tracing. What you can conclude is "
+                  "functional — which components are enough to "
+                  "revive the model from collapse — rather than "
+                  "strictly causal in Pearl's sense. Worth keeping "
+                  "that distinction in mind."),
             ],
         },
         # ── Trabajo futuro ──────────────────────────────────────────────
@@ -1659,82 +1677,89 @@ OUTRO = {
             "title": T("Predicciones <em>falsables</em>",
                        "<em>Falsifiable</em> predictions"),
             "paragraphs": [
-                T("<strong>Generalización a otros modelos y tareas.</strong> "
-                  "La hipótesis falsable: el ratio de compresibilidad "
-                  "espectral k₉₅(Q)/k₉₅(FFN) en BERT-large debería caer "
-                  "en el rango [0,55, 0,75] (en BERT-base es 0,64). En "
-                  "modelos decoder-only la restauración por activation "
-                  "patching debería distribuirse a lo largo de varias "
-                  "capas tardías en vez de concentrarse extremadamente "
-                  "en L11.",
-                  "<strong>Generalisation to other models and tasks."
-                  "</strong> The falsifiable hypothesis: the spectral "
-                  "compressibility ratio k₉₅(Q)/k₉₅(FFN) in BERT-large "
-                  "should fall in [0.55, 0.75] (BERT-base: 0.64). In "
-                  "decoder-only models, activation-patching restoration "
-                  "should distribute across several late layers instead "
-                  "of concentrating extremely on L11."),
-                T("<strong>Verificación causal de la regularización por "
-                  "compresión.</strong> Tres condiciones experimentales: "
-                  "(i) baseline + 3 epochs adicionales, (ii) baseline + "
-                  "compresión greedy + 3 epochs (lo actual), (iii) "
-                  "baseline + 3 epochs con dropout/weight decay "
-                  "aumentados. La predicción: (ii) > (i) y (iii) en "
-                  "F1 macro y especialmente en emociones "
-                  "infrarrepresentadas.",
-                  "<strong>Causal verification of the regularisation "
-                  "effect.</strong> Three experimental conditions: (i) "
-                  "baseline + 3 extra epochs, (ii) baseline + greedy "
-                  "compression + 3 epochs (the current setting), (iii) "
-                  "baseline + 3 epochs with increased dropout/weight "
-                  "decay. The prediction: (ii) > (i) and (iii) in F1 "
-                  "macro, and especially on underrepresented emotions."),
-                T("<strong>Compresión por cabeza individual.</strong> "
-                  "Las 38 cabezas prescindibles + 21 interferentes "
-                  "identificadas son candidatas directas a eliminación. "
-                  "Combinar pruning de cabezas + greedy SVD + "
-                  "cuantización post-hoc + fine-tuning recovery podría "
-                  "componer reducción multiplicativa o sub-multiplicativa "
-                  "sin pérdida de F1.",
-                  "<strong>Per-head compression granularity.</strong> The "
-                  "38 dispensable + 21 interfering heads identified are "
-                  "direct elimination candidates. Combining head pruning "
-                  "+ greedy SVD + post-hoc quantisation + fine-tuning "
-                  "recovery could compose multiplicative or "
-                  "sub-multiplicative reduction without F1 loss."),
-                T("<strong>Tuned lens y dinámica durante el "
-                  "entrenamiento.</strong> Aprender una transformación "
-                  "T_ℓ : ℝ^d → ℝ^d por capa que minimice la divergencia "
-                  "KL contra L11 y verificar si el patrón en U se "
-                  "mantiene tras la calibración. Y monitorizar "
-                  "cristalización + especialización neuronal DURANTE el "
-                  "fine-tuning para entender en qué momento de la "
-                  "optimización emerge cada propiedad estructural.",
-                  "<strong>Tuned lens and training dynamics.</strong> "
-                  "Learn a per-layer transformation T_ℓ : ℝ^d → ℝ^d "
-                  "minimising KL divergence against L11 and verify "
-                  "whether the U pattern persists after calibration. "
-                  "And monitor crystallisation + neural specialisation "
-                  "DURING fine-tuning to understand at what point in "
-                  "optimisation each structural property emerges."),
+                T("Generalización a otros modelos y tareas. La "
+                  "predicción concreta: el ratio de compresibilidad "
+                  "espectral k₉₅(Q)/k₉₅(FFN) en BERT-large debería "
+                  "caer en el rango [0,55, 0,75]. En BERT-base es "
+                  "0,64. En decoder-only la restauración por "
+                  "activation patching debería repartirse entre varias "
+                  "capas tardías en lugar de concentrarse tanto en "
+                  "L11. Si no replica, hay que matizar la hipótesis "
+                  "de la jerarquía funcional.",
+                  "Generalisation to other models and tasks. The "
+                  "concrete prediction: the spectral compressibility "
+                  "ratio k₉₅(Q)/k₉₅(FFN) in BERT-large should land in "
+                  "[0.55, 0.75]. BERT-base sits at 0.64. In "
+                  "decoder-only models, activation-patching "
+                  "restoration should spread across several late "
+                  "layers instead of concentrating so much on L11. If "
+                  "it doesn't replicate, the functional-hierarchy "
+                  "claim needs softening."),
+                T("Verificar causalmente la regularización por "
+                  "compresión. Tres condiciones: (i) baseline con 3 "
+                  "épocas adicionales, (ii) baseline + greedy + 3 "
+                  "épocas (lo de aquí), (iii) baseline + 3 épocas con "
+                  "dropout y weight-decay subidos. Si (ii) supera a "
+                  "(i) y (iii) en F1 macro y, sobre todo, en "
+                  "emociones infrarrepresentadas, la hipótesis de "
+                  "regularización implícita queda bien apoyada.",
+                  "Causally verifying the regularisation-from-"
+                  "compression effect. Three conditions: (i) baseline "
+                  "with 3 extra epochs, (ii) baseline + greedy + 3 "
+                  "epochs (this work), (iii) baseline + 3 epochs with "
+                  "raised dropout and weight decay. If (ii) beats (i) "
+                  "and (iii) on macro F1 and especially on "
+                  "underrepresented emotions, the implicit-"
+                  "regularisation hypothesis stands on firmer ground."),
+                T("Compresión por cabeza individual. Tenemos 38 "
+                  "cabezas prescindibles más 21 interferentes "
+                  "identificadas; son candidatas directas a "
+                  "eliminación. Apilar pruning de cabezas + greedy "
+                  "SVD + cuantización post-hoc + fine-tuning recovery "
+                  "podría componer reducciones multiplicativas sin "
+                  "perder F1. Es la línea más práctica.",
+                  "Per-head compression granularity. We have 38 "
+                  "dispensable plus 21 interfering heads identified; "
+                  "those are direct elimination candidates. Stacking "
+                  "head pruning + greedy SVD + post-hoc quantisation "
+                  "+ fine-tuning recovery could compose multiplicative "
+                  "reductions without losing F1. It's the most "
+                  "practical line of work."),
+                T("Tuned lens y dinámica de entrenamiento. Aprender "
+                  "una transformación T_ℓ : ℝ^d → ℝ^d por capa que "
+                  "minimice la divergencia KL contra L11 y ver si el "
+                  "patrón en U sobrevive a esa calibración. Y "
+                  "monitorizar cristalización y especialización "
+                  "neuronal durante el fine-tuning, para saber en qué "
+                  "momento de la optimización aparece cada propiedad "
+                  "estructural.",
+                  "Tuned lens and training dynamics. Learn a "
+                  "per-layer transformation T_ℓ : ℝ^d → ℝ^d that "
+                  "minimises KL divergence against L11 and check "
+                  "whether the U pattern survives that calibration. "
+                  "And track crystallisation and neural specialisation "
+                  "during fine-tuning itself, to find out at what "
+                  "point in optimisation each structural property "
+                  "shows up."),
             ],
         },
     ],
     "coda": T(
-        "BERT no fue diseñado para emociones. La arquitectura funcional "
-        "documentada aquí —cristalización progresiva, dominio de la FFN "
-        "tardía, patrón en U del logit lens, 6 clusters psicológicamente "
-        "coherentes— no se optimizó explícitamente durante el "
-        "entrenamiento. Emergió. La interpretabilidad mecánica documenta "
-        "lo que la optimización por gradiente decidió, no lo que sus "
-        "diseñadores prescribieron.<br><br>"
+        "BERT no fue diseñado para clasificar emociones. La "
+        "arquitectura funcional que aparece aquí — cristalización "
+        "progresiva, dominio de la FFN tardía, la U del logit lens, "
+        "los seis clusters con coherencia psicológica — no se "
+        "programó. Salió sola. Lo que hace la interpretabilidad "
+        "mecánica es documentar lo que el gradiente decidió, no lo "
+        "que nadie prescribió.<br><br>"
         "<a href=\"sobre.html\">Cómo está hecho · Stack y créditos</a>",
-        "BERT wasn't designed for emotions. The functional architecture "
-        "documented here — progressive crystallisation, late-FFN "
-        "dominance, the logit-lens U pattern, 6 psychologically coherent "
-        "clusters — wasn't explicitly optimised during training. It "
-        "emerged. Mechanistic interpretability documents what gradient "
-        "descent decided, not what the designers prescribed.<br><br>"
+        "BERT wasn't designed for emotion classification. The "
+        "functional architecture that shows up here — progressive "
+        "crystallisation, late-FFN dominance, the logit-lens U, six "
+        "clusters with psychological coherence — wasn't programmed. "
+        "It came out on its own. What mechanistic interpretability "
+        "does is document what gradient descent decided, not what "
+        "anyone prescribed.<br><br>"
         "<a href=\"sobre.html\">How it's built · Stack and credits</a>"),
 }
 
