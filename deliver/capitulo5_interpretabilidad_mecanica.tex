@@ -1,0 +1,1278 @@
+% =============================================================
+% CAPÍTULO 5 — Resultados de interpretabilidad mecánica
+% Versión: matrícula de honor
+% Alimentado por: NB04 (probing), NB05 (activation patching),
+%                 NB06 (head ablation), NB07 (neuron analysis),
+%                 NB08 (logit lens)
+% =============================================================
+
+\section{Resultados de interpretabilidad mecánica}
+\label{sec:resultados-interpretabilidad}
+
+El capítulo anterior documentó qué ocurre cuando se comprime BERT:
+una transición de fase abrupta entre rango 384 y 256, una asimetría
+radical entre componentes (factor 14$\times$ a rango~128 y hasta
+72$\times$ a rango~64, normalizado por parámetros eliminados) y un
+gradiente de fragilidad creciente con la profundidad. Este capítulo
+aborda la pregunta complementaria: por qué ocurre. Para ello se
+aplican cinco técnicas de interpretabilidad mecánica que examinan la
+estructura interna del modelo desde ángulos diferentes pero convergentes.
+
+La primera técnica, \emph{probing} (\S\ref{sec:probing}), entrena
+clasificadores lineales sobre las representaciones intermedias para
+determinar en qué capa se forma la señal emocional. La segunda,
+\emph{logit lens} (\S\ref{sec:logit-lens}), aplica la cabeza de
+clasificación entrenada del modelo a las representaciones de capas
+intermedias para distinguir información disponible de información
+alineada con la base del clasificador. La tercera, \emph{activation
+patching} (\S\ref{sec:activation-patching}), restaura selectivamente
+componentes del modelo original dentro de una versión comprimida para
+localizar los loci funcionales críticos. La cuarta, \emph{ablación de
+cabezas de atención} (\S\ref{sec:head-ablation}), anula individualmente
+cada una de las 144 cabezas para construir una taxonomía funcional del
+mecanismo atencional. La quinta, \emph{análisis neuronal de las FFN}
+(\S\ref{sec:neuron-analysis}), examina la especialización de las 36\,864
+neuronas de las redes feed-forward y su relación con la vulnerabilidad a
+la compresión.
+
+Cada sección presenta sus resultados de forma autónoma, pero el lector
+observará un patrón transversal: las cinco técnicas convergen en una
+arquitectura funcional de tres niveles, donde las capas tempranas extraen
+señal léxica bruta, las capas intermedias realizan cómputo en una
+geometría interna ilegible para el clasificador, y las capas profundas
+(8--11) proyectan la representación sobre la base del clasificador. La
+síntesis formal de esta convergencia se desarrolla en
+\S\ref{sec:interp-sintesis}.
+
+
+% =============================================================
+% 5.1 — PROBING: CRISTALIZACIÓN EMOCIONAL POR CAPAS
+% =============================================================
+
+\subsection{Probing: cristalización emocional por capas}
+\label{sec:probing}
+
+\subsubsection{Diseño experimental}
+
+Para determinar en qué punto de la jerarquía de capas de BERT emerge la
+información emocional, se entrenan clasificadores \emph{probe} sobre las
+representaciones intermedias del modelo. Se utiliza regresión logística
+con regularización por defecto ($C = 1{,}0$) como clasificador, siguiendo
+la metodología de Hewitt y Liang~\cite{hewitt2019designing}: el objetivo
+del probe es medir la calidad de la representación, no la capacidad del
+clasificador, por lo que se evita deliberadamente el tuning de
+hiperparámetros. Un probe no-lineal complejo podría extraer información
+de cualquier representación; un probe lineal solo detecta información ya
+separada linealmente en el espacio de activaciones.
+
+La representación de entrada es el token \texttt{[CLS]} extraído de cada
+uno de los 13 \textit{hidden states} del modelo (la capa de embedding más
+las 12 capas del encoder). Se entrena un probe binario independiente para
+cada combinación de emoción y capa con una capa de información
+significativa, resultando en 276 clasificadores activos (las 12 capas del
+encoder por las 23 emociones; los probes sobre embedding producen
+F1 = 0 uniformemente y se omiten del análisis efectivo).
+
+Se define la \emph{capa de cristalización} de una emoción como la primera
+capa en la que el F1 del probe alcanza el 80\% de su valor máximo a lo
+largo de todas las capas. Este umbral es convencional; análisis de
+sensibilidad con umbrales de 0{,}7 y 0{,}9 confirman que el orden
+relativo de cristalización entre emociones permanece estable.
+
+\subsubsection{Tres regímenes de cristalización}
+
+Las 23 emociones se distribuyen en tres grupos claramente diferenciados
+según su profundidad de cristalización
+(Tabla~\ref{tab:cristalizacion-grupos},
+Figura~\ref{fig:probing-heatmap}).
+
+\begin{table}[ht]
+\centering
+\caption{Grupos de cristalización emocional. La capa indica la primera
+capa donde el F1 del probe alcanza el 80\% de su máximo. La columna
+``F1 en cap.'' muestra el F1 del probe en la capa de cristalización.}
+\label{tab:cristalizacion-grupos}
+\small
+\begin{tabular}{llcl}
+\toprule
+\textbf{Grupo} & \textbf{Capas} & \textbf{N} & \textbf{Emociones representativas} \\
+\midrule
+Temprano & L0--L3 & 9 & gratitude (L0, 0{,}922), amusement (L0, 0{,}827), \\
+         &        &   & love (L0, 0{,}818), curiosity (L0, 0{,}674), \\
+         &        &   & optimism (L0, 0{,}569), admiration (L2, 0{,}735), \\
+         &        &   & disgust (L2, 0{,}532), fear (L3, 0{,}708), \\
+         &        &   & sadness (L3, 0{,}621) \\
+\addlinespace
+Medio    & L4--L7 & 8 & anger (L4, 0{,}543), remorse (L5, 0{,}655), \\
+         &        &   & embarrassment (L5, 0{,}406), \\
+         &        &   & disapproval (L6, 0{,}521), caring (L6, 0{,}502), \\
+         &        &   & surprise (L7, 0{,}558), confusion (L7, 0{,}502), \\
+         &        &   & realization (L7, 0{,}327) \\
+\addlinespace
+Tardío   & L8--L11 & 6 & joy (L8, 0{,}601), desire (L8, 0{,}582), \\
+         &         &   & approval (L8, 0{,}547), excitement (L8, 0{,}472), \\
+         &         &   & annoyance (L8, 0{,}416), \\
+         &         &   & disappointment (L9, 0{,}361) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/cap5/cap5_probing_heatmap_es.png}
+\caption{Heatmap de F1 de los probes (23 emociones $\times$ 13 capas). El
+marcador indica la capa de cristalización de cada emoción. Las emociones
+se ordenan por profundidad de cristalización creciente.}
+\label{fig:probing-heatmap}
+\end{figure}
+
+La interpretación de estos grupos conecta la profundidad de procesamiento
+con la naturaleza lingüística de la señal emocional. Las emociones del
+grupo temprano poseen vocabulario altamente distintivo:
+\emph{gratitude} se asocia a marcadores léxicos explícitos (``thanks'',
+``thank you''), \emph{amusement} a indicadores como ``lol'' o ``haha'',
+\emph{love} a un campo semántico bien delimitado. En estos casos, la
+primera capa del encoder (L0) ya dispone de suficiente información
+léxica para que un clasificador lineal alcance un rendimiento cercano
+al máximo.
+
+En el extremo opuesto, las emociones tardías requieren integración
+contextual para desambiguarse de categorías vecinas:
+\emph{annoyance} debe distinguirse de \emph{anger},
+\emph{approval} de \emph{admiration}, \emph{disappointment} de
+\emph{sadness}. Estas distinciones no están disponibles en el
+vocabulario de superficie y emergen solo tras múltiples capas de
+procesamiento atencional.
+
+Las emociones medias ocupan posiciones intermedias y a menudo combinan
+señales léxicas con requisitos contextuales. \emph{Embarrassment} es un
+caso ilustrativo: tiene cierta señal léxica (``embarrassed'',
+``awkward''), pero su uso pragmático (a veces autoirónico, a veces
+genuino) demanda contexto, lo que retrasa su cristalización a L5.
+
+
+La Figura~\ref{fig:cap5-galaxia-evolution} visualiza esta cristalización
+progresiva proyectando las representaciones del token \texttt{[CLS]} en
+cuatro capas representativas mediante t-SNE.
+ 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\textwidth]{figures/cap5/cap5_galaxia_evolution_es.png}
+    \caption{Proyecciones t-SNE de las representaciones del token
+    \texttt{[CLS]} en cuatro capas del modelo. Los puntos pequeños son
+    ejemplos individuales del conjunto de test; los rombos grandes
+    representan los centroides de cada emoción. Los colores agrupan las
+    23 emociones en seis clusters semánticos derivados del análisis
+    neuronal (\S\ref{sec:neuron-analysis}). El embedding inicial
+    apenas diferencia las emociones (los centroides colapsan en una
+    región pequeña). En L4 los puntos se distribuyen, pero los
+    centroides aún se solapan. En L8 emergen estructuras parciales:
+    las positivas de alta energía se separan, las negativas internas
+    comienzan a agruparse. En L11 los seis clusters están claramente
+    diferenciados.}
+    \label{fig:cap5-galaxia-evolution}
+\end{figure}
+ 
+La progresión es consistente con los grupos de cristalización que la
+Tabla~\ref{tab:cristalizacion-grupos} identifica numéricamente. En el
+embedding ninguna emoción es separable, lo que es esperable: el embedding
+codifica el significado del token \texttt{[CLS]} antes de procesar la
+frase. En L4 se observa el comportamiento medio del cluster ``Positivas
+alta energía'' (gratitude, amusement, love), cuyos centroides ya se
+desplazan hacia regiones distintivas, anticipando que cristalizan en
+L0--L2. En L8 emergen las distinciones contextuales: el cluster de
+``Negativas internas'' se concentra en la región superior, el de
+``Negativas reactivas'' en la derecha. En L11 los seis clusters ocupan
+regiones diferenciadas del plano, lo que cierra la formación
+representacional documentada por probing.
+
+\subsubsection{Ganancia informativa por capa}
+
+La contribución incremental de cada capa se cuantifica como la
+diferencia en F1 macro medio entre capas consecutivas
+(Figura~\ref{fig:probing-info-gain}). Este análisis revela una
+arquitectura de procesamiento en dos fases con un detalle
+metodológicamente relevante.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{figures/cap5/cap5_information_gain_es.png}
+\caption{Ganancia informativa incremental por capa, medida como el
+aumento en F1 macro medio respecto a la capa anterior. La capa L0
+absorbe el 61\% de la separabilidad final del modelo.}
+\label{fig:probing-info-gain}
+\end{figure}
+
+La capa de embedding no contiene información emocional (F1 medio = 0
+para todas las emociones, valor exacto). La primera capa del encoder
+(L0) produce un salto de $+0{,}349$, capturando aproximadamente el 61\%
+de la separabilidad lineal final del modelo
+($F1_{L0}/F1_{L11} = 0{,}349/0{,}569 \approx 0{,}61$). Este salto
+corresponde a la extracción de señal léxica bruta. Las capas L1--L7
+contribuyen con ganancias modestas pero positivas
+($+0{,}010$ a $+0{,}048$), refinando gradualmente las representaciones.
+La capa L8 produce un segundo pico de $+0{,}033$, asociado a la
+desambiguación contextual de las emociones tardías. Las capas finales
+(L10--L11) aportan ganancias marginales: L10 incluso muestra una
+ganancia ligeramente negativa ($-0{,}002$), seguida de un pequeño
+$+0{,}004$ en L11.
+
+Esta estructura de dos fases, con captura léxica masiva en L0,
+refinamiento contextual con pico en L8 y consolidación marginal en
+L10--L11, anticipa un resultado que será central en el resto del
+capítulo: la distinción entre crear información emocional y
+formatearla para el clasificador. Las capas L10--L11 apenas
+crean información nueva según el probing, pero \S\ref{sec:logit-lens}
+y \S\ref{sec:activation-patching} demostrarán que son las únicas
+capaces de hacer utilizable la información existente para la
+cabeza de clasificación. Esta distinción se cuantifica directamente en
+la siguiente sección.
+
+\subsubsection{La frecuencia no predice la profundidad}
+
+Un análisis de correlaciones (Tabla~\ref{tab:probing-correlaciones},
+Figura~\ref{fig:probing-correlaciones}) descarta la hipótesis de que la
+profundidad de cristalización esté determinada por el volumen de datos
+de entrenamiento, hipótesis intuitiva pero empíricamente no soportada.
+
+\begin{table}[ht]
+\centering
+\caption{Correlaciones de Spearman entre propiedades de las emociones
+($n = 23$). Solo la correlación entre profundidad de cristalización y
+F1 máximo es significativa.}
+\label{tab:probing-correlaciones}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Par de variables} & $\rho$ & \textbf{p-valor} & \textbf{Sig.} \\
+\midrule
+Capa cristalización vs.\ F1 máximo  & $-0{,}673$ & $0{,}0004$ & *** \\
+Frecuencia vs.\ capa cristalización & $-0{,}265$ & $0{,}22$   & ns. \\
+Frecuencia vs.\ F1 máximo           & $+0{,}33$\phantom{0}  & $0{,}12$   & ns. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/cap5/cap5_crystal_correlations_es.png}
+\caption{Izquierda: capa de cristalización vs.\ F1 máximo
+($\rho = -0{,}673$, $p < 0{,}001$). Derecha: frecuencia en el dataset
+vs.\ capa de cristalización ($\rho = -0{,}265$, $p = 0{,}22$).}
+\label{fig:probing-correlaciones}
+\end{figure}
+
+La correlación entre profundidad de cristalización y F1 máximo es fuerte
+y altamente significativa ($\rho = -0{,}673$, $p = 0{,}0004$): las
+emociones que cristalizan antes alcanzan mayor rendimiento. Sin embargo,
+la frecuencia en el dataset no predice ni la profundidad de
+cristalización ($p = 0{,}22$) ni el rendimiento máximo ($p = 0{,}12$).
+
+Un caso ilustrativo: \emph{disgust}, con 793~ejemplos de entrenamiento,
+cristaliza en L2; \emph{annoyance}, con 2\,470~ejemplos (un factor
+3$\times$), cristaliza en L8. Más datos no adelantan la cristalización.
+La profundidad está determinada por la naturaleza semántica de
+la emoción (la complejidad de las distinciones lingüísticas que el
+modelo necesita construir), no por el volumen de datos disponible.
+
+Esta observación tiene una implicación práctica relevante para la
+construcción de datasets de emociones: añadir más ejemplos de emociones
+contextualmente complejas no las hace más fáciles de aprender. La
+limitación es estructural, no estadística. Si fuera puramente estadística
+(falta de datos), \emph{annoyance} cristalizaría más temprano a medida
+que aumenta su frecuencia; lo que observamos es lo contrario.
+
+La potencia estadística es limitada por construcción ($n=23$ emociones).
+Para acotar la incertidumbre con honestidad, se computa el intervalo de
+confianza al 95\% de cada coeficiente mediante \emph{bootstrap por
+emoción} (10\,000 réplicas, semilla 42, resampleo de pares emoción
+con reemplazo): la correlación cristalización--F1 máximo
+($\rho = -0{,}673$) tiene CI95\,$=[-0{,}87, -0{,}33]$, estrictamente
+negativo y por tanto significativo; la correlación
+frecuencia--cristalización ($\rho = -0{,}265$) tiene
+CI95\,$=[-0{,}65, +0{,}19]$, que cruza cero, confirmando estadísticamente
+que la no significancia ($p=0{,}22$) refleja ausencia de evidencia, no
+evidencia de ausencia. Con $n=23$, el intervalo es necesariamente
+amplio; descartar definitivamente la influencia de la frecuencia
+requeriría un dataset con más emociones, vía propuesta en
+\S\ref{sec:trabajo-futuro}.
+
+
+% =============================================================
+% 5.2 — LOGIT LENS
+% =============================================================
+
+\subsection{\emph{Logit lens}: la brecha entre información disponible e información leíble}
+\label{sec:logit-lens}
+
+\subsubsection{Diseño experimental y motivación}
+
+El probing del apartado anterior establece cuándo la información
+emocional se vuelve linealmente accesible en las representaciones
+intermedias del modelo. Sin embargo, el probe es un clasificador
+entrenado ad hoc sobre cada capa: detecta información que está
+estructurada linealmente en alguna dirección, pero no
+necesariamente en la geometría que utiliza la cabeza de clasificación
+final del modelo. Una representación puede ser linealmente separable
+según el probe y, simultáneamente, ilegible para el clasificador
+entrenado, si la dirección de separación no coincide con la base sobre
+la que opera la cabeza de clasificación.
+
+Para distinguir información disponible de información
+formateada para el clasificador, se aplica la técnica del logit
+lens \cite{nostalgebraist2020logit}: tomar la representación del token
+\texttt{[CLS]} de cada capa intermedia y aplicarle directamente la
+cabeza de clasificación entrenada del modelo, sin re-entrenamiento. Las
+probabilidades resultantes indican la predicción que el modelo emitiría
+si tuviera que decidir desde esa capa, utilizando la cabeza ya
+optimizada para el \texttt{[CLS]} de L11.
+
+\paragraph{Limitación de calibración.}
+Esta técnica tiene una limitación conocida que conviene reconocer
+explícitamente: la cabeza de clasificación fue entrenada exclusivamente
+sobre representaciones de L11 tras LayerNorm, por lo que aplicarla a
+capas intermedias produce predicciones cuyas \emph{magnitudes
+absolutas} no son directamente comparables al baseline. Sin embargo,
+las comparaciones relativas, entre capas para una misma
+emoción o entre emociones para una misma capa, preservan información
+sobre la alineación geométrica de la representación con la base del
+clasificador. Las cifras absolutas funcionan como diagnóstico de tendencias, no como medida calibrada. La forma cualitativa del patrón es robusta a la
+descalibración (se corrobora con probing y patching), pero las
+magnitudes específicas no deben interpretarse como probabilidades
+absolutas. Aproximaciones más rigurosas como \textit{tuned
+lens}~\cite{belrose2023eliciting} entrenan una transformación lineal
+por capa para corregir el desajuste de distribución; se discute como
+trabajo futuro en el Capítulo~\ref{sec:conclusiones}.
+
+El experimento se realiza sobre 2\,300 ejemplos del conjunto de test
+(submuestreo equilibrado entre los tres grupos de cristalización),
+agregando los resultados según los grupos del probing
+(\S\ref{sec:probing}, Tabla~\ref{tab:cristalizacion-grupos}).
+
+\subsubsection{Patrón agregado: tres regímenes geométricos}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/cap5/cap5_iterative_u_es.png}
+\caption{\emph{Logit lens} agregado sobre 2\,300 ejemplos del conjunto de test.
+Tres curvas: top-1 sigmoid (probabilidad media de la emoción más
+probable), gold sigmoid (probabilidad media de la emoción correcta), y
+suma de las 23 sigmoids (masa total de probabilidad). El patrón en U
+distingue tres regímenes geométricos sucesivos.}
+\label{fig:logit-lens-agregado}
+\end{figure}
+
+Promediando sobre los 2\,300 ejemplos, la probabilidad asignada a la
+emoción correcta (\emph{gold sigmoid}) sigue un patrón en forma de U a
+lo largo del modelo (Figura~\ref{fig:logit-lens-agregado}): parte de un
+valor inicial moderado ($\approx 0{,}24$ en L0), cae a casi cero en
+capas medias ($\approx 0{,}02$ en L7--L8) y resurge bruscamente en
+capas tardías hasta alcanzar 0{,}44 en L11. Este patrón distingue tres
+regímenes geométricos cualitativamente distintos:
+
+\paragraph{Régimen léxico (Emb--L2).}
+El \texttt{[CLS]} permanece próximo al embedding crudo y activa
+difusamente múltiples direcciones del clasificador. La probabilidad
+media de la top-1 es alta ($\approx 0{,}6$), pero la masa total de las
+23 emociones también lo es ($\approx 5{,}4$), reflejando una activación
+distribuida sin discriminación. El clasificador detecta señal léxica
+sin filtrar, no decisión emocional.
+
+\paragraph{Régimen de transición (L3--L8).}
+Las probabilidades colapsan \emph{para todas las emociones
+simultáneamente}, incluida la correcta. Este valle universal indica
+que el \texttt{[CLS]} reside en una región del espacio
+representacional desalineada con la base del clasificador: la
+información que el probing detecta como presente en estas capas
+(\S\ref{sec:probing}) existe en una \emph{geometría interna del
+modelo}, no proyectable directamente sobre las direcciones de
+clasificación. Es la fase de cómputo intermedio.
+
+\paragraph{Régimen de cristalización (L9--L11).}
+La probabilidad de la emoción correcta aumenta abruptamente, mientras
+que la suma total se mantiene moderada ($\approx 1{,}3$ en L11). El
+modelo no solo amplifica la señal correcta: también suprime activamente
+las incorrectas. La masa total de las 23 probabilidades es de 1{,}3,
+indicando concentración de masa en pocas direcciones. Esta es la fase
+de proyección sobre la base del clasificador.
+
+La Figura~\ref{fig:logit-lens-grupos-aggregate} desagrega el mismo
+patrón en U según los tres grupos de cristalización del probing
+(\S\ref{sec:probing}), mostrando que aunque la \emph{forma} es
+universal, la \emph{magnitud} de cada régimen depende del tipo de
+emoción. Las emociones tempranas alcanzan mayor gold sigmoid en L11
+(consolidación más limpia), mientras que las tardías presentan un valle
+más profundo en L4--L8 y una recuperación más modesta.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/cap5/cap5_logit_lens_groups_es.png}
+\caption{\emph{Logit lens} desagregado por grupo de cristalización emocional.
+Las tres curvas reproducen el patrón en U pero con magnitudes y
+tiempos distintos: las emociones tempranas (azul) alcanzan los valores
+más altos en L11; las tardías (rojo) muestran el valle más profundo
+y una recuperación más modesta. La forma universal del patrón sugiere
+que el régimen geométrico es propiedad arquitectónica del modelo, no
+de la emoción.}
+\label{fig:logit-lens-grupos-aggregate}
+\end{figure}
+
+\subsubsection{La brecha probing-\emph{logit lens} revela el trabajo de las
+capas tardías}
+
+Superponer el F1 del probe (información disponible) con el gold sigmoid
+del \emph{logit lens} (información leíble por el clasificador) sobre los
+grupos de cristalización emocional revela un patrón sistemático
+(Figura~\ref{fig:logit-lens-grupos}): la brecha entre ambas
+curvas cuantifica el trabajo de alineación geométrica que realizan las
+capas tardías, y su magnitud depende del tipo de emoción.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/cap5/cap5_lens_vs_probe_es.png}
+\caption{Comparación entre probe F1 (información disponible) y gold
+sigmoid del \emph{logit lens} (información leíble por el clasificador) por
+grupo de cristalización emocional. La región sombreada entre ambas
+curvas representa información presente en la representación pero no
+proyectable sobre la base del clasificador.
+Arriba: emociones tempranas ($n = 9$, 900 frases).
+Centro: emociones medias ($n = 8$, 800 frases).
+Abajo: emociones tardías ($n = 6$, 600 frases).}
+\label{fig:logit-lens-grupos}
+\end{figure}
+
+\begin{table}[ht]
+\centering
+\caption{Brecha entre F1 del probe y gold sigmoid del \emph{logit lens}, por
+capa y grupo emocional. La brecha mide la información presente en la
+representación pero no leíble por la cabeza de clasificación.}
+\label{tab:logit-lens-brechas}
+\begin{tabular}{lcccccc}
+\toprule
+\textbf{Grupo} & \textbf{L0} & \textbf{L4} & \textbf{L7} & \textbf{L9} & \textbf{L11}
+& \textbf{Brecha máx.} \\
+\midrule
+Tempranas & 0{,}37 & 0{,}57 & 0{,}63 & 0{,}62 & 0{,}09 & 0{,}63 (en L7) \\
+Medias    & 0{,}02 & 0{,}29 & 0{,}50 & 0{,}52 & 0{,}14 & 0{,}52 (en L9) \\
+Tardías   & $-0{,}05$ & 0{,}15 & 0{,}35 & 0{,}44 & 0{,}13 & 0{,}44 (en L9) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Este patrón demuestra que las capas tardías realizan dos tipos
+cualitativamente distintos de trabajo según el contenido:
+
+\paragraph{Para emociones tempranas,}
+la información léxica está disponible desde L0 (probe F1 $\approx 0{,}6$
+ya en L0, prácticamente plateau hasta L11), pero el clasificador no
+puede leerla hasta L9--L11 (\emph{logit lens} en el suelo durante L4--L8 y
+resurgir abrupto en L9--L11). La brecha máxima entre ambas curvas
+alcanza 0{,}63 en L7 ---justo antes del bloque tardío--- y se cierra
+abruptamente en L9--L11. Es decir, las capas L8--L11 realizan, para
+estas emociones, un trabajo de alineación geométrica considerable:
+rotar información ya formada en capas anteriores hacia la base del
+clasificador, sin crear señal nueva.
+
+\paragraph{Para emociones tardías,}
+la curva del probe sube progresivamente entre L0 y L9 (de 0{,}20 a
+0{,}48, sin plateau temprano), mostrando que la información se
+\emph{construye gradualmente} a lo largo de las capas, no está
+disponible desde el principio. La curva del \emph{logit lens} sigue el mismo
+perfil con cierto retraso, alcanzando el máximo en L11. La brecha
+máxima es de solo 0{,}44 en L9. Para estas emociones, formación
+y alineación se realizan en paralelo, no en fases separadas.
+
+\paragraph{Las emociones medias}
+ocupan una posición intermedia: la información se forma entre L0 y L7
+(probe sube de 0{,}32 a 0{,}55), y la alineación se concentra en
+L9--L11. Brecha máxima de 0{,}52 en L9.
+
+\subsubsection{Conexión con \emph{activation patching}}
+
+Esta interpretación geométrica explica un resultado central del
+\emph{activation patching} que se presenta a continuación
+(\S\ref{sec:activation-patching}): por qué la restauración exclusiva de
+la capa~11 desde un modelo colapsado recupera el 100\% del rendimiento.
+La capa~11 no contiene ``todo el conocimiento emocional'' en sentido
+literal (el probing muestra que la información se distribuye a lo
+largo de todas las capas), pero es donde culmina la proyección
+de esa información sobre la base del clasificador. Restaurar L11
+reconstituye la última etapa de alineación geométrica, y la información
+residual que sobrevive a las capas comprimidas anteriores resulta
+suficiente para que el clasificador produzca predicciones correctas.
+
+Esto reconcilia tres hallazgos aparentemente disonantes que se
+desarrollarán en las secciones siguientes:
+
+\begin{enumerate}[nosep]
+\item el probing localiza la formación de información en capas
+tempranas y medias;
+\item el logit lens muestra que esa información no es leíble hasta
+capas tardías;
+\item el activation patching identifica L11 como suficiente para la
+recuperación.
+\end{enumerate}
+
+Las tres mediciones son consistentes si se distingue entre tres
+conceptos relacionados pero distintos: representación (qué
+información está presente, medido por probing), alineación
+(esa información está proyectada sobre la base del clasificador, medido
+por \emph{logit lens}) y acceso (qué componentes son suficientes
+para que el clasificador opere, medido por patching). Esta clarificación
+tripartita es, en sí misma, una contribución metodológica del trabajo:
+sugiere que cualquier análisis interpretativo que confunda los tres
+conceptos producirá conclusiones contradictorias como las que el
+probing y el patching parecen producir aisladamente.
+% =============================================================
+% 5.3 — ACTIVATION PATCHING
+% =============================================================
+
+\subsection{\emph{Activation patching}: localización del conocimiento emocional}
+\label{sec:activation-patching}
+
+\subsubsection{Diseño experimental}
+
+El probing identifica dónde se forma la información emocional;
+el \emph{logit lens} identifica dónde se alinea con la base del
+clasificador; el \emph{activation patching} identifica \emph{qué componentes
+son funcionalmente necesarios} para que el modelo opere. Las tres
+preguntas son complementarias: una capa puede crear poca información
+nueva (bajo gain en probing) pero ser imprescindible para que la
+información existente llegue al clasificador en formato utilizable.
+
+El experimento parte del modelo comprimido con SVD uniforme a rango 64,
+cuyo rendimiento es F1 macro = 0{,}000 (colapso total documentado en
+\S\ref{sec:compresion-uniforme}). Desde este estado de destrucción
+completa, se restauran los pesos originales de una capa o componente
+a la vez y se mide la recuperación del F1 macro. El porcentaje de
+restauración se calcula como
+$\text{F1}_{\text{patched}} / \text{F1}_{\text{baseline}} \times 100$,
+donde $\text{F1}_{\text{baseline}} = 0{,}577$.
+
+\paragraph{Naturaleza funcional vs.\ causal.}
+El sentido en el que este experimento establece causalidad merece una matización: la corrupción mediante SVD truncada no es neutral
+en sentido estadístico (a diferencia del \emph{causal tracing} clásico de
+Meng et al.~\cite{meng2022locating}, que usa noise gaussiano), sino una
+\emph{distorsión estructurada}. Esto significa que las conclusiones
+que extraemos son de naturaleza funcional (qué componentes
+son suficientes para reactivar el modelo desde el colapso) más que
+estrictamente causal en el sentido de Pearl. La distinción es
+relevante para la replicabilidad: el \emph{activation patching} aquí responde
+a la pregunta ``¿qué componente del modelo original es suficiente
+para superar la perturbación SVD?'', no a la pregunta ``¿qué
+componente codifica causalmente el conocimiento emocional?''. La
+distinción no debilita los resultados ---los hace más precisos en su
+alcance epistémico.
+
+\subsubsection{Patching por capa completa}
+
+La restauración capa por capa (Tabla~\ref{tab:patching-capas}) revela
+una concentración extrema de la capacidad funcional en las capas
+finales.
+
+\begin{table}[ht]
+\centering
+\caption{Restauración del F1 macro al parchear una sola capa del modelo
+comprimido (rango 64). Se omiten las capas con restauración nula
+(0--7).}
+\label{tab:patching-capas}
+\begin{tabular}{ccc}
+\toprule
+\textbf{Capa restaurada} & \textbf{F1 Macro} & \textbf{Restauración (\%)} \\
+\midrule
+0--7 & 0{,}000 & 0{,}0 \\
+8    & 0{,}001 & 0{,}1 \\
+9    & 0{,}024 & 4{,}1 \\
+10   & 0{,}139 & 24{,}1 \\
+11   & 0{,}577 & 100{,}0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Las capas 0--7 no contribuyen en absoluto a la recuperación. La capa~11
+sola es \emph{suficiente} para restaurar el 100\% del rendimiento
+baseline. La interpretación correcta de este resultado, anticipada por
+el \emph{logit lens} (\S\ref{sec:logit-lens}), es que L11 es donde culmina la
+alineación geométrica de la representación con la base del
+clasificador: restaurar L11 reconstituye la última proyección, y la
+señal residual que sobrevive a 10 capas comprimidas resulta suficiente
+para que el clasificador produzca predicciones correctas.
+
+Una posible objeción al resultado de patching de L11 conviene anticiparla.
+Podría argumentarse que el clasificador está conectado precisamente a
+L11 mediante una capa lineal entrenada, y que por tanto la
+``suficiencia'' de L11 es trivial. La objeción no aplica, por dos motivos. Primero, el clasificador no está conectado solo a la salida
+cruda de L11 sino a L11 \emph{tras LayerNorm} y, en BERT, tras la
+cabeza \textit{pooler} (CLS de L11 $\rightarrow$ tanh $\rightarrow$
+linear). Restaurar los pesos de L11 incluye las seis matrices del
+encoder pero \emph{no} la cabeza pooler ni el clasificador, que ya
+estaban no comprimidos en el modelo \textit{corrupted run}. El hallazgo
+no es ``el clasificador ve L11'' (eso sería trivial) sino ``L11 tras 10 capas comprimidas todavía produce señal suficiente para que el
+clasificador clasifique correctamente'', lo cual no es trivial.
+Segundo, el \emph{activation patching} sobre las capas 8--10 muestra
+restauración parcial pero no completa, lo que indica que la suficiencia
+de L11 no es un artefacto de localización: cuando otras capas
+``cercanas'' al clasificador se restauran, la recuperación es parcial.
+La especificidad funcional de L11 es genuina.
+
+\subsubsection{La FFN como locus computacional crítico}
+
+El análisis por componente (Tabla~\ref{tab:patching-componentes})
+desglosa cada capa en sus dos subcomponentes (atención multi-cabeza y
+red feed-forward) y revela una asimetría funcional de primer
+orden.
+
+\begin{table}[ht]
+\centering
+\caption{Restauración del F1 macro al parchear un solo componente
+(atención o FFN) de las capas 8--11 del modelo comprimido.}
+\label{tab:patching-componentes}
+\begin{tabular}{cccc}
+\toprule
+\textbf{Capa} & \textbf{Componente} & \textbf{F1 Macro} & \textbf{Restauración (\%)} \\
+\midrule
+11 & FFN       & 0{,}577 & \textbf{100{,}0} \\
+11 & Atención  & 0{,}365 & 63{,}3 \\
+10 & Atención  & 0{,}156 & 27{,}1 \\
+10 & FFN       & 0{,}139 & 24{,}1 \\
+9  & Atención  & 0{,}033 & 5{,}6 \\
+9  & FFN       & 0{,}024 & 4{,}1 \\
+8  & Atención  & 0{,}000 & 0{,}0 \\
+8  & FFN       & 0{,}001 & 0{,}1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El resultado más destacado es que restaurar únicamente la FFN
+de la capa~11, aproximadamente un tercio de los parámetros de esa
+capa, recupera el 100\% del rendimiento. La atención de la misma
+capa solo alcanza un 63{,}3\%, y con alta variabilidad entre emociones.
+Este hallazgo posiciona a la FFN de la capa~11 como el locus
+computacional crítico de la capacidad emocional del modelo.
+
+La dominancia de la FFN desafía productivamente la narrativa centrada
+en la atención que ha prevalecido desde \emph{Attention Is All You
+Need} \cite{vaswani2017attention}. En este modelo \emph{fine-tuned} para
+clasificación emocional, la atención contribuye a enrutar información
+entre posiciones, pero es la FFN la que realiza la transformación
+computacional que convierte representaciones contextualizadas en
+representaciones clasificables. Este resultado es coherente con
+trabajos recientes que identifican las FFN como \textit{memorias
+asociativas} del modelo \cite{geva2021transformer}, y conecta
+directamente con el hallazgo del \emph{logit lens}: la proyección sobre la
+base del clasificador que documentamos en \S\ref{sec:logit-lens} es
+realizada principalmente por las FFN de las capas tardías, no por la
+atención.
+
+\subsubsection{Restauración diferencial por emoción}
+
+La restauración de la atención de la capa~11 presenta una marcada
+heterogeneidad entre emociones (Tabla~\ref{tab:patching-emociones}).
+
+\begin{table}[ht]
+\centering
+\caption{Restauración del F1 por emoción al parchear solo la atención
+de la capa~11. Se muestran las 5 emociones mejor y peor restauradas.}
+\label{tab:patching-emociones}
+\begin{tabular}{lclc}
+\toprule
+\textbf{Bien restauradas} & \textbf{Rest.\ (\%)} &
+\textbf{Mal restauradas} & \textbf{Rest.\ (\%)} \\
+\midrule
+gratitude   & 100{,}0 & remorse        & 0{,}0 \\
+annoyance   & 98{,}8  & fear           & 3{,}6 \\
+admiration  & 95{,}4  & desire         & 4{,}4 \\
+anger       & 94{,}5  & realization    & 10{,}0 \\
+curiosity   & 91{,}1  & disappointment & 18{,}8 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Las emociones que la atención restaura bien son aquellas con señales
+léxicas claras: \emph{gratitude} se identifica por marcadores
+explícitos, \emph{anger} por vocabulario de alta valencia negativa. La
+atención puede redirigir estas señales al token \texttt{[CLS]} de
+forma eficaz incluso con FFN comprimidas. En cambio, las emociones
+que la atención no restaura (\emph{remorse}, \emph{fear},
+\emph{desire}) son aquellas que requieren computación contextual
+más rica, precisamente la función que desempeña la FFN.
+
+Este patrón refuerza la interpretación de los grupos de
+cristalización del probing (\S\ref{sec:probing}) y del \emph{logit lens}
+(\S\ref{sec:logit-lens}): las emociones tempranas son léxicas y
+dependen menos de la FFN profunda; las emociones tardías son
+contextuales y necesitan la FFN intacta para completar tanto la
+formación como la alineación de su representación.
+
+
+% =============================================================
+% 5.4 — ABLACIÓN DE CABEZAS DE ATENCIÓN
+% =============================================================
+
+\subsection{Ablación de cabezas de atención}
+\label{sec:head-ablation}
+
+\subsubsection{Diseño experimental}
+
+Los experimentos anteriores operan a nivel de capa completa o de
+subcomponente (atención vs.\ FFN). La ablación de cabezas desciende a
+la granularidad individual: para cada una de las 144~cabezas de
+atención (12~capas $\times$ 12~cabezas), se anulan sus pesos
+(\textit{zero-out}) y se mide la caída en F1 macro y en F1 por
+emoción. Para mantener tractable el coste computacional ---144~cabezas
+$\times$ una pasada de evaluación cada una--- la ablación se ejecuta
+sobre un submuestreo de 2\,000 ejemplos del conjunto de test (en lugar
+del test completo de 5\,427). El baseline local sobre este submuestreo
+es 0{,}582, ligeramente superior al baseline global de 0{,}577 del
+test completo (\S\ref{sec:met-modelo}); todas las caídas reportadas en
+esta sección son absolutas respecto a ese baseline local, lo que las
+mantiene comparables entre sí.
+
+A partir de estas mediciones se construyen dos métricas ortogonales:
+la \emph{importancia}, definida como el impacto agregado en F1 a
+través de todas las emociones, y la \emph{selectividad}, que mide la
+concentración de dicho impacto en pocas emociones (valor alto = efecto
+concentrado en 1--2 emociones; valor bajo = efecto distribuido). La
+ortogonalidad de ambas dimensiones se verifica empíricamente
+($r = -0{,}055$), lo que habilita una clasificación 2$\times$2 de las
+cabezas. La consistencia interna de la métrica de importancia se
+valida mediante su correlación con la caída real de F1 por ablación
+($r = 0{,}71$).
+
+\subsubsection{Taxonomía funcional}
+
+Las 144~cabezas se clasifican en cuatro categorías
+(Tabla~\ref{tab:head-taxonomy}).
+
+\begin{table}[ht]
+\centering
+\caption{Taxonomía de cabezas de atención basada en importancia y
+selectividad. La baja correlación entre ambas dimensiones
+($r = -0{,}055$) valida la clasificación.}
+\label{tab:head-taxonomy}
+\begin{tabular}{lcccl}
+\toprule
+\textbf{Categoría} & \textbf{N} & \textbf{Import.} & \textbf{Select.} & \textbf{Rol funcional} \\
+\midrule
+Critical Specialist & 37 & 0{,}282 & 0{,}680 & Especializada en emociones concretas \\
+Critical Generalist & 35 & 0{,}265 & 0{,}544 & Infraestructura emocional general \\
+Minor Specialist    & 35 & 0{,}101 & 0{,}702 & Nicho funcional (1--2 emociones) \\
+Dispensable         & 37 & 0{,}120 & 0{,}556 & Candidata a poda \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Gradiente de criticidad por profundidad}
+
+El hallazgo principal de este análisis es que la proporción de cabezas
+críticas crece monotónicamente con la profundidad
+(Tabla~\ref{tab:head-profundidad}, Figura~\ref{fig:head-taxonomy-depth}).
+
+\begin{table}[ht]
+\centering
+\caption{Distribución de cabezas críticas y dispensables por bloque de
+profundidad. La capa 11 no contiene ninguna cabeza dispensable.}
+\label{tab:head-profundidad}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Bloque} & \textbf{Críticas} & \textbf{Dispensables} \\
+\midrule
+Capas 0--4  & 16/60 (27\%) & 22/60 (37\%) \\
+Capas 5--7  & 19/36 (53\%) & 10/36 (28\%) \\
+Capas 8--11 & 37/48 (77\%) & \phantom{0}5/48 (10\%) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La capa~11 constituye un caso extremo: ninguna de sus 12~cabezas es
+dispensable: las 12 son críticas (6~specialists y 6~generalists). La
+importancia media por capa presenta un salto abrupto a partir de la
+capa~8 ($\sim 0{,}25$ vs.\ $\sim 0{,}15$ en capas anteriores), con la
+capa~11 alcanzando una importancia media de 0{,}381. Las 5~cabezas más
+importantes del modelo pertenecen a las capas 10--11, encabezadas por
+L11-H11 con una caída de F1 macro de 0{,}023.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.85\textwidth]{figures/cap5/cap5_head_categories_es.png}
+\caption{Distribución de categorías de cabezas por capa. La proporción
+de cabezas críticas (specialists + generalists) crece con la
+profundidad. La capa~11 no contiene ninguna cabeza dispensable.}
+\label{fig:head-taxonomy-depth}
+\end{figure}
+
+Este resultado proporciona triangulación con cuatro métodos
+independientes: el probing (\S\ref{sec:probing}) muestra que la
+separabilidad lineal máxima se alcanza en capas finales; el \emph{logit lens}
+(\S\ref{sec:logit-lens}) identifica L9--L11 como la fase de
+cristalización donde la representación se alinea con el clasificador;
+el \emph{activation patching} (\S\ref{sec:activation-patching}) demuestra
+que la capa~11 es suficiente para restaurar el rendimiento completo;
+y la ablación confirma que cada cabeza individual de esa capa es
+funcionalmente necesaria. Cinco técnicas distintas convergen en la
+misma conclusión: las capas 8--11 son el núcleo funcional del modelo
+emocional.
+
+\subsubsection{Cabezas interferentes}
+
+Un hallazgo secundario es la existencia de 21~cabezas cuya ablación
+\emph{mejora} el rendimiento del modelo (caída de F1 más negativa que
+$-0{,}003$). Aplicando un umbral más laxo ($\Delta F1 < 0$) el conteo
+sube a 79 cabezas, pero la mayoría de esos efectos están en el rango
+del ruido de medición; las 21~cabezas que superan el umbral de
+$0{,}003$ son las únicas con un beneficio cuantificable. La
+Tabla~\ref{tab:cabezas-interferentes} lista las diez con mayor efecto.
+
+\begin{table}[ht]
+\centering
+\caption{Top 10 cabezas interferentes (ordenadas por mejora del F1
+macro tras ablación). Categoría según la taxonomía de
+\S\ref{sec:head-ablation}.}
+\label{tab:cabezas-interferentes}
+\small
+\begin{tabular}{c c l c c}
+\toprule
+\textbf{Capa} & \textbf{Cabeza} & \textbf{Categoría} & \textbf{$\Delta$F1 (mejora)} & \textbf{Selectividad} \\
+\midrule
+11 &  5 & Critical Specialist  & $+$0{,}0121 & 0{,}635 \\
+10 & 11 & Critical Generalist  & $+$0{,}0077 & 0{,}596 \\
+ 1 & 10 & Critical Specialist  & $+$0{,}0051 & 0{,}674 \\
+ 2 &  1 & Critical Generalist  & $+$0{,}0047 & 0{,}469 \\
+ 3 &  7 & Critical Specialist  & $+$0{,}0047 & 0{,}750 \\
+ 7 &  7 & Minor Specialist     & $+$0{,}0046 & 0{,}829 \\
+ 7 &  1 & Critical Generalist  & $+$0{,}0045 & 0{,}583 \\
+ 5 &  1 & Critical Specialist  & $+$0{,}0043 & 0{,}673 \\
+ 7 &  9 & Critical Specialist  & $+$0{,}0043 & 0{,}703 \\
+ 5 &  2 & Critical Specialist  & $+$0{,}0043 & 0{,}621 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+La distribución por profundidad es informativa: 7 interferentes en
+capas tempranas (L0--L4), 9 en intermedias (L5--L7) y solo 5 en
+tardías (L8--L11). El 76\% se concentra en capas no críticas para la
+clasificación final, lo que es coherente con la taxonomía
+2$\times$2: las cabezas dispensable y las críticas-generalistas son
+las que más contribuyen al ruido cuando se acumulan. La cabeza más
+interferente es L11-H5 ($\Delta F1 = +0{,}012$), que además es
+nominalmente \emph{Critical Specialist}; este caso aparentemente
+paradójico sugiere que su contribución específica entra en conflicto con
+otras cabezas de L11, y eliminarla resuelve la interferencia.
+
+Como estimación aditiva, ablacionar simultáneamente las 21~cabezas
+interferentes daría una ganancia teórica de $+0{,}095$ en F1 macro
+(suma directa de las caídas negativas), lo que llevaría el modelo de
+0{,}577 a $\sim$0{,}672. El supuesto de aditividad es probablemente
+demasiado optimista debido a interacciones no-lineales entre cabezas
+ablacionadas, pero incluso una fracción significativa de esa ganancia
+sería notable para una intervención sin re-entrenamiento. El
+experimento de ablación coordinada se propone como trabajo futuro
+(\S\ref{sec:trabajo-futuro}).
+
+Este hallazgo es, en sí mismo, una observación metodológicamente
+relevante: incluso un modelo \emph{fine-tuned} eficaz contiene componentes
+contraproducentes, lo que abre la puerta a optimizaciones post-hoc
+que no requieren acceso al proceso de entrenamiento ---ni siquiera a
+los gradientes--- y se complementan naturalmente con la compresión
+SVD del Capítulo~\ref{sec:resultados-compresion}.
+
+\subsubsection{Especialización emocional}
+
+Cada emoción depende de cabezas diferentes, concentradas
+mayoritariamente en las capas 8--11
+(Tabla~\ref{tab:head-emociones}).
+
+\begin{table}[ht]
+\centering
+\caption{Cabeza más importante para cada emoción (top 10 por magnitud
+de impacto). La caída de F1 indica cuánto pierde esa emoción al
+ablacionar su cabeza más crítica.}
+\label{tab:head-emociones}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Emoción} & \textbf{Cabeza crítica} & \textbf{$\Delta$F1} \\
+\midrule
+embarrassment  & L10-H1 & $-0{,}320$ \\
+annoyance      & L10-H0 & $-0{,}090$ \\
+disappointment & L10-H4 & $-0{,}080$ \\
+realization    & L11-H6 & $-0{,}064$ \\
+fear           & L0-H8  & $-0{,}056$ \\
+confusion      & L9-H2  & $-0{,}044$ \\
+sadness        & L11-H6 & $-0{,}041$ \\
+disgust        & L9-H7  & $-0{,}040$ \\
+joy            & L10-H7 & $-0{,}039$ \\
+anger          & L8-H8  & $-0{,}031$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El caso de \emph{embarrassment} es extremo: pierde un 32\% de su F1
+al ablacionar cualquiera de cuatro cabezas equivalentes
+(L10-H1, L10-H4, L11-H2 y L11-H8, todas con $\Delta\text{F1} = -0{,}320$
+por empate exacto en el ranking). Esta concentración funcional en un
+puñado pequeño de cabezas redundantes ---no en una sola, pero sí en
+muy pocas--- probablemente refleja la baja frecuencia de la emoción
+en GoEmotions (303~ejemplos), que hace que el modelo aprenda un
+circuito atencional acotado y replicado por seguridad estadística.
+Desde la perspectiva de la compresión, esto implica que la eliminación
+o degradación coordinada de esas cuatro cabezas destruiría
+selectivamente la capacidad del modelo para detectar
+\emph{embarrassment}, un ejemplo de sesgo silencioso por compresión
+que las métricas agregadas no detectan fácilmente.
+
+Otro patrón relevante es el compartimiento de circuitos:
+\emph{realization} y \emph{sadness} dependen de la misma cabeza
+(L11-H6), lo que sugiere un mecanismo atencional común
+, posiblemente la detección de un patrón contextual de expectativa
+frustrada que ambas emociones comparten.
+
+
+% =============================================================
+% 5.5 — ANÁLISIS NEURONAL DE LAS FFN
+% =============================================================
+
+\subsection{Análisis neuronal de las redes feed-forward}
+\label{sec:neuron-analysis}
+
+\subsubsection{Diseño experimental}
+
+El \emph{activation patching} estableció la FFN de la capa~11 como el locus
+computacional crítico. El análisis neuronal desciende al nivel de las
+neuronas individuales dentro de las FFN para examinar dos preguntas:
+cómo se distribuye la especialización emocional a través de las
+36\,864~neuronas (12~capas $\times$ 3\,072~neuronas), y si la
+compresión SVD daña selectivamente las neuronas más especializadas.
+
+La selectividad de cada neurona para cada emoción se cuantifica
+mediante un estadístico tipo Cohen's $d$: la diferencia entre la
+activación media cuando la emoción está presente y cuando está
+ausente, normalizada por la desviación típica agrupada. Se extraen
+las activaciones post-GELU de la capa intermedia de cada FFN
+(\texttt{BertIntermediate}) mediante \textit{forward hooks}, con
+mean-pooling sobre posiciones de secuencia. Se definen como
+\emph{significativas} las neuronas con $|d| > 2{,}0$.
+
+Para investigar la conexión con la compresión, se proyecta el vector
+de selectividad de cada emoción (un vector de 3\,072~dimensiones por
+capa) sobre los subespacios SVD conservado y eliminado de la matriz
+$W_{\text{int}}$ a rango 128, y se calcula la fracción de señal
+emocional que cae en el subespacio eliminado.
+
+\subsubsection{Especialización concentrada en capas profundas}
+
+La distribución de neuronas significativas por profundidad
+(Tabla~\ref{tab:neuron-profundidad}) replica el patrón ya observado
+en probing, patching y ablación de cabezas.
+
+\begin{table}[ht]
+\centering
+\caption{Distribución de neuronas especializadas ($|d| > 2{,}0$) por
+bloque de profundidad. El 84\% de las neuronas significativas se
+concentra en las capas 8--11.}
+\label{tab:neuron-profundidad}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Bloque} & \textbf{Neuronas significativas} & \textbf{Selectividad máx.\ media} \\
+\midrule
+Capas 0--3  & 11 (0{,}3\%)    & 0{,}91--1{,}15 \\
+Capas 4--7  & 570 (16\%)      & 1{,}50--2{,}19 \\
+Capas 8--11 & 3\,061 (84\%)   & 3{,}10--3{,}92 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El 84\% de las neuronas especializadas se concentra en las capas
+8--11, con la capa~11 aportando 1\,127~neuronas significativas por sí
+sola. Las capas 0--3 contienen prácticamente ninguna neurona con
+especialización emocional detectable. Este resultado es coherente con
+la función de las capas tempranas como procesadores léxicos genéricos:
+contribuyen a la señal emocional (probing), pero lo hacen a través
+de \emph{representaciones distribuidas}, no de neuronas individuales
+especializadas.
+
+\subsubsection{Asimetría radical entre emociones}
+
+El número de neuronas significativas varía en órdenes de magnitud
+entre emociones (Tabla~\ref{tab:neuron-emociones}).
+
+\begin{table}[ht]
+\centering
+\caption{Neuronas significativas y selectividad máxima por emoción
+(selección). Tres emociones no tienen ninguna neurona con
+$|d| > 2{,}0$.}
+\label{tab:neuron-emociones}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Emoción} & \textbf{Neuronas sig.} & \textbf{Selectividad máx.} \\
+\midrule
+gratitude      & 818 & 6{,}88 \\
+remorse        & 442 & 7{,}75 \\
+love           & 399 & 5{,}41 \\
+amusement      & 394 & 5{,}90 \\
+fear           & 306 & 7{,}71 \\
+\midrule
+annoyance      & 0   & 1{,}71 \\
+disappointment & 0   & 1{,}89 \\
+realization    & 0   & 1{,}96 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Las emociones mejor codificadas (\emph{gratitude}, \emph{remorse})
+disponen de cientos de neuronas dedicadas, mientras que
+\emph{annoyance}, \emph{disappointment} y \emph{realization} carecen
+de neuronas individuales significativas. Las neuronas con mayor
+selectividad de todo el modelo ($d > 7$) pertenecen a \emph{fear} y
+\emph{remorse}, ambas en la capa~11.
+
+Esta asimetría sugiere que el modelo emplea estrategias de
+codificación cualitativamente diferentes: las emociones ``fuertemente
+escritas'' utilizan neuronas altamente especializadas, mientras que
+las emociones ``débilmente escritas'' se codifican mediante patrones
+distribuidos más sutiles que la métrica de selectividad individual no
+captura.
+
+\subsubsection{La hipótesis SVD-neuronas: un resultado nulo informativo}
+
+La hipótesis principal de este análisis era que la compresión SVD
+dañaría selectivamente las emociones cuyas neuronas especializadas
+cayeran desproporcionadamente en el subespacio eliminado. Esta
+hipótesis resulta \emph{falsa}: la correlación entre la fracción de
+señal en el subespacio eliminado y la caída de F1 por emoción es
+prácticamente nula (Spearman $\rho = -0{,}004$, $p = 0{,}99$).
+
+Además, la fracción de señal emocional que cae en el subespacio
+eliminado es prácticamente idéntica para todas las emociones (rango
+0{,}53--0{,}56, media 0{,}54). La SVD no discrimina entre señales
+emocionales: elimina señal de forma uniforme, independientemente de
+la identidad funcional de las neuronas afectadas.
+
+Este resultado nulo es informativo porque revela una disociación clara: la geometría que la SVD optimiza (energía de valores
+singulares) es ortogonal a la estructura funcional del modelo
+(especialización emocional). La compresión opera en un espacio
+matemático que no ``ve'' la función. Esto es teóricamente importante
+porque clarifica por qué la compresión SVD informada por
+interpretabilidad funciona: no porque la SVD pueda dirigirse a
+neuronas específicas, sino porque puede asignar más rango a los
+componentes (FFN tardía) cuya destrucción causa más daño.
+
+Este patrón es consistente con la hipótesis de \emph{superposition}
+formalizada por Elhage et al.~\cite{elhage2022toy}: cuando una red
+necesita representar más \emph{features} funcionales que dimensiones
+disponibles, las distribuye en direcciones casi-ortogonales del
+espacio de activación, aceptando pequeñas interferencias a cambio de
+mayor capacidad. En esta lectura, las features emocionales en BERT
+estarían codificadas en direcciones que no coinciden con las
+direcciones SVD principales de los pesos: las primeras provienen del
+optimizador de la tarea durante el \emph{fine-tuning}; las segundas
+provienen de la geometría algebraica de los pesos. No hay razón a
+priori para que coincidan, y nuestro resultado empírico (fracción de
+señal eliminada uniforme entre emociones) es exactamente lo que
+predice superposition. La implicación práctica es que los métodos de
+compresión geométrica como la SVD truncada nunca podrán ser
+\emph{selectivamente} funcionales por sí solos: la selectividad
+funcional debe entrar por la puerta de la sensibilidad empírica
+medida ---es decir, justo lo que el algoritmo greedy del
+Capítulo~\ref{sec:sintesis} hace al usar las caídas de F1 por
+componente como costes de optimización.
+
+\subsubsection{La norma de selectividad como predictor de vulnerabilidad}
+
+Si la geometría SVD no explica la vulnerabilidad diferencial, ¿qué la
+explica? Un análisis sistemático testa seis predictores posibles de
+la caída de F1 bajo compresión
+(Tabla~\ref{tab:neuron-predictores}).
+
+\begin{table}[ht]
+\centering
+\caption{Predictores de la vulnerabilidad emocional a compresión SVD
+($n = 23$). La norma de selectividad, que mide la intensidad total
+de codificación neuronal, es el mejor predictor.}
+\label{tab:neuron-predictores}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Predictor} & $\rho$ & \textbf{p-valor} & \textbf{Sig.} \\
+\midrule
+Fracción en subespacio eliminado & $-0{,}004$ & $0{,}986$ & ns. \\
+Nº ejemplos de entrenamiento     & $+0{,}174$ & $0{,}427$ & ns. \\
+Aislamiento representacional     & $+0{,}452$ & $0{,}031$ & * \\
+Selectividad máxima              & $+0{,}517$ & $0{,}012$ & * \\
+Nº neuronas significativas       & $+0{,}581$ & $0{,}004$ & ** \\
+\textbf{Norma de selectividad}   & $\mathbf{+0{,}639}$ & $\mathbf{0{,}001}$ & *** \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El mejor predictor es la \emph{norma del vector de selectividad}
+($\rho = 0{,}639$, $p = 0{,}001$), que mide la intensidad total con la
+que el modelo codifica cada emoción a través de sus neuronas FFN. Las
+emociones con codificación más intensa (\emph{gratitude}: norma 140,
+\emph{remorse}: 111, \emph{love}: 105) sufren más con la compresión
+que las de codificación débil (\emph{disappointment}: 42,
+\emph{realization}: 43).
+
+La interpretación es la siguiente: la SVD no ataca selectivamente las
+neuronas emocionales: la geometría del subespacio eliminado es
+ortogonal a la especialización funcional, como se ha demostrado. Pero
+las emociones que el modelo codifica con mayor intensidad neuronal
+son más vulnerables a perturbaciones generales de los pesos,
+porque su representación depende de configuraciones más específicas y
+exigentes. Es una vulnerabilidad por intensidad, no por
+geometría. La distinción es útil metodológicamente: sugiere
+que la robustez a perturbación general (no solo a SVD) puede
+estimarse a partir de la intensidad de codificación, una métrica
+intrínseca al modelo que no requiere experimentos de compresión.
+
+\subsubsection{Clusters emocionales emergentes}
+
+La agrupación jerárquica sobre los vectores de selectividad
+concatenados produce seis clusters emocionales
+(Tabla~\ref{tab:neuron-clusters}) que reflejan categorías psicológicas
+coherentes.
+
+\begin{table}[ht]
+\centering
+\caption{Clusters emocionales emergentes de la estructura neuronal del
+modelo. Las agrupaciones se obtienen por clustering jerárquico sobre
+los vectores de selectividad de 36\,864~neuronas.}
+\label{tab:neuron-clusters}
+\begin{tabular}{cl}
+\toprule
+\textbf{Cluster} & \textbf{Emociones} \\
+\midrule
+Positivas de alta energía & admiration, amusement, excitement, gratitude, joy, love \\
+Negativas reactivas       & anger, annoyance, disappointment, disapproval, disgust \\
+Negativas internas        & embarrassment, fear, remorse, sadness \\
+Epistémicas               & confusion, curiosity, surprise \\
+Orientadas al otro        & caring, desire, optimism \\
+Baja especificidad        & approval, realization \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Estos clusters no se imponen \emph{a priori} sino que emergen
+directamente de la estructura de activaciones del modelo. Que
+reproduzcan categorías reconocibles de la psicología de las
+emociones (positivas vs.\ negativas, reactivas vs.\
+internas, epistémicas vs.\ afectivas) sugiere que el \emph{fine-tuning} ha
+organizado las representaciones internas de BERT de forma
+psicológicamente coherente, no solo estadísticamente eficaz. Esta
+correspondencia es no trivial: el modelo no ha sido entrenado con
+información sobre la estructura psicológica de las emociones, y sin
+embargo la recupera implícitamente.
+
+
+% =============================================================
+% 5.6 — SÍNTESIS DEL CAPÍTULO
+% =============================================================
+
+\subsection{Síntesis: una arquitectura funcional convergente}
+\label{sec:interp-sintesis}
+
+Las cinco técnicas de este capítulo emplean métodos diferentes
+(clasificadores lineales entrenados \textit{ad hoc}, aplicación
+directa del clasificador final, restauración selectiva de pesos,
+ablación individual de cabezas, estadísticas de activación neuronal)
+pero convergen en una descripción unificada de cómo BERT procesa la
+información emocional. La Tabla~\ref{tab:convergencia-tecnicas}
+resume esta convergencia.
+
+\begin{table}[ht]
+\centering
+\caption{Convergencia de cinco técnicas de interpretabilidad en las
+mismas conclusiones estructurales.}
+\label{tab:convergencia-tecnicas}
+\small
+\begin{tabular}{p{2.8cm}p{3.5cm}p{6.5cm}}
+\toprule
+\textbf{Técnica} & \textbf{Pregunta} & \textbf{Resultado clave} \\
+\midrule
+Probing &
+¿Dónde se \emph{forma} la señal? &
+L0 captura el 61\% (léxica); L8 segundo pico (contextual).
+Capas finales aportan $< 1\%$. \\
+\addlinespace
+\emph{Logit lens} &
+¿Dónde es leíble por el clasificador? &
+Patrón en U: alta en L0--L2, valle en L3--L8, cristalización
+abrupta en L9--L11. La brecha probing--\emph{logit lens} cuantifica el
+trabajo de alineación. \\
+\addlinespace
+\emph{Activation patching} &
+¿Dónde \emph{reside} el conocimiento? &
+Solo L11 restaura el 100\%. La FFN sola basta;
+la atención solo recupera el 63\%. \\
+\addlinespace
+Ablación de cabezas &
+¿Qué cabezas son \emph{necesarias}? &
+77\% críticas en capas 8--11; 0 dispensables en capa~11.
+Gradiente monotónico con profundidad. \\
+\addlinespace
+Análisis neuronal &
+¿Qué neuronas están \emph{especializadas}? &
+84\% de neuronas significativas en capas 8--11.
+La norma de selectividad ($\rho = 0{,}64$) predice vulnerabilidad. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+De esta convergencia se extraen cuatro conclusiones principales que
+constituyen la base sobre la que el Capítulo~\ref{sec:sintesis}
+construirá la estrategia de compresión informada.
+
+\paragraph{Arquitectura de tres niveles.}
+BERT procesa la información emocional en tres fases cualitativamente
+distintas. Las capas tempranas (Emb--L2) extraen señal léxica bruta:
+información linealmente separable pero distribuida sobre muchas
+direcciones simultáneamente. Las capas intermedias (L3--L8) realizan
+cómputo de transición en una geometría \emph{interna} del modelo: la
+información se refina y reorganiza, pero permanece desalineada con la
+base del clasificador (valle del \emph{logit lens}). Las capas profundas
+(L9--L11) ejecutan la cristalización: alinean la representación con
+la cabeza de clasificación y suprimen activamente las opciones
+incorrectas. Este último paso es el cuello de botella geométrico del modelo, y su criticidad bajo compresión SVD se
+explica por su baja redundancia espectral en las matrices que
+realizan la alineación.
+
+\paragraph{La paradoja información-dependencia, resuelta.}
+El probing muestra que las capas finales (L10--L11) apenas crean
+información nueva (gain $< 0{,}004$ del total), pero el activation
+patching y la ablación demuestran que son las más críticas para el
+rendimiento del modelo. El \emph{logit lens} resuelve esta aparente paradoja:
+las capas finales no \emph{crean} señal emocional, sino que la rotan
+a la geometría del clasificador. La brecha entre probe F1 (información
+presente) y gold sigmoid del \emph{logit lens} (información leíble)
+cuantifica directamente este trabajo de alineación, que varía
+sistemáticamente entre 0{,}63 (emociones tempranas) y 0{,}44 (tardías)
+en su valor máximo. Las capas tardías son el cuello de botella entre representación y predicción, y por eso resultan frágiles bajo
+compresión.
+
+\paragraph{Las capas tardías hacen dos tipos de trabajo distintos.}
+El análisis por grupo emocional revela que las capas L9--L11 no
+realizan una única operación, sino dos cualitativamente distintas
+según el contenido. Para información \emph{léxica ya formada}
+(emociones tempranas como \emph{gratitude}), realizan
+alineación pura: rotar una representación ya construida a la
+base del clasificador. Para información \emph{contextual} que se
+construye a lo largo del modelo (emociones tardías como
+\emph{annoyance}), realizan formación y alineación coordinadas. La brecha entre probing y \emph{logit lens} distingue ambos
+regímenes cuantitativamente.
+
+\paragraph{Disociación entre geometría SVD y función.}
+La compresión SVD opera sobre la estructura de valores singulares de
+las matrices de pesos, una geometría que es ortogonal a la
+organización funcional del modelo. La SVD no ``ve'' qué neuronas
+codifican qué emociones: elimina señal uniformemente. Sin embargo, la
+vulnerabilidad diferencial existe y se explica por la intensidad de
+codificación: las emociones que el modelo escribe con más fuerza en
+sus neuronas son más sensibles a cualquier perturbación de los pesos,
+incluida la compresión.
+
+Estas cuatro conclusiones fundamentan la estrategia de compresión
+informada que se desarrolla en el Capítulo~\ref{sec:sintesis}, donde
+la profundidad de cristalización y la intensidad de codificación
+neuronal se utilizan como predictores para guiar decisiones de
+compresión selectiva. El conjunto del capítulo establece que la
+interpretabilidad mecánica no produce una colección de hallazgos
+disjuntos sobre el modelo, sino una descripción \emph{unificada} de su
+arquitectura funcional, descripción que cinco métodos
+metodológicamente independientes corroboran.

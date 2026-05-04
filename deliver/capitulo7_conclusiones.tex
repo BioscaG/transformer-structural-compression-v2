@@ -1,0 +1,608 @@
+% =============================================================
+% CAPÍTULO 7 — Conclusiones y trabajo futuro
+% Versión: matrícula de honor
+% =============================================================
+
+\section{Conclusiones y trabajo futuro}
+\label{sec:conclusiones}
+
+Este capítulo recapitula las contribuciones del trabajo, discute con
+honestidad sus limitaciones y propone líneas concretas de investigación
+futura. Frente a la práctica habitual de cerrar memorias con una lista de
+hallazgos, optamos por una estructura que distingue tres niveles: lo que el
+trabajo describe sobre la organización interna de BERT, lo que el
+trabajo diseña como contribución metodológica, y lo que el trabajo
+abre como agenda de investigación.
+
+
+% -------------------------------------------------------------
+\subsection{Contribuciones principales}
+\label{sec:contribuciones-finales}
+% -------------------------------------------------------------
+
+Este trabajo ha producido un mapa funcional de cómo BERT-base
+\emph{fine-tuneado} organiza internamente la información emocional sobre
+GoEmotions (23~emociones), utilizando la compresión SVD selectiva como
+instrumento experimental y triangulando los hallazgos con cinco técnicas
+de interpretabilidad mecánica. Las contribuciones se organizan en tres
+bloques: la cartografía funcional propiamente dicha, el uso de la
+compresión como diagnóstico estructural y la traducción del mapa en una
+estrategia de compresión informada.
+
+La Tabla~\ref{tab:objetivos-cumplimiento} resume el cumplimiento de los
+12~sub-objetivos planteados en el Anexo de gestión (\S\ref{sec:gep-alcance}),
+indicando para cada uno la sección de la memoria donde se desarrolla el
+resultado y la evidencia cuantitativa más relevante. De los 11~objetivos
+del núcleo, los 11~se han alcanzado; el O12 (recuperación por
+\emph{fine-tuning}, originalmente opcional) se promovió a tarea principal
+tras observar el efecto regularizador documentado en
+\S\ref{sec:finetuning-recovery}.
+
+\begin{table}[ht]
+\centering
+\caption{Cumplimiento de los sub-objetivos planteados en el plan inicial.
+Sección indica dónde se desarrolla el resultado; evidencia, la métrica
+clave que documenta el cumplimiento.}
+\label{tab:objetivos-cumplimiento}
+\footnotesize
+\begin{tabular}{@{}p{0.45cm} p{4.6cm} p{2.9cm} p{4.6cm}@{}}
+\toprule
+\textbf{Obj.} & \textbf{Descripción} & \textbf{Sección} & \textbf{Evidencia} \\
+\midrule
+O1  & Baseline competitivo (BERT 23 emociones) & \S\ref{sec:met-modelo}     & F1 macro 0{,}577 sobre test \\
+O2  & Módulo SVD reutilizable                 & \S\ref{sec:met-svd}        & \texttt{src/compression/svd.py} \\
+O3  & Trade-off compresión--rendimiento       & \S\ref{sec:compresion-uniforme} & Cliff entre $r{=}384$ y $r{=}256$ \\
+O4  & Visualización degradación               & \S\ref{sec:probing}        & Fig.~\ref{fig:cap5-galaxia-evolution} \\
+O5  & Sensibilidad por componente             & \S\ref{sec:sensibilidad-componente} & Asimetría 14$\times$ a $r{=}128$ \\
+O6  & Sensibilidad por profundidad            & \S\ref{sec:sensibilidad-componente} & Late catastrófica a $r{=}128$ \\
+O7  & Compresión adaptativa por energía       & \S\ref{sec:compresion-adaptativa} & Adaptive 99\%: 96{,}7\% retención \\
+O8  & Localizar cristalización emocional      & \S\ref{sec:probing}        & 276 probes; 9/8/6 emociones por banda \\
+O9  & Evidencia funcional de localización     & \S\ref{sec:logit-lens}, \S\ref{sec:activation-patching} & FFN L11 sola = 100\% restauración \\
+O10 & Mapear cabezas y neuronas               & \S\ref{sec:head-ablation}, \S\ref{sec:neuron-analysis} & 144 cabezas + 36\,864 neuronas \\
+O11 & Compresión informada                    & \S\ref{sec:greedy-algorithm} & 8/9 puntos Pareto-óptimos greedy \\
+O12 & Recuperación por \emph{fine-tuning}      & \S\ref{sec:finetuning-recovery} & F1 macro $\geq$ baseline con 86{,}4\% params (preliminar) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsubsection{Cartografía funcional del modelo}
+
+La aplicación coordinada de cinco técnicas de interpretabilidad (probing
+lineal, \emph{logit lens}, \emph{activation patching}, ablación de cabezas y análisis de
+selectividad neuronal) ha producido un mapa funcional coherente de cómo
+BERT codifica y procesa la información emocional. Las observaciones se
+articulan en cuatro hallazgos:
+
+\begin{itemize}
+  \item Arquitectura funcional de tres niveles. Las capas tempranas
+        (Emb--L2) extraen señal léxica bruta y capturan aproximadamente el
+        61\% de la separabilidad lineal final del modelo
+        ($F1_{\text{probe}}^{L0} = 0{,}349$ frente al máximo
+        $F1_{\text{probe}}^{L11} = 0{,}569$, \S\ref{sec:probing}). Las
+        capas intermedias (L3--L7) realizan cómputo de transición en una
+        geometría desalineada con la base del clasificador, lo que se
+        manifiesta en el valle del \emph{logit lens} (\S\ref{sec:logit-lens}). Las
+        capas profundas (L8--L11) ejecutan la cristalización: alinean la
+        representación con la cabeza de clasificación entrenada y suprimen
+        activamente las opciones incorrectas. Este último paso constituye el
+        cuello de botella geométrico del modelo y explica su criticidad
+        bajo compresión.
+
+  \item Cristalización emocional progresiva determinada por la
+        semántica, no por la frecuencia. Las 23 emociones se distribuyen en
+        tres bandas de cristalización con 9, 8 y 6 emociones respectivamente.
+        La frecuencia en el dataset no predice la profundidad de
+        cristalización (Spearman $\rho = -0{,}26$, $p = 0{,}22$,
+        \S\ref{sec:probing}), mientras que la profundidad sí predice
+        fuertemente el rendimiento alcanzable
+        ($\rho = -0{,}67$, $p = 0{,}0004$). Emociones con señales léxicas
+        claras (\emph{gratitude}, \emph{love}, \emph{amusement}) cristalizan
+        en L0; emociones que requieren desambiguación pragmática
+        (\emph{annoyance}, \emph{disappointment}) cristalizan en L8--L9. Esta
+        observación tiene implicaciones que van más allá de este trabajo:
+        sugiere que añadir datos a las emociones contextualmente complejas no
+        adelanta su cristalización.
+
+  \item La FFN de la capa~11 como locus computacional crítico.
+        Restaurar exclusivamente este componente (aproximadamente un tercio
+        de los parámetros de una capa) en un modelo previamente colapsado
+        por compresión recupera el 100\% del rendimiento baseline
+        (\S\ref{sec:activation-patching}). Este hallazgo desafía
+        productivamente la narrativa centrada en la atención que ha
+        prevalecido desde \emph{Attention Is All You Need}
+        \cite{vaswani2017attention}. La interpretación mecanicista, articulada
+        a través del \emph{logit lens}, es que la FFN de las capas tardías realiza
+        la \emph{rotación geométrica} que lleva la representación
+        contextualizada a la base sobre la que opera la cabeza de
+        clasificación.
+
+  \item Gradiente monotónico de criticidad atencional. La proporción
+        de cabezas críticas crece de forma estricta con la profundidad: 27\%
+        en capas 0--4, 53\% en capas 5--7, 77\% en capas 8--11. La capa 11
+        constituye un caso extremo: ninguna de sus 12 cabezas es prescindible
+        (\S\ref{sec:head-ablation}). Identificamos 21~cabezas con
+        \emph{efecto interferente} (su ablación mejora el rendimiento), que
+        constituyen candidatas directas a poda sin re-entrenamiento.
+\end{itemize}
+
+
+\subsubsection{Compresión como instrumento de diagnóstico}
+
+El análisis sistemático de compresión SVD, más allá de su finalidad aplicada,
+ha funcionado como un instrumento de diagnóstico que revela la organización
+interna del modelo de un modo complementario a las técnicas de
+interpretabilidad mecánica:
+
+\begin{itemize}
+  \item Asimetría radical entre componentes. La compresión a
+        rango~128 produce retenciones de F1 que difieren en un factor 14$\times$
+        entre el extremo más robusto (Query: 99{,}4\%) y el más frágil (FFN
+        Intermediate: 6{,}9\%). En el régimen severo de rango~64 la asimetría
+        se amplía hasta el factor 72$\times$ normalizado por parámetros
+        eliminados: Query mantiene una retención del 98{,}6\%, mientras que
+        FFN Intermediate colapsa al 0\% (\S\ref{sec:sensibilidad-componente}). Esta asimetría es consistente
+        con la estructura espectral de los pesos: las matrices Q y K presentan
+        decaimiento espectral pronunciado, mientras que las FFN exhiben un
+        espectro plano.
+
+  \item Transición de fase bajo compresión uniforme. La compresión
+        uniforme presenta un \emph{cliff} abrupto entre rango~384 (43{,}5\%
+        de retención) y rango~256 (4{,}3\%). A rangos inferiores el modelo
+        entra en colapso clínico (F1 = 0). La existencia de esta transición
+        de fase, junto con la asimetría entre componentes, demuestra que la
+        compresión uniforme es estructuralmente incapaz de explorar la
+        región interesante del espacio compresión--rendimiento.
+
+  \item Predictores de la vulnerabilidad emocional. Tres
+        propiedades del modelo predicen significativamente la caída de F1
+        bajo compresión: la profundidad de cristalización por probing
+        ($\rho \approx 0{,}48$), el aislamiento representacional
+        ($\rho = 0{,}45$) y, como predictor más fuerte, la norma del
+        vector de selectividad neuronal ($\rho = 0{,}64$, $p = 0{,}001$,
+        \S\ref{sec:neuron-analysis}). Las emociones cuyo modelo escribe con
+        mayor intensidad neuronal son las más vulnerables a perturbaciones
+        generales de los pesos, aunque la SVD no las dañe selectivamente.
+
+  \item Disociación geometría SVD--función. La fracción de señal
+        emocional que cae en el subespacio eliminado por SVD es
+        prácticamente idéntica para las 23 emociones (rango 0{,}53--0{,}56),
+        y su correlación con la caída de F1 es nula
+        ($\rho = -0{,}004$, $p = 0{,}99$). La SVD opera en un espacio
+        matemático que no ``ve'' la función computacional del modelo: elimina
+        señal uniformemente. Este resultado, aparentemente negativo, es
+        teóricamente importante: la geometría que la norma de Frobenius
+        optimiza es ortogonal a la geometría de la especialización
+        neuronal.
+\end{itemize}
+
+
+\subsubsection{Compresión informada por interpretabilidad}
+
+La conexión entre los dos ejes del trabajo se materializa en una estrategia
+de compresión data-driven que constituye, en términos prácticos, la
+contribución más directamente aplicable de la memoria:
+
+\begin{itemize}
+  \item Dominancia de la frontera de Pareto. Un algoritmo greedy
+        alimentado con datos empíricos de sensibilidad por componente y
+        profundidad produce 8 de los 9 puntos Pareto-óptimos sobre 21
+        configuraciones evaluadas (6 uniformes, 4 adaptativas, 3 heurísticas
+        informadas y 8 greedy). Al ratio de parámetros del 80\%, la
+        estrategia greedy retiene el 87\% del F1 macro, frente al 43\% de
+        la compresión uniforme y el 25\% de la adaptativa energética
+        (\S\ref{sec:greedy-algorithm}).
+
+  \item Validación cruzada por convergencia algorítmica. La
+        secuencia de decisiones del algoritmo greedy, que opera
+        exclusivamente con datos numéricos de sensibilidad, reproduce
+        independientemente los hallazgos cualitativos de interpretabilidad:
+        comprime primero Q y K (casi gratuitas), después FFN Output en
+        capas tempranas, y nunca toca la FFN Intermediate de las capas
+        tardías (\S\ref{sec:greedy-algorithm}). Esta convergencia, entre dos
+        líneas metodológicamente independientes, refuerza la validez de
+        ambas: si interpretabilidad y compresión llegan a las mismas
+        conclusiones por caminos disjuntos, la probabilidad de que ambas
+        estén sistemáticamente sesgadas en la misma dirección disminuye.
+
+  \item Resultado negativo informativo: la heurística no basta.
+        Las tres estrategias informadas basadas en reglas cualitativas
+        (\textit{informed-light}, \textit{informed-moderate},
+        \textit{informed-aggressive}) convergen exactamente sobre la
+        frontera de las baselines ciegas: \texttt{informed\_aggressive}
+        reproduce \texttt{uniform\_r256}, \texttt{informed\_moderate}
+        reproduce \texttt{uniform\_r512}, e \texttt{informed\_light}
+        requiere un 28{,}5\% más parámetros que el original
+        (\S\ref{sec:informed-heuristic}). Ninguna domina la frontera de
+        Pareto. Este resultado delimita con precisión el valor aplicado
+        de la interpretabilidad mecánica: el conocimiento cualitativo
+        identifica qué investigar, pero solo la medición empírica de
+        sensibilidad permite determinar cuánto comprimir. La diferencia
+        entre saber que la FFN es más importante que la atención y saber
+        que Q a rango~256 retiene 100{,}4\% del F1 mientras que FFN
+        Intermediate a rango~64 colapsa al 0\% es la diferencia entre
+        intuición y diseño.
+
+  \item Recuperación por fine-tuning y observación de regularización
+        implícita. Un modelo comprimido al 86{,}4\% de los parámetros, tras
+        tres épocas de \emph{fine-tuning}, alcanza un F1 macro superior al baseline
+        sin comprimir. Las ganancias se concentran sistemáticamente en las
+        emociones infrarrepresentadas, con \emph{embarrassment} pasando de
+        F1 = 0{,}267 a F1 = 0{,}509 ($+90{,}6\%$ relativo,
+        \S\ref{sec:finetuning-recovery}). Este patrón es consistente con la
+        hipótesis de que la SVD actúa como regularización estructural,
+        al eliminar direcciones de baja energía que pueden codificar
+        sobreajuste a patrones espurios. Su verificación
+        causal requeriría experimentos de control que se proponen en
+        \S\ref{sec:trabajo-futuro}.
+\end{itemize}
+
+
+% -------------------------------------------------------------
+\subsection{Limitaciones}
+\label{sec:limitaciones}
+% -------------------------------------------------------------
+
+Los resultados de este trabajo deben interpretarse dentro de un alcance
+experimental delimitado, cuyas restricciones se enumeran a continuación con
+honestidad metodológica.
+
+\subsubsection{Generalización: un modelo, una tarea}
+
+Todos los experimentos se realizan sobre un único modelo (BERT-base, 110\,M
+parámetros) y una única tarea (clasificación emocional multi-etiqueta sobre
+GoEmotions). No es posible afirmar que los patrones observados (la
+jerarquía de sensibilidad Q/K $\ll$ V $\ll$ FFN, la concentración funcional
+en capas tardías, la correlación cristalización-vulnerabilidad, la
+dominancia de la FFN sobre la atención en \emph{activation patching}) se
+mantengan en otros modelos o en otras tareas. La arquitectura encoder-only de
+BERT, con su cabeza de clasificación sobre el token \texttt{[CLS]}, podría
+favorecer la concentración de información en capas finales de un modo que no
+se reproduzca en arquitecturas decoder-only o encoder-decoder. La extensión
+sistemática a BERT-large, RoBERTa, GPT-2 y LLaMA constituye la línea de
+trabajo futuro de mayor prioridad (\S\ref{sec:trabajo-futuro}).
+
+\subsubsection{Sesgos del dataset}
+
+GoEmotions presenta desequilibrios notables entre clases. Cinco emociones
+fueron excluidas del análisis (neutral, \emph{grief},
+\emph{nervousness}, \emph{pride}, \emph{relief}) por dos razones distintas
+que conviene no confundir: neutral se excluyó por no constituir una
+emoción propiamente dicha y por dominar el dataset (más de 14\,000 ejemplos),
+distorsionando las métricas macro-promediadas; las cuatro restantes se
+excluyeron por producir F1 = 0 en el baseline tras \emph{fine-tuning}, debido a su
+bajísima frecuencia (menos de 100 ejemplos en entrenamiento). Las 23
+emociones restantes varían en frecuencia desde 303 ejemplos
+(\emph{embarrassment}) hasta 4\,130 (\emph{admiration}), un factor 13$\times$.
+Aunque la frecuencia no predice la profundidad de cristalización, sí podría
+afectar la robustez estadística de las métricas de especialización neuronal y
+la sensibilidad emocional a la compresión, especialmente en emociones con
+menos de 500 ejemplos.
+
+\subsubsection{Compresión post-hoc, no compresión durante entrenamiento}
+
+La compresión se ha limitado a SVD aplicada después del \emph{fine-tuning}, sin
+re-entrenamiento durante la compresión y sin combinación con otras técnicas.
+Otras aproximaciones (poda estructurada, cuantización, destilación de
+conocimiento o entrenamiento consciente de la compresión) podrían interactuar de forma diferente con
+la estructura funcional del modelo y posiblemente alcanzar mejores
+trade-offs. En particular, el pruning estructurado de cabezas de atención
+podría beneficiarse directamente de la taxonomía presentada en
+\S\ref{sec:head-ablation}, donde las 38 cabezas dispensable y las 21
+con efecto interferente son candidatas naturales a eliminación sin
+re-entrenamiento.
+
+\subsubsection{Limitaciones de las técnicas de interpretabilidad}
+
+\paragraph{Probes lineales.} Los \textit{probing classifiers} utilizados son
+regresiones logísticas con regularización por defecto ($C = 1{,}0$),
+deliberadamente simples siguiendo la metodología de Hewitt y
+Liang~\cite{hewitt2019designing}. Esta elección tiene ventajas (mide la
+geometría de la representación, no la capacidad del clasificador) pero
+también limitaciones: información emocional codificada de forma no lineal en
+capas tempranas no sería detectada. Es posible que las capas Emb--L2
+contengan más información emocional de la que el probing lineal documenta.
+
+\paragraph{\emph{Logit lens} y calibración.} La aplicación del clasificador final a
+representaciones de capas intermedias produce predicciones cuyas magnitudes
+absolutas no son directamente comparables al baseline, ya que la cabeza de
+clasificación se entrenó exclusivamente sobre representaciones de L11 tras
+LayerNorm. Reportamos los resultados con esta cautela: las cifras absolutas
+funcionan como diagnóstico de tendencias, no como medida calibrada. La
+forma cualitativa del patrón en U es robusta y se corrobora con probing y
+patching, pero las magnitudes específicas (gold sigmoid de 0{,}02 en L7,
+0{,}44 en L11) deben interpretarse en términos relativos. Una versión más
+rigurosa con \emph{tuned lens} \cite{belrose2023eliciting} se discute en
+\S\ref{sec:trabajo-futuro}.
+
+\paragraph{\emph{Activation patching} y efecto cadena.} El \emph{activation patching}
+opera restaurando pesos originales en un modelo previamente comprimido, lo
+que introduce un acoplamiento que conviene reconocer: la contribución medida
+de una capa depende del estado de las capas no restauradas. Esto explica por
+qué las capas tempranas muestran recuperación nula a pesar de ser
+informativas según probing: su señal limpia se destruye al atravesar 10
+capas comprimidas posteriores. La corrupción mediante SVD truncada a
+rango~64 tampoco es neutral en sentido estadístico (a diferencia del
+\emph{causal tracing} clásico de Meng et al.\ \cite{meng2022locating},
+que usa ruido gaussiano), sino una distorsión estructurada. Las
+conclusiones de patching tienen por tanto naturaleza funcional (qué
+componentes son suficientes para reactivar el modelo desde el colapso)
+más que estrictamente causal en sentido de
+Pearl. La distinción es importante para futuras réplicas.
+
+\subsubsection{Potencia estadística}
+
+Varias correlaciones centrales del trabajo (cristalización vs.\
+vulnerabilidad, $\rho \approx 0{,}48$; norma de selectividad vs.\ caída de
+F1, $\rho = 0{,}64$) se calculan sobre $n = 23$ puntos (uno por emoción).
+Aunque las correlaciones más relevantes son altamente significativas
+($p \leq 0{,}001$), la potencia estadística es limitada y no permite
+detectar efectos moderados con confianza.
+
+Cuantitativamente, mediante la transformación $z$ de Fisher con
+$n=23$, $\alpha=0{,}05$ y potencia $1-\beta = 0{,}80$, la mínima
+correlación de Spearman detectable es
+$|\rho_{\min}| \approx 0{,}556$. Las correlaciones fuertes
+documentadas en la memoria (cristalización vs.\ F1 máximo:
+$\rho = -0{,}673$; norma de selectividad neuronal vs.\ caída de F1:
+$\rho = +0{,}639$) están \emph{justo dentro} del rango detectable, lo
+que es consistente con sus $p$-valores por debajo de $0{,}001$. En
+contraste, la correlación frecuencia--cristalización ($\rho = -0{,}265$)
+no es detectable a nuestro $n$: para detectarla con $\alpha=0{,}05$ y
+potencia $0{,}80$ se necesitarían aproximadamente $n \geq 85$ emociones.
+La conclusión metodológica es directa: con $n=23$, los efectos
+\emph{grandes} ($|\rho| > 0{,}55$) son robustamente detectables, los
+efectos \emph{moderados} ($0{,}3 \leq |\rho| \leq 0{,}55$) requieren
+muestras mayores, y los efectos \emph{pequeños} ($|\rho| < 0{,}3$) son
+inobservables. Los intervalos de confianza bootstrap al 95\% reportados
+en \S\ref{sec:probing} reflejan esta limitación con honestidad: la
+amplitud de los intervalos para correlaciones moderadas
+(p.~ej.\ frecuencia--cristalización $[-0{,}65, +0{,}19]$) cruza cero,
+señalando ausencia de evidencia, no evidencia de ausencia.
+
+\subsubsection{Recuperación por \emph{fine-tuning}: ausencia de grupo de control}
+
+La afirmación de que la compresión actúa como regularización implícita se
+basa en la observación de que un modelo comprimido + \emph{fine-tuned} supera al
+baseline sin comprimir. Sin embargo, no se ha entrenado un grupo de control
+consistente en el baseline original con tres épocas adicionales de
+\emph{fine-tuning}, lo que impide aislar el efecto de la compresión del efecto del
+re-entrenamiento adicional. Es posible, aunque improbable dada la
+saturación de F1 macro observada en epochs 3-4, que parte de la mejora
+provenga simplemente de más entrenamiento. Este experimento de control se
+propone en \S\ref{sec:trabajo-futuro} como verificación causal de la
+hipótesis de regularización.
+
+
+% -------------------------------------------------------------
+\subsection{Trabajo futuro}
+\label{sec:trabajo-futuro}
+% -------------------------------------------------------------
+
+Las limitaciones identificadas y los hallazgos inesperados del trabajo
+sugieren seis líneas concretas de investigación futura, ordenadas por
+prioridad metodológica.
+
+\subsubsection{Generalización a otros modelos y tareas}
+
+La pregunta más inmediata es si la jerarquía de sensibilidad por componente
+y la correlación cristalización--vulnerabilidad se reproducen en modelos de
+mayor escala (BERT-large, RoBERTa-large) y en arquitecturas decoder-only
+(GPT-2, LLaMA). Un estudio comparativo permitiría determinar qué hallazgos
+son propiedades universales de la arquitectura Transformer y cuáles son
+específicos de BERT-base o de la tarea emocional. De particular interés sería
+verificar si la dominancia funcional de la FFN sobre la atención
+documentada en \S\ref{sec:activation-patching} se mantiene en modelos con más
+capas y dimensiones ocultas mayores. La hipótesis de Geva et
+al.~\cite{geva2021transformer} sobre las FFN como memorias clave-valor
+predice que sí, pero requiere verificación empírica directa con la
+metodología de este trabajo.
+
+\subsubsection{Verificación causal del efecto regularizador}
+
+La hipótesis de que la compresión SVD funciona como regularización
+implícita merece verificación experimental rigurosa. El diseño propuesto
+incluiría tres condiciones de comparación: (i) baseline sin compresión + 3
+epochs adicionales de \emph{fine-tuning}, (ii) baseline con compresión greedy +
+3 epochs de \emph{fine-tuning} (configuración actual), y (iii) baseline + 3 epochs
+con dropout/weight decay incrementado (regularización explícita). Si la
+condición (ii) supera a (i) y (iii), la hipótesis de regularización
+estructural por SVD obtiene apoyo causal. Si (i) iguala a (ii), el efecto
+observado se explica por re-entrenamiento adicional. Este experimento es
+factible con los recursos disponibles y constituye la verificación más
+inmediata pendiente.
+
+\subsubsection{Compresión a granularidad de cabeza individual}
+
+La estrategia greedy actual opera a granularidad de componente y banda de
+profundidad. Sin embargo, los resultados de ablación muestran que dentro de
+una misma capa coexisten cabezas críticas y dispensables
+(\S\ref{sec:head-ablation}). Una extensión natural sería un algoritmo de
+compresión que asigne rangos SVD individuales a cada cabeza de atención en
+función de su importancia medida, lo que podría mejorar la frontera de
+Pareto especialmente en las capas intermedias (L5--L7), donde la
+composición de cabezas críticas y dispensables es más heterogénea. La
+combinación con la categoría \emph{Dispensable} de la taxonomía
+(38 cabezas) eliminada directamente sin SVD constituiría un híbrido
+poda-SVD que podría alcanzar ratios de compresión sustancialmente mayores.
+
+\subsubsection{\emph{Tuned lens} para corrección del sesgo de calibración}
+
+La aplicación del \emph{logit lens} que documentamos sufre de un sesgo conocido:
+las representaciones de capas intermedias no están calibradas con la cabeza
+de clasificación entrenada exclusivamente sobre L11. Belrose et
+al.~\cite{belrose2023eliciting} proponen \textit{tuned lens}: entrenar una
+transformación lineal $T_l: \mathbb{R}^d \to \mathbb{R}^d$ por capa que
+minimice la divergencia KL entre la predicción del clasificador aplicado a
+$T_l(h_l)$ y la predicción real del modelo. Aplicar \emph{tuned lens} a este caso
+permitiría calibrar el patrón en U y verificar si el valle observado
+(L4--L8) es robusto a la corrección de calibración o si se atenúa, lo que
+afinaría la interpretación geométrica de las capas medias.
+
+\subsubsection{Combinación de técnicas de compresión}
+
+Los resultados sugieren una estrategia de compresión compuesta que combine
+SVD con poda estructurada y cuantización. La taxonomía de cabezas del
+\S\ref{sec:head-ablation} identifica 38 cabezas dispensable y 21 con
+efecto interferente, candidatas a eliminación directa sin re-entrenamiento.
+Un pipeline en cascada \textit{poda-de-cabezas-interferentes
+$\rightarrow$ poda-de-cabezas-dispensable $\rightarrow$ SVD greedy
+$\rightarrow$ cuantización post-SVD $\rightarrow$ \emph{fine-tuning}} permitiría
+componer las reducciones de los cuatro métodos. La pregunta científica
+abierta es si las reducciones se acumulan multiplicativamente (cada técnica
+explora dimensiones de redundancia ortogonales) o sub-multiplicativamente
+(las técnicas compiten por la misma redundancia).
+
+\subsubsection{Interpretabilidad dinámica durante el entrenamiento}
+
+Todos los análisis de este trabajo operan sobre un modelo ya entrenado. Una
+extensión ambiciosa consistiría en monitorizar la cristalización y la
+especialización neuronal durante el proceso de \emph{fine-tuning}, no solo al
+final. Esto permitiría observar cómo emergen los patrones documentados
+(cuándo cristaliza cada emoción, cuándo se establece la dominancia de la
+FFN, cuándo aparecen las cabezas interferentes) y eventualmente informar
+decisiones de \textit{early stopping} o adaptación dinámica del learning
+rate por capa. La integración con frameworks de interpretabilidad como
+TransformerLens permitiría implementar este análisis sin coste computacional
+prohibitivo.
+
+\subsubsection{Validación en entorno de producción}
+
+Los tiempos de inferencia y el consumo de memoria de los modelos
+comprimidos no se han medido en este trabajo, que se ha centrado en la
+retención de F1 macro. Una evaluación de latencia y throughput en hardware
+real (CPU, GPU, dispositivos edge) complementaría el análisis y determinaría
+si las ventajas teóricas de la compresión informada se traducen en
+beneficios prácticos de despliegue. Esta extensión es relativamente directa y
+debería preceder a cualquier propuesta de adopción industrial de la
+metodología.
+
+
+% -------------------------------------------------------------
+\subsection{Predicciones falsables del framework}
+\label{sec:predicciones-falsables}
+% -------------------------------------------------------------
+
+Un trabajo empírico trasciende el caso estudiado cuando genera
+predicciones contrastables sobre escenarios fuera del alcance
+experimental original. Las cinco predicciones que siguen se derivan
+del framework descrito en esta memoria; cualquier réplica futura sobre
+otros modelos o tareas puede confirmarlas o refutarlas, delimitando
+empíricamente qué hallazgos son específicos de BERT-base sobre
+GoEmotions y cuáles son propiedades estructurales más generales.
+
+La primera predicción concierne a la \emph{asimetría espectral entre
+Q/K y FFN en BERT-large}. Si esta asimetría
+(\S\ref{sec:analisis-espectral}) es una propiedad arquitectónica del
+Transformer encoder y no un artefacto de la pequeña escala de
+BERT-base, BERT-large debería exhibir un cociente similar entre el
+rango efectivo de Q/K y FFN. Cuantitativamente, esperamos
+$k_{95}(\text{Q})/k_{95}(\text{FFN}) \in [0{,}55, 0{,}75]$
+(BERT-base presenta $0{,}64$). Un cociente cercano a $1$ en BERT-large
+indicaría que la asimetría es específica del régimen de baja capacidad
+y obligaría a revisar la generalización.
+
+La segunda predicción distingue \emph{encoder-only de decoder-only}.
+El hallazgo de \S\ref{sec:activation-patching} (restaurar L11 sola
+recupera el 100\%) descansa sobre la geometría de clasificación a
+través del token \texttt{[CLS]}. En modelos decoder-only sin cabeza de
+clasificación dedicada (GPT-2, LLaMA), el patching debería distribuirse
+más uniformemente entre las capas tardías; replicar la misma
+concentración extrema en una sola capa obligaría a revisar la
+explicación geométrica que articula el logit lens.
+
+La tercera concierne a la \emph{independencia de la cristalización
+respecto a la arquitectura}. La distribución 9/8/6 emociones por banda
+de cristalización (\S\ref{sec:probing}) y la correlación
+cristalización--F1 máximo ($\rho = -0{,}67$) deberían replicarse
+cualitativamente en RoBERTa-base sobre GoEmotions, dada la similitud
+arquitectónica. Si el orden de cristalización de emociones
+\emph{individuales} cambia marcadamente entre modelos, la profundidad
+de procesamiento dependería del corpus de pre-entrenamiento
+(Wikipedia + BookCorpus para BERT vs.\ corpus extendido para RoBERTa)
+y no únicamente de la complejidad lingüística de la emoción.
+
+La cuarta predice que el \emph{efecto regularizador de la SVD se
+reproduce en otras tareas con clases desequilibradas}. La observación
+de \S\ref{sec:finetuning-recovery} (compresión + \emph{fine-tuning}
+beneficia desproporcionadamente a las emociones infrarrepresentadas)
+debería aparecer en NER con etiquetas raras o en clasificación
+multi-etiqueta sobre datasets desbalanceados como Reuters-21578 o
+AAPD. La ausencia del efecto refutaría la hipótesis de que la
+regularización implícita procede de la eliminación de direcciones de
+baja energía, o exigiría condiciones adicionales no identificadas en
+este trabajo.
+
+La quinta es la más útil prácticamente: \emph{la heurística
+cualitativa converge sobre la frontera ciega también en otros
+dominios}. El resultado negativo de \S\ref{sec:informed-heuristic}
+(las tres heurísticas informadas igualan a las baselines uniformes)
+predice un fenómeno general: cualquier traducción cualitativa de
+hallazgos interpretativos a reglas de compresión convergerá sobre lo
+que la compresión ciega alcanza, salvo que se incorporen datos
+cuantitativos de sensibilidad. Convertir esta observación en una guía
+para futuros trabajos de ``compresión informada por interpretabilidad''
+ahorraría meses de trabajo en proyectos similares.
+
+Las cinco predicciones son ortogonales: cada una falla bajo condiciones
+distintas. La confirmación conjunta supondría un test estricto del
+framework; la refutación individual delimitaría con precisión qué parte
+del análisis es generalizable y cuál pertenece al caso particular.
+
+
+% -------------------------------------------------------------
+\subsection{Reflexión final}
+\label{sec:reflexion-final}
+% -------------------------------------------------------------
+
+Este trabajo partió de una pregunta aparentemente técnica (cuánto se puede
+comprimir un modelo de lenguaje sin degradar su rendimiento) y derivó en
+una investigación sobre la estructura funcional interna del modelo. El
+camino recorrido sugiere una observación metodológica que excede el caso
+estudiado: la compresión y la interpretabilidad no son disciplinas
+disjuntas, sino dos perspectivas sobre el mismo objeto.
+
+La compresión es interpretabilidad implícita: cuando comprimimos un
+componente y observamos qué se rompe, estamos midiendo su contribución
+funcional con la herramienta más directa posible: su ausencia. La
+interpretabilidad es compresión racional: cuando entendemos qué hace cada
+componente, sabemos cuáles podemos eliminar sin perder función. El
+resultado negativo de la heurística (\S\ref{sec:informed-heuristic}) y el
+éxito del algoritmo greedy (\S\ref{sec:greedy-algorithm}) precisan esta
+afirmación: la conexión entre ambas disciplinas no es cualitativa sino
+cuantitativa. Los hallazgos de probing, patching y ablación describen la
+arquitectura funcional, pero solo los datos numéricos de sensibilidad
+permiten traducir esa descripción en una estrategia de compresión efectiva.
+
+El hallazgo central de la memoria, en esta lectura, no es ninguno de los
+resultados individuales (la asimetría 72$\times$ entre componentes, la FFN
+de la capa 11 como cuello de botella, la dominancia de la frontera de
+Pareto, el efecto regularizador del \emph{fine-tuning}), sino su convergencia.
+Cinco técnicas de interpretabilidad, dos familias de compresión y un
+algoritmo de optimización ciego apuntan al mismo eje funcional: las capas
+8--11, y especialmente sus FFN, son donde reside la capacidad emocional del
+modelo. Que cinco metodologías independientes lleguen a la misma conclusión
+hace la conclusión más robusta que cualquiera de ellas individualmente.
+
+Una segunda observación, más especulativa, concierne al carácter de los
+modelos de lenguaje pre-entrenados como objetos de estudio. BERT no fue
+diseñado para clasificar emociones; emergió de la competencia general
+adquirida durante el pre-entrenamiento masked-language-modeling sobre Wikipedia
+y BookCorpus. El \emph{fine-tuning} sobre GoEmotions no creó la arquitectura
+funcional documentada aquí: la organizó. Las capas tardías como cuello de
+botella geométrico, la dominancia de la FFN, la cristalización progresiva,
+el patrón en U del \emph{logit lens}: ninguno de estos fenómenos fue explícitamente
+optimizado durante el entrenamiento. Emergieron. Esto sugiere que las
+estructuras funcionales de los Transformers fine-tuneados son, en sentido
+fuerte, \emph{descubrimientos empíricos}, no propiedades de diseño. La
+interpretabilidad mecánica, vista así, es la disciplina que documenta lo
+que la optimización por gradiente decidió, no lo que sus diseñadores
+prescribieron.
+
+Si este trabajo cumple su función, debería contribuir modestamente a esa
+disciplina, ofreciendo un mapa anatómico parcial pero coherente de cómo un
+Transformer organiza el procesamiento emocional, y demostrando que ese
+mapa puede informar la compresión más allá de lo que las heurísticas
+permiten. Que el resultado se obtenga sobre un modelo y una tarea concretos
+limita su alcance; que la metodología sea replicable amplifica su utilidad.
+Las extensiones a otros modelos y tareas, propuestas en
+\S\ref{sec:trabajo-futuro}, son la prueba pendiente.

@@ -1,0 +1,674 @@
+% =============================================================
+% CAPÍTULO 4 — Resultados de compresión SVD
+% Alimentado por: NB02 (espectral, uniforme, adaptativa) y
+%                 NB03 (sensibilidad por componente y profundidad)
+% =============================================================
+
+\section{Resultados de compresión SVD}
+\label{sec:resultados-compresion}
+
+Este capítulo analiza el comportamiento de BERT-base \emph{fine-tuned} sobre GoEmotions
+(23 emociones) bajo distintas estrategias de compresión basadas en la descomposición
+en valores singulares (SVD). El objetivo es doble: primero, determinar cuánta
+información se puede eliminar sin destruir la capacidad emocional del modelo, y segundo,
+identificar dónde reside esa información dentro de la arquitectura.
+
+El capítulo se organiza en cuatro secciones. La primera examina la estructura espectral
+de las 72 matrices lineales del modelo (\S\ref{sec:analisis-espectral}). La segunda
+evalúa la compresión uniforme y documenta una transición de fase abrupta
+(\S\ref{sec:compresion-uniforme}). La tercera desglosa la sensibilidad por tipo de
+componente y por profundidad (\S\ref{sec:sensibilidad-componente}). La cuarta presenta
+la compresión adaptativa como alternativa informada por la estructura espectral
+(\S\ref{sec:compresion-adaptativa}).
+
+El modelo de referencia (\emph{baseline}) a lo largo de todo el capítulo es BERT-base
+\emph{fine-tuned} sin ninguna compresión, con un F1 macro de 0{,}577 sobre el conjunto de test.
+
+
+% =============================================================
+% §4.1 — Análisis espectral
+% =============================================================
+
+\subsection{Análisis espectral de las matrices de peso}
+\label{sec:analisis-espectral}
+
+Antes de aplicar cualquier compresión, conviene entender la estructura interna de los
+pesos del modelo. Cada capa de BERT-base contiene seis matrices lineales: Query ($W_Q$),
+Key ($W_K$), Value ($W_V$) y Attention Output ($W_O$) en el bloque de self-attention, y
+FFN Intermediate ($W_{\text{inter}}$) y FFN Output ($W_{\text{out}}$) en el bloque
+feed-forward. Con 12 capas, el modelo contiene 72 matrices lineales en total.
+
+Para cada matriz $W \in \mathbb{R}^{m \times n}$, calculamos su descomposición en valores
+singulares $W = U \Sigma V^\top$ y definimos la energía acumulada al rango $k$
+como la fracción de la norma de Frobenius capturada por los primeros $k$ valores singulares:
+
+\begin{equation}
+    E(k) = \frac{\sum_{i=1}^{k} \sigma_i^2}{\sum_{i=1}^{n} \sigma_i^2}
+    \label{eq:energia-acumulada}
+\end{equation}
+
+El rango mínimo $k_\tau$ para un umbral de energía $\tau$ es el menor $k$ tal
+que $E(k) \geq \tau$. Un valor bajo de $k_\tau$ indica que la matriz concentra su
+información en pocos componentes principales y es, por tanto, más compresible.
+
+\subsubsection{Asimetría self-attention vs.\ feed-forward}
+
+La Figura~\ref{fig:anatomy} muestra el mapa de rangos mínimos $k_{95}$ para cada una de
+las 72 matrices, organizadas por capa (eje vertical) y tipo de componente (eje horizontal).
+El resultado más inmediato es una asimetría pronunciada entre los componentes de
+self-attention y los de feed-forward.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/cap4/cap4_anatomy_heatmap_es.png}
+    \caption{Rango mínimo $k_{95}$ por capa y tipo de componente. Colores fríos indican alta compresibilidad; colores cálidos, baja. Se observa una división clara entre los componentes de self-attention (izquierda) y los feed-forward (derecha).}
+    \label{fig:anatomy}
+\end{figure}
+
+La Tabla~\ref{tab:rangos-medios} cuantifica esta diferencia. Las matrices Query y Key
+requieren un rango medio de aproximadamente 395 para retener el 95\% de la energía
+espectral, mientras que las matrices FFN Intermediate y Output necesitan rangos superiores
+a 618. El gap medio entre Q y FFN Intermediate es de unos 222 rangos, lo que equivale
+al 29\% del rango completo (768).
+
+\begin{table}[H]
+    \centering
+    \caption{Rango medio $k_{95}$ por tipo de componente (media sobre las 12 capas).}
+    \label{tab:rangos-medios}
+    \small
+    \begin{tabular}{@{}lcc@{}}
+        \toprule
+        \textbf{Componente} & $\boldsymbol{\mu(k_{95})}$ & \textbf{Compresibilidad} \\
+        \midrule
+        Query (Q)           & $\sim$396 & Alta \\
+        Key (K)             & $\sim$394 & Alta \\
+        Value (V)           & $\sim$424 & Alta \\
+        Attn Output         & $\sim$434 & Media-alta \\
+        FFN Intermediate    & $\sim$618 & Baja \\
+        FFN Output          & $\sim$625 & Baja \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Esta asimetría es consistente a lo largo de las 12 capas: no se trata de un artefacto
+puntual de una o dos capas anómalas, sino de una propiedad estructural del modelo
+\emph{fine-tuned}. La interpretación es directa: las matrices Q y K concentran los patrones de
+atención en un subespacio de dimensionalidad efectiva mucho menor que 768, mientras que
+las matrices FFN distribuyen su información de forma más uniforme a lo largo de todo el
+espectro de valores singulares.
+
+\subsubsection{Perfil de decaimiento espectral}
+
+La Figura~\ref{fig:fingerprint} refuerza esta observación desde una perspectiva
+complementaria. Muestra las curvas de decaimiento de los valores singulares (media $\pm$
+desviación estándar sobre las 12 capas) para cada tipo de componente.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/cap4/cap4_spectral_fingerprint_es.png}
+    \caption{Curvas de decaimiento espectral por tipo de componente (media $\pm$ std
+    sobre 12 capas). Q y K presentan decaimiento rápido; FFN Intermediate y Output
+    mantienen valores singulares elevados a lo largo de todo el espectro.}
+    \label{fig:fingerprint}
+\end{figure}
+
+Las matrices Q y K exhiben un decaimiento pronunciado: los primeros componentes principales
+capturan la mayor parte de la varianza y los restantes contribuyen marginalmente. Las
+matrices FFN, en cambio, presentan un espectro esencialmente plano, donde cada valor
+singular adicional aporta una fracción similar de información. Esta diferencia cualitativa
+en la forma del espectro explica por qué un mismo rango de truncamiento tiene efectos
+radicalmente distintos sobre ambos tipos de componente.
+
+\subsubsection{Solapamiento de subespacios Q-K-V}
+
+Como observación complementaria, analizamos el solapamiento entre los subespacios
+dominantes de las matrices Q, K y V dentro de cada capa, medido como la similitud de
+coseno media entre los vectores singulares principales.
+
+\begin{table}[H]
+    \centering
+    \caption{Rango de solapamiento entre subespacios (top-32 y top-64 vectores singulares).}
+    \label{tab:overlap}
+    \small
+    \begin{tabular}{@{}lcc@{}}
+        \toprule
+        \textbf{Par} & \textbf{Top-32} & \textbf{Top-64} \\
+        \midrule
+        Q--K & 0{,}34 -- 0{,}63 & 0{,}31 -- 0{,}47 \\
+        Q--V & 0{,}03 -- 0{,}18 & 0{,}06 -- 0{,}25 \\
+        K--V & 0{,}05 -- 0{,}21 & 0{,}08 -- 0{,}27 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Q y K comparten un subespacio significativo (solapamiento de hasta 0{,}63 para los 32
+vectores singulares principales), lo cual es esperable dado que su producto $Q \cdot K^\top$
+genera los pesos de atención. V, en cambio, opera en un subespacio sustancialmente
+ortogonal a los de Q y K. Este resultado es consistente con la diferencia funcional de
+ambos bloques: Q y K definen \emph{a qué atender}, mientras que V define \emph{qué
+información extraer}. La Figura~\ref{fig:qkv-overlap} visualiza esta asimetría
+capa a capa.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/cap4/cap4_qkv_overlap_es.png}
+    \caption{Solapamiento de subespacios entre Q, K y V por capa, medido como la
+    similitud de coseno media entre los \emph{top}-32 vectores singulares de cada par.
+    El par Q--K (azul) presenta solapamiento sistemáticamente alto en todas las
+    capas, coherente con que $QK^\top$ genere los pesos de atención. Los pares
+    Q--V y K--V (naranja, verde) operan en subespacios prácticamente ortogonales.}
+    \label{fig:qkv-overlap}
+\end{figure}
+
+No explotamos este solapamiento para compresión conjunta, pero lo
+documentamos como hallazgo descriptivo de la geometría interna del modelo.
+
+\subsubsection{Estructura espectral de las activaciones internas}
+ 
+El análisis anterior se ha centrado en la geometría de las matrices de
+peso. Una pregunta complementaria es cómo evoluciona la estructura
+espectral de las \emph{activaciones} a lo largo de la red, es decir, qué
+tan concentrada está la información que sale efectivamente de cada capa
+durante la inferencia. La Figura~\ref{fig:cap4-internal-compression}
+documenta tres métricas calculadas sobre las activaciones del modelo
+\emph{fine-tuneado}, evaluadas sobre el conjunto de test.
+ 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figures/cap4/cap4_internal_compression_es.png}
+    \caption{Caracterización espectral de las activaciones internas por
+    capa. \textbf{Arriba, eje izquierdo (azul):} norma euclidiana media
+    de los vectores de salida, separada en tokens de contenido y token
+    \texttt{[CLS]}. \textbf{Arriba, eje derecho (rojo):} rango efectivo
+    derivado de la entropía espectral de la matriz de activaciones, y
+    umbral $k_{95}$ (número mínimo de valores singulares que captura el
+    95\% de la energía). El sombreado de fondo distingue tres regímenes:
+    léxico (Emb--L3), mezcla (L4--L7) y colapso (L8--L11).
+    \textbf{Abajo:} heatmap de energía espectral acumulada por capa
+    (filas) y posición del valor singular ordenado de mayor a menor
+    (columnas). La línea de puntos blancos marca $k_{95}$. En L4--L7
+    hacen falta $\sim 250$ valores singulares para capturar el 95\% de
+    la energía; en L11, menos de 50.}
+    \label{fig:cap4-internal-compression}
+\end{figure}
+ 
+La estructura es informativa para el problema de compresión. Las capas
+intermedias (L4--L7) operan en una geometría de rango efectivo alto
+(en torno a 200), lo que indica que la información se distribuye sobre
+muchas direcciones independientes; la redundancia es alta y el espacio
+está bien aprovechado. Las capas tardías (L8--L11), en cambio, presentan
+un colapso espectral progresivo: el rango efectivo cae a aproximadamente
+30 en L11, y el $k_{95}$ se reduce desde $\sim 250$ en L7 hasta menos de
+50 al final del modelo. Esto significa que las capas tardías han
+\emph{comprimido} ya su información en muy pocas direcciones.
+ 
+Esta caracterización proporciona una explicación estructural del gradiente
+de fragilidad que se documentará en \S\ref{sec:sensibilidad-componente}:
+truncar a rango 128 una capa con rango efectivo 200 elimina información
+que el modelo estaba usando, pero conserva la mayor parte de la señal;
+truncar a rango 128 una capa con rango efectivo 30 es matemáticamente
+inocuo (el modelo no usa más de 30 direcciones de todas formas), pero
+la señal residual es tan concentrada que cualquier perturbación destruye
+predicciones específicas. La capacidad de las capas tardías está
+\emph{ya comprimida internamente}, y eso las hace estructuralmente
+imposibles de comprimir más sin romperlas.
+
+
+\subsubsection{Predicciones a partir del análisis espectral}
+
+Los resultados espectrales generan tres predicciones concretas que las secciones
+siguientes contrastarán experimentalmente:
+
+\begin{enumerate}[nosep]
+    \item Las matrices Q y K deberían tolerar una reducción de rango agresiva (hasta
+    $r \approx 128$) con degradación mínima del rendimiento, dado que su dimensionalidad
+    efectiva es muy inferior a 768.
+
+    \item Las matrices FFN deberían ser el cuello de botella de cualquier estrategia de
+    compresión, al requerir rangos sustancialmente mayores para retener una fracción
+    equivalente de energía.
+
+    \item Una estrategia de compresión uniforme, que aplique el mismo rango a todos los
+    componentes, será necesariamente subóptima, al ignorar esta heterogeneidad espectral.
+\end{enumerate}
+
+Las secciones \S\ref{sec:compresion-uniforme} y \S\ref{sec:sensibilidad-componente}
+confirman las dos primeras predicciones, y la \S\ref{sec:compresion-adaptativa} valida
+la tercera.
+
+
+% =============================================================
+% §4.2 — Compresión uniforme
+% =============================================================
+
+\subsection{Compresión uniforme y transición de fase}
+\label{sec:compresion-uniforme}
+
+La estrategia más simple de compresión SVD consiste en aplicar el mismo rango de
+truncamiento $r$ a todas las matrices lineales del modelo simultáneamente. Esta sección
+evalúa cinco niveles de rango uniforme ($r \in \{512, 384, 256, 128, 64\}$) y documenta
+una transición de fase abrupta en el rendimiento.
+
+\subsubsection{Degradación global}
+
+La Tabla~\ref{tab:uniform} muestra el F1 macro, el ratio de parámetros y
+la retención de rendimiento para cada nivel de rango.
+
+\begin{table}[H]
+    \centering
+    \caption{Resultados de compresión uniforme sobre el conjunto de test.
+    El \emph{ratio de parámetros} se define como
+    $\text{params}_{\text{comprimido}}/\text{params}_{\text{original}}$:
+    valores $<1$ indican compresión real; $=1$, sin reducción; $>1$,
+    expansión paramétrica.}
+    \label{tab:uniform}
+    \small
+    \begin{tabular}{@{}lccc@{}}
+        \toprule
+        \textbf{Estrategia} & \textbf{F1 macro} & \textbf{Ratio params.} & \textbf{Retención} \\
+        \midrule
+        Baseline           & 0{,}577 & 1{,}00 & 100{,}0\% \\
+        Uniform $r$=512    & 0{,}464 & 1{,}00 & 80{,}5\%  \\
+        Uniform $r$=384    & 0{,}251 & 0{,}81 & 43{,}5\%  \\
+        Uniform $r$=256    & 0{,}025 & 0{,}61 & 4{,}3\%   \\
+        Uniform $r$=128    & 0{,}000 & 0{,}42 & 0{,}0\%   \\
+        Uniform $r$=64     & 0{,}000 & 0{,}32 & 0{,}0\%   \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+El patrón dominante es una \emph{transición de fase} entre $r=384$ y $r=256$: el modelo
+pasa de retener el 43\% del rendimiento a retener apenas el 4\%, una caída de casi 40
+puntos porcentuales en un solo salto de rango. A partir de $r=128$, el modelo entra en
+``muerte clínica'' con F1 exactamente igual a 0{,}0: no es capaz de clasificar
+correctamente ni una sola emoción. La Figura~\ref{fig:uniform-transition} ilustra
+visualmente este \emph{cliff}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.78\textwidth]{figures/cap4/cap4_uniform_transition_es.png}
+    \caption{Transición de fase bajo compresión uniforme. F1 macro
+    en función del rango: la curva se mantiene en niveles funcionales
+    para $r \geq 384$ y colapsa abruptamente entre $r=384$ y $r=256$. La
+    región sombreada marca la zona de muerte clínica ($F1 = 0$).}
+    \label{fig:uniform-transition}
+\end{figure}
+
+La zona útil de compresión uniforme se limita a $r=512$ (degradación significativa pero
+funcional) y $r=384$ (degradación severa pero no total). Cualquier rango inferior destruye
+la capacidad del modelo de forma irrecuperable.
+
+\subsubsection{Vulnerabilidad emocional diferencial}
+
+La degradación no afecta a todas las emociones por igual. La Figura~\ref{fig:emotion-vulnerability}
+muestra el F1 por emoción para cada nivel de compresión uniforme, revelando un espectro
+amplio de resistencia.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{figures/cap4/cap4_emotion_vulnerability_es.png}
+    \caption{F1 por emoción para cada nivel de compresión uniforme. Las emociones están
+    ordenadas por su F1 en el baseline. Las emociones frecuentes y léxicamente simples
+    (arriba) sobreviven más que las infrecuentes y semánticamente complejas (abajo).}
+    \label{fig:emotion-vulnerability}
+\end{figure}
+
+Las emociones más resistentes comparten características comunes: son frecuentes en el
+corpus y están asociadas a marcadores léxicos fuertes. \emph{Gratitude}, por ejemplo,
+retiene un F1 de 0{,}92 a $r=384$ y aún mantiene 0{,}55 a $r=256$, apoyada por la presencia
+recurrente de expresiones como ``thank you'' y ``thanks''. \emph{Amusement} (0{,}74 a
+$r=384$) y \emph{love} (0{,}77 a $r=384$) siguen un patrón similar.
+
+En el extremo opuesto, \emph{embarrassment} colapsa ya a $r=512$ (de 0{,}27 a 0{,}00),
+\emph{realization} cae de 0{,}27 a 0{,}16 en el mismo nivel, y \emph{disappointment} pasa
+de 0{,}28 a 0{,}06. Estas emociones son infrecuentes en el corpus de entrenamiento,
+semánticamente ambiguas y carecen de marcadores léxicos distintivos. Su representación
+depende de dimensiones espectrales de cola, precisamente las primeras en ser eliminadas
+por la compresión SVD.
+
+Este patrón conecta directamente con los resultados de cristalización del
+Capítulo~\ref{sec:resultados-interpretabilidad}: las emociones que cristalizan temprano en
+la profundidad del modelo (es decir, que son reconocibles desde las primeras capas) tienden
+a ser las más resistentes a la compresión, mientras que las que requieren procesamiento
+profundo son las más vulnerables. La \S\ref{sec:sintesis} formaliza esta correlación.
+
+
+% =============================================================
+% §4.3 — Sensibilidad por componente y profundidad
+% =============================================================
+
+\subsection{Sensibilidad por componente y profundidad}
+\label{sec:sensibilidad-componente}
+
+La sección anterior mostró que la compresión uniforme presenta una transición de fase
+abrupta. El análisis espectral de la \S\ref{sec:analisis-espectral} predijo que los
+distintos tipos de componente deberían tener sensibilidades radicalmente diferentes.
+Esta sección lo verifica experimentalmente mediante un estudio sistemático de 33
+configuraciones, aislando el efecto del tipo de componente (8 tipos $\times$ 3 rangos)
+y de la profundidad (3 grupos $\times$ 3 rangos).
+
+\subsubsection{Sensibilidad por tipo de componente}
+
+Para aislar el efecto de cada tipo de componente, comprimimos selectivamente solo las 12
+matrices de un tipo dado (por ejemplo, las 12 matrices Query, una por capa) a un rango
+fijo, manteniendo el resto del modelo intacto. La Tabla~\ref{tab:component-sensitivity}
+presenta los resultados al rango $r=128$, que maximiza el contraste entre componentes.
+
+\begin{table}[H]
+    \centering
+    \caption{Sensibilidad por componente a $r=128$. La sensibilidad normalizada mide
+    los puntos porcentuales de F1 perdidos por cada 1\% de parámetros eliminados.}
+    \label{tab:component-sensitivity}
+    \small
+    \begin{tabular}{@{}lcccc@{}}
+        \toprule
+        \textbf{Componente} & \textbf{F1 macro} & \textbf{Retención} & \textbf{Sensibilidad} \\
+        \midrule
+        Query (Q)           & 0{,}574 & 99{,}4\% & 0{,}14 \\
+        Key (K)             & 0{,}568 & 98{,}4\% & 0{,}38 \\
+        Value (V)           & 0{,}395 & 68{,}5\% & 7{,}31 \\
+        Attn Output         & 0{,}325 & 56{,}3\% & 10{,}13 \\
+        FFN Output          & 0{,}128 & 22{,}2\% & 3{,}80 \\
+        FFN Intermediate    & 0{,}040 & 6{,}9\%  & 4{,}55 \\
+        Attention (todas)   & 0{,}027 & 4{,}6\%  & --- \\
+        FFN (todas)         & 0{,}001 & 0{,}1\%  & --- \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+El resultado confirma y amplifica la predicción espectral. A rango 128, Query retiene el
+99,4\% del rendimiento mientras que FFN Intermediate retiene apenas el 6,9\%: un factor
+de 14$\times$ en retención absoluta. Normalizado por la fracción de parámetros
+eliminados, la diferencia en sensibilidad es de 72$\times$ (0,14 frente a 10,13
+para Attn Output, el componente de atención más sensible).
+
+Este resultado valida la primera predicción del análisis espectral: Q y K son
+efectivamente ``inmunes'' a la compresión agresiva, porque su información reside en un
+subespacio de dimensionalidad mucho menor que el rango completo de la matriz.
+
+\subsubsection{Tres regímenes de compresibilidad}
+
+Al examinar la evolución de la retención a lo largo de los tres rangos evaluados
+($r \in \{256, 128, 64\}$), los seis tipos de componente se agrupan en tres regímenes
+cualitativamente distintos:
+
+\begin{description}[nosep, leftmargin=1.2em]
+    \item[Régimen~1 --- Inmunes (Q, K):] Degradación gradual y casi lineal. Query
+    pierde apenas 1{,}8 puntos porcentuales entre $r=256$ y $r=64$. Estas matrices
+    operan en un subespacio de dimensionalidad efectiva muy inferior a 768.
+
+    \item[Régimen~2 --- Efecto cliff (V, Attn Output):] Sobreviven a $r=256$
+    (retención $\sim$93\%) pero colapsan a $r=64$ ($\sim$3--5\%). Existe un umbral
+    crítico entre $r=128$ y $r=64$ por debajo del cual la información no se puede
+    recuperar. Value, por ejemplo, cae 63 puntos porcentuales solo entre $r=128$ y
+    $r=64$.
+
+    \item[Régimen~3 --- Frágiles (FFN Inter, FFN Output):] Ya gravemente dañados a
+    $r=256$ (52\% y 75\% de retención respectivamente). El cliff principal se sitúa
+    entre $r=256$ y $r=128$. Son matrices de alta dimensionalidad efectiva cuya
+    información está distribuida a lo largo de todo el espectro de valores singulares.
+\end{description}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/cap4/cap4_component_sensitivity_es.png}
+    \caption{Curvas de retención de F1 en función del rango para cada uno
+    de los seis tipos de componente. Los tres regímenes
+    descritos en el texto se separan visualmente: Q y K (azules) decaen
+    suavemente; V y Attn Output (naranjas) presentan el \emph{cliff}
+    entre $r=128$ y $r=64$; las dos FFN (rojas) caen abruptamente desde
+    $r=256$. La línea horizontal punteada marca el 50\% de retención.}
+    \label{fig:component-sensitivity}
+\end{figure}
+
+Estos tres regímenes corresponden directamente a las tres formas de espectro observadas
+en la \S\ref{sec:analisis-espectral}: decaimiento rápido (Q, K), decaimiento intermedio
+(V, Attn Output) y espectro plano (FFN). La estructura espectral predice con precisión
+el comportamiento bajo compresión.
+
+\subsubsection{Sensibilidad por profundidad}
+
+Para evaluar el efecto de la profundidad, comprimimos simultáneamente todas las matrices
+de un grupo de capas (Early: 0--3, Middle: 4--7, Late: 8--11) manteniendo el resto del
+modelo intacto.
+
+\begin{table}[H]
+    \centering
+    \caption{Retención de F1 por grupo de profundidad y rango de compresión.}
+    \label{tab:depth-sensitivity}
+    \small
+    \begin{tabular}{@{}lccc@{}}
+        \toprule
+        \textbf{Grupo} & $\boldsymbol{r=256}$ & $\boldsymbol{r=128}$ & $\boldsymbol{r=64}$ \\
+        \midrule
+        Early (0--3)   & 85{,}4\% & 62{,}5\% & 37{,}0\% \\
+        Middle (4--7)  & 82{,}5\% & 46{,}5\% & 25{,}3\% \\
+        Late (8--11)   & 33{,}3\% &  0{,}0\% &  0{,}0\% \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Las capas tardías (8--11) son \emph{catastróficamente sensibles}: a $r=128$, el modelo
+muere por completo (F1 = 0{,}0). En contraste, las capas tempranas retienen más del 60\%
+del rendimiento al mismo rango. La Figura~\ref{fig:depth-sensitivity} sintetiza este
+gradiente.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/cap4/cap4_depth_sensitivity_es.png}
+    \caption{Sensibilidad por grupo de profundidad. Cada barra representa
+    la retención de F1 macro al comprimir todas las matrices de un grupo
+    de capas a un rango dado, manteniendo el resto intacto. Las capas
+    tardías (rojo) son las únicas que colapsan por completo a $r=128$;
+    las tempranas (verde) y medias (azul) retienen capacidad funcional.}
+    \label{fig:depth-sensitivity}
+\end{figure}
+
+Este resultado es consistente con la literatura de
+interpretabilidad mecánica, que identifica las capas finales de los Transformers como las
+responsables de la representación semántica de alto nivel. En el contexto de la clasificación
+emocional, las capas 8--11 son las que codifican las distinciones finas entre emociones;
+destruir su estructura equivale a destruir la capacidad clasificadora.
+
+Este hallazgo complementa el análisis por componente: la compresión uniforme falla no solo
+porque trata igual a Q y a FFN, sino porque trata igual a las capas 0 y a las capas 11.
+Una estrategia de compresión verdaderamente informada debería respetar ambos ejes de
+asimetría: tipo de componente y profundidad.
+
+\subsubsection{Nota metodológica: silhouette scores en contextos de colapso}
+\label{sec:silhouette-caveat}
+
+Como métrica complementaria al F1, evaluamos los silhouette scores sobre
+proyecciones t-SNE de los embeddings del modelo comprimido. Los resultados
+revelan una limitación importante de esta métrica en contextos de
+compresión severa que conviene documentar como aporte metodológico
+transferible a otros estudios de compresión.
+
+Los silhouette scores negativos observados para FFN Intermediate a $r=64$
+($-0{,}125$) y $r=128$ ($-0{,}051$) indican que la compresión no solo
+destruye la estructura de clusters sino que la \emph{desordena}
+activamente: las muestras quedan más cerca de clusters ajenos que del
+propio.
+
+Sin embargo, las capas tardías a $r=128$ presentan un silhouette score de
+$0{,}15$, el más alto de todas las configuraciones, a pesar de un F1
+de $0{,}0$. Esto constituye un \emph{artefacto sistemático}: cuando el
+modelo colapsa, todos los embeddings convergen a un único cluster trivial,
+y la métrica de silhouette, que premia la cohesión intra-cluster y la
+separación inter-cluster, interpreta erróneamente esa convergencia
+patológica como ``buena estructura''. Documentamos esta observación como
+una limitación general de las métricas geométricas de clustering en
+contextos de colapso del modelo, y recomendamos que cualquier estudio de
+compresión que utilice silhouette o métricas relacionadas (Davies-Bouldin,
+Calinski-Harabasz) verifique siempre la validez de la métrica mediante
+inspección directa de las proyecciones cuando el F1 sea bajo. La regla
+operativa es simple: si el modelo colapsa por F1, las métricas de
+clustering geométrico no son interpretables.
+
+
+% =============================================================
+% §4.4 — Compresión adaptativa
+% =============================================================
+
+\subsection{Compresión adaptativa y recetas mixtas}
+\label{sec:compresion-adaptativa}
+
+Los resultados de las secciones anteriores establecen que la compresión uniforme es
+inherentemente subóptima: aplica el mismo rango a componentes con sensibilidades que
+difieren en un factor de hasta 72$\times$ (normalizado por parámetros eliminados) y
+a capas con vulnerabilidades que van del 0\% al 62\% de retención al mismo rango. La compresión adaptativa propone una alternativa:
+asignar a cada matriz un rango proporcional a su complejidad espectral, determinado por
+el umbral de energía $\tau$.
+
+\subsubsection{Resultados de compresión adaptativa}
+
+En la compresión adaptativa, cada matriz recibe el rango mínimo $k_\tau$ necesario para
+retener una fracción $\tau$ de su energía espectral. Matrices con espectro concentrado
+(Q, K) reciben rangos bajos; matrices con espectro plano (FFN) reciben rangos altos. La
+Tabla~\ref{tab:adaptive} presenta los resultados para cinco umbrales de energía.
+
+\begin{table}[H]
+    \centering
+    \caption{Resultados de compresión adaptativa y recetas mixtas.
+    \emph{Ratio params.} =
+    $\text{params}_{\text{comprimido}}/\text{params}_{\text{original}}$,
+    donde $<1$ es compresión real y $>1$ expansión paramétrica
+    (ver \S\ref{sec:caveat-compresion}).}
+    \label{tab:adaptive}
+    \small
+    \begin{tabular}{@{}lccc@{}}
+        \toprule
+        \textbf{Estrategia} & \textbf{F1 macro} & \textbf{Ratio params.} & \textbf{Retención} \\
+        \midrule
+        Baseline             & 0{,}577 & 1{,}00 & 100{,}0\% \\
+        Adaptive 99\%        & 0{,}558 & 1{,}20 & 96{,}7\%  \\
+        Mixed Conservative   & 0{,}505 & 1{,}04 & 87{,}5\%  \\
+        Adaptive 95\%        & 0{,}491 & 1{,}02 & 85{,}1\%  \\
+        Mixed Aggressive     & 0{,}382 & 0{,}91 & 66{,}3\%  \\
+        Adaptive 90\%        & 0{,}357 & 0{,}89 & 61{,}8\%  \\
+        Adaptive 85\%        & 0{,}260 & 0{,}80 & 45{,}1\%  \\
+        Adaptive 80\%        & 0{,}143 & 0{,}72 & 24{,}7\%  \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+La compresión adaptativa al 99\% de energía retiene el 96.7\% del rendimiento, con
+una degradación de apenas 1{,}9 puntos porcentuales de F1 respecto al baseline. Al 95\%,
+la retención es del 85.1\%, lo cual constituye un punto de equilibrio razonable.
+
+Las recetas mixtas combinan compresión adaptativa con reglas específicas por tipo de
+componente (por ejemplo, comprimir más agresivamente Q y K mientras se protegen las FFN).
+La receta conservadora (87.5\% de retención) se sitúa entre Adaptive 95\% y 99\%,
+ofreciendo un compromiso intermedio.
+
+\subsubsection{Frontera de Pareto: adaptativa vs.\ uniforme}
+
+La Figura~\ref{fig:pareto} compara las dos familias de estrategias en el espacio
+retención--compresión. La compresión adaptativa \emph{domina} a la uniforme en toda la
+frontera de Pareto: para cualquier nivel de retención deseado, la adaptativa lo consigue
+con un ratio de compresión igual o superior.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/cap4/cap4_pareto_frontier_es.png}
+    \caption{Frontera de Pareto: compresión uniforme (cuadrados) vs.\ adaptativa
+    (círculos). La adaptativa domina en todo el rango. Los puntos Mixed se sitúan
+    sobre la frontera adaptativa.}
+    \label{fig:pareto}
+\end{figure}
+
+La ventaja de la compresión adaptativa es más pronunciada en la zona de alta retención
+(>80\%), donde la uniforme solo dispone de un punto útil ($r=512$) mientras que la
+adaptativa ofrece un continuo de opciones entre 85\% y 97\% de retención.
+
+\subsubsection{Distribución de rangos asignados}
+
+La Figura~\ref{fig:rank-distribution} ilustra cómo la compresión adaptativa distribuye
+los rangos entre los distintos tipos de componente para cada umbral de energía.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/cap4/cap4_adaptive_rank_distribution_es.png}
+    \caption{Distribución de rangos asignados por la compresión adaptativa para cada
+    umbral de energía, desglosada por tipo de componente. Q y K reciben rangos
+    consistentemente menores que FFN.}
+    \label{fig:rank-distribution}
+\end{figure}
+
+La distribución confirma la lógica espectral: a un umbral del 95\%, Q y K reciben rangos
+del orden de 390--400, mientras que FFN Intermediate y Output reciben rangos de 610--625.
+La adaptativa simplemente \emph{respeta} la estructura natural de las matrices en lugar
+de forzar un rango uniforme.
+
+\subsubsection{Caveat: ratio de compresión y simplificación de rango}
+\label{sec:caveat-compresion}
+
+Es necesario documentar una limitación importante de la compresión adaptativa a umbrales
+altos. La factorización SVD truncada a rango $r$ reemplaza una matriz $W \in \mathbb{R}^{m
+\times n}$ por dos matrices $U_r \in \mathbb{R}^{m \times r}$ y $V_r \in \mathbb{R}^{r
+\times n}$ (absorbiendo $\Sigma_r$ en una de las dos). El número de parámetros pasa de
+$mn$ a $r(m + n)$. Para que exista compresión real, se requiere $r < \frac{mn}{m+n}$.
+
+En el caso de BERT-base, las matrices de self-attention tienen dimensiones $768 \times 768$,
+lo que da un umbral de $r < 384$ para compresión real. Las matrices FFN tienen dimensiones
+$768 \times 3072$ (Intermediate) y $3072 \times 768$ (Output), con un umbral de
+$r < \frac{768 \times 3072}{768 + 3072} = 614.4$.
+
+Las estrategias Adaptive 95\% y 99\% asignan, por tanto, rangos que para muchas
+matrices \emph{superan} el umbral de compresión real. Los ratios de parámetros de
+1{,}02 (Adaptive 95\%) y 1{,}20 (Adaptive 99\%) confirman que estas estrategias
+producen un modelo con \emph{más} parámetros que el original.
+
+En rigor, estas estrategias no constituyen compresión de parámetros sino
+\emph{simplificación de rango}: la representación factorizada tiene menor rango
+matricial que la original, lo cual puede ser útil para análisis e interpretabilidad, pero
+no reduce el tamaño del modelo. La compresión real solo comienza a partir de Adaptive
+90\% (ratio 0{,}89), y los niveles con compresión significativa (85\% y 80\%)
+ya implican degradaciones del 55\% y 75\% respectivamente.
+
+
+% =============================================================
+% Cierre del capítulo
+% =============================================================
+
+\subsection{Síntesis del capítulo}
+\label{sec:sintesis-compresion}
+
+Los resultados de este capítulo establecen cuatro hallazgos principales:
+
+\begin{enumerate}[nosep]
+    \item \textbf{Asimetría espectral.} Las matrices de self-attention (Q, K) concentran
+    su información en un subespacio de dimensionalidad efectiva $\sim$400, mientras que
+    las matrices FFN requieren $\sim$620 dimensiones. Este gap de $\sim$220 rangos es
+    una propiedad estructural del modelo \emph{fine-tuned}, consistente en las 12 capas.
+
+    \item \textbf{Transición de fase en compresión uniforme.} La compresión uniforme
+    presenta un cliff abrupto entre $r=384$ (43\% de retención) y $r=256$ (4\%).
+    La zona útil se limita a $r \geq 384$, y cualquier rango inferior destruye el
+    modelo de forma irrecuperable.
+
+    \item \textbf{Sensibilidad heterogénea.} Los componentes presentan sensibilidades
+    que difieren en un factor de 72$\times$ (normalizado por parámetros). Q y K son
+    inmunes a compresión agresiva; V y Attn Output presentan un cliff entre $r=128$ y
+    $r=64$; las FFN son frágiles desde $r=256$. Las capas tardías (8--11) son
+    catastróficamente sensibles, con muerte total a $r=128$.
+
+    \item \textbf{Dominancia matizada de la compresión adaptativa.} La
+    compresión adaptativa supera a la uniforme \emph{en el rango donde hay
+    compresión real} (umbrales del 80\% y 90\%, con ratios de parámetros
+    de 0{,}72 y 0{,}89 respectivamente). Por encima del 90\%, los umbrales
+    del 95\% y 99\% producen ratios de parámetros $>1$ ($1{,}02$ y
+    $1{,}20$ respectivamente): no son técnicamente compresión, sino
+    \emph{simplificación de rango con expansión paramétrica}. La aparente
+    dominancia de la adaptativa en toda la frontera de Pareto debe
+    interpretarse, por tanto, con esta cautela: cuando el ratio de
+    parámetros es genuinamente menor que el original ($<1$), la adaptativa
+    supera a la uniforme; en la región $\geq 1$, ambas familias se
+    encuentran fuera del régimen de compresión efectiva.
+\end{enumerate}
+
+Estos hallazgos motivan dos líneas de investigación que se desarrollan en los capítulos
+siguientes: la interpretabilidad mecánica (Capítulo~\ref{sec:resultados-interpretabilidad}),
+que busca explicar \emph{por qué} ciertos componentes y capas son más críticos, y la
+síntesis (\S\ref{sec:sintesis}), que conecta la vulnerabilidad a compresión con la
+profundidad de cristalización emocional.

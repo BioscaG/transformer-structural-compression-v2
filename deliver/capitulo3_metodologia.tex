@@ -1,0 +1,572 @@
+% =============================================================
+% CAPÍTULO 3 — Metodología
+% Versión limpia: sin negritas en cuerpo de texto, con figura
+% de pipeline y expansiones integradas.
+%
+% Requisitos en el preámbulo (añadir si no están):
+%   \usepackage{tikz}
+%   \usetikzlibrary{arrows.meta, positioning, fit, backgrounds, calc}
+% =============================================================
+
+\section{Metodología}
+\label{sec:metodologia-tfg}
+
+Este capítulo describe el diseño experimental del proyecto: el dataset y su
+preprocesamiento (\S\ref{sec:met-dataset}), el modelo base y su \emph{fine-tuning}
+(\S\ref{sec:met-modelo}), el módulo de compresión SVD (\S\ref{sec:met-svd}),
+las cuatro técnicas de interpretabilidad mecánica empleadas
+(\S\ref{sec:met-interpretabilidad}) y las métricas de evaluación
+(\S\ref{sec:met-metricas}). La Figura~\ref{fig:pipeline} muestra el flujo
+experimental completo.
+
+% ── Figura de pipeline ──────────────────────────────────────
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[
+        box/.style={
+            rectangle, rounded corners=3pt, draw=black!35,
+            minimum height=0.9cm, minimum width=2.6cm,
+            align=center, font=\small,
+            inner xsep=8pt, inner ysep=5pt
+        },
+        smallbox/.style={
+            rectangle, rounded corners=2pt, draw=black!25,
+            minimum height=0.7cm, align=center, font=\scriptsize,
+            inner sep=4pt, fill=gray!6
+        },
+        arr/.style={-{Stealth[length=4pt]}, semithick, black!45},
+        dasharr/.style={-{Stealth[length=4pt]}, thin, black!30, dashed},
+        lbl/.style={font=\scriptsize\itshape, text=black!40},
+    ]
+
+    % Row 1 (y=0): GoEmotions → BERT → Baseline
+    \node[box, fill=gray!8]  (data)     at (0,   0) {GoEmotions\\[-1pt]{\scriptsize 23 emociones}};
+    \node[box, fill=blue!6]  (model)    at (3.6, 0) {BERT-base\\[-1pt]{\scriptsize Fine-tuning}};
+    \node[box, fill=teal!8]  (baseline) at (7.2, 0) {Baseline\\[-1pt]{\scriptsize F1\textsubscript{macro} = 0{,}577}};
+
+    \draw[arr] (data) -- (model);
+    \draw[arr] (model) -- (baseline);
+
+    % Row 2 (y=-1.6): Compresión SVD
+    \node[box, fill=orange!8] (svd) at (3.6, -1.6) {Compresión SVD\\[-1pt]{\scriptsize Uniforme / Adaptativa}};
+    \draw[arr] (baseline.south) -- ++(0,-0.35) -| (svd.north);
+
+    % Row 3 (y=-3.5): Interpretabilidad mecánica — manual rectangle
+    \draw[rounded corners=4pt, draw=black!15, fill=blue!2]
+        (-1.6, -2.85) rectangle (9.0, -4.55);
+    \node[font=\small, text=black!60] at (3.6, -3.15) {Interpretabilidad mecánica};
+
+    \node[smallbox] (probing)  at (0,   -3.85) {Probing\\[-1pt]{\tiny NB04 · capa}};
+    \node[smallbox] (patching) at (2.6, -3.85) {Act.\ patching\\[-1pt]{\tiny NB05 · componente}};
+    \node[smallbox] (ablation) at (5.2, -3.85) {Head ablation\\[-1pt]{\tiny NB06 · cabeza}};
+    \node[smallbox] (neurons)  at (7.8, -3.85) {Neuronas FFN\\[-1pt]{\tiny NB07 · neurona}};
+
+    \draw[arr] (svd.south) -- ++(0, -0.7);
+
+    % Row 4 (y=-5.6): Compresión informada
+    \node[box, fill=teal!10] (informed) at (3.6, -5.6) {Compresión informada\\[-1pt]{\scriptsize NB09 · Greedy data-driven}};
+    \draw[arr] (3.6, -4.55) -- (informed.north);
+
+    % Row 5 (y=-7.1): Fine-tuning recovery
+    \node[box, fill=green!8] (recovery) at (3.6, -7.1) {Fine-tuning recovery\\[-1pt]{\scriptsize F1 = 0{,}591 (+2{,}4\%)}};
+    \draw[arr] (informed) -- (recovery);
+
+    % Feedback loop (right side)
+    \coordinate (fb1) at (9.6, -5.6);
+    \coordinate (fb2) at (9.6, -1.6);
+    \draw[dasharr, rounded corners=3pt]
+        (informed.east) -- (fb1) -- (fb2) -- (svd.east);
+    \node[lbl, rotate=90, anchor=south] at (9.6, -3.6) {retroalimentación};
+
+    \end{tikzpicture}
+    \caption{Pipeline experimental. El modelo baseline se somete a compresión SVD y a
+    cuatro técnicas de interpretabilidad mecánica con granularidad creciente (de capa
+    completa a neurona individual). Los hallazgos retroalimentan el diseño de
+    estrategias de compresión informadas (línea discontinua). El ciclo se cierra
+    con \emph{fine-tuning} del modelo comprimido.}
+    \label{fig:pipeline}
+\end{figure}
+
+% -------------------------------------------------------------
+\subsection{Dataset: GoEmotions}
+\label{sec:met-dataset}
+% -------------------------------------------------------------
+
+El dataset GoEmotions \cite{demszky2020goemotions} contiene 58.009 comentarios de
+Reddit anotados por tres evaluadores con una taxonomía de 28 categorías emocionales
+(27 emociones + \textit{neutral}). A diferencia de la clasificación de sentimientos
+estándar (positivo/negativo), GoEmotions es un dataset de clasificación
+multi-etiqueta: cada texto puede expresar múltiples emociones simultáneamente (por
+ejemplo, \textit{admiración} y \textit{alegría}), lo que impone al modelo la necesidad
+de resolver co-ocurrencias con matices semánticos cercanos.
+
+\subsubsection{Filtrado de emociones}
+
+Del conjunto original de 28 categorías, se eliminaron cinco que presentaban problemas
+de rendimiento o representatividad:
+
+\begin{itemize}[nosep]
+    \item \textit{neutral}: excluida por no ser una emoción propiamente dicha y por
+    dominar el dataset (14.000+ ejemplos), lo que distorsionaba las métricas
+    macro-promediadas.
+    \item \textit{grief}, \textit{nervousness}, \textit{pride}, \textit{relief}:
+    excluidas por producir F1 = 0 en el baseline, debido a su bajísima frecuencia en
+    el dataset (menos de 100 ejemplos cada una en el conjunto de entrenamiento). La
+    presencia de emociones con F1 nulo degradaba el F1 macro sin aportar información
+    útil sobre la capacidad del modelo.
+\end{itemize}
+
+El filtrado se implementó a nivel del pipeline de datos: se eliminaron las cinco
+columnas correspondientes del vector de etiquetas (pasando de 28 a 23 dimensiones) y
+se descartaron los ejemplos cuyo vector resultante quedaba vacío (aquellos anotados
+exclusivamente con alguna de las emociones excluidas). El resultado es un dataset de
+23 emociones donde todas las categorías producen un F1 funcional (mínimo: 0{,}267
+para \textit{embarrassment}).
+
+La Tabla~\ref{tab:emociones-23} lista las 23 emociones del dataset final, ordenadas
+por F1 en el baseline.
+
+\begin{table}[H]
+    \centering
+    \caption{Las 23 emociones del dataset final, con F1 en el baseline.}
+    \label{tab:emociones-23}
+    \small
+    \begin{tabular}{@{}l r r l@{}}
+        \toprule
+        Emoción & F1 baseline & Ejs.\ train & Grupo semántico \\
+        \midrule
+        gratitude      & 0{,}927 & 2\,662 & Positiva social \\
+        amusement      & 0{,}853 & 2\,328 & Positiva energética \\
+        love           & 0{,}816 & 2\,086 & Positiva social \\
+        admiration     & 0{,}757 & 4\,130 & Positiva social \\
+        fear           & 0{,}710 & \phantom{0\,}596 & Negativa interna \\
+        curiosity      & 0{,}707 & 2\,191 & Epistémica \\
+        remorse        & 0{,}672 & \phantom{0\,}545 & Negativa interna \\
+        joy            & 0{,}635 & 1\,452 & Positiva energética \\
+        sadness        & 0{,}632 & 1\,326 & Negativa interna \\
+        optimism       & 0{,}573 & 1\,581 & Positiva orientada \\
+        surprise       & 0{,}571 & 1\,060 & Epistémica \\
+        approval       & 0{,}555 & 2\,939 & Positiva social \\
+        anger          & 0{,}550 & 1\,567 & Negativa reactiva \\
+        caring         & 0{,}542 & 1\,087 & Positiva orientada \\
+        desire         & 0{,}535 & \phantom{0\,}641 & Positiva orientada \\
+        disapproval    & 0{,}527 & 2\,022 & Negativa reactiva \\
+        disgust        & 0{,}521 & \phantom{0\,}793 & Negativa reactiva \\
+        confusion      & 0{,}515 & 1\,368 & Epistémica \\
+        excitement     & 0{,}454 & \phantom{0\,}853 & Positiva energética \\
+        annoyance      & 0{,}411 & 2\,470 & Negativa reactiva \\
+        disappointment & 0{,}275 & 1\,269 & Negativa interna \\
+        realization    & 0{,}271 & 1\,110 & Epistémica \\
+        embarrassment  & 0{,}267 & \phantom{0\,}303 & Negativa interna \\
+        \midrule
+        \multicolumn{2}{@{}l}{F1 macro promedio} & & 0{,}577 \\
+        \bottomrule
+    \end{tabular}
+    \\[0.15cm]{\small Grupos semánticos propuestos a partir del clustering neuronal
+    (Capítulo~\ref{sec:resultados-interpretabilidad}). Fuente: elaboración propia
+    sobre GoEmotions \cite{demszky2020goemotions}.}
+\end{table}
+
+\subsubsection{Splits y preprocesamiento}
+
+Se utilizaron los splits oficiales de GoEmotions: entrenamiento (43.410 ejemplos),
+validación (5.426) y test (5.427), tras el filtrado. El preprocesamiento se limita a
+la tokenización con el tokenizer de BERT-base-uncased, con una longitud máxima de
+128 tokens y padding dinámico. No se aplican técnicas de aumento de datos.
+
+% -------------------------------------------------------------
+\subsection{Modelo: BERT-base}
+\label{sec:met-modelo}
+% -------------------------------------------------------------
+
+\subsubsection{Arquitectura}
+
+BERT-base-uncased \cite{devlin2019bert} consta de 12 capas de encoder Transformer,
+cada una con un bloque de atención multi-cabeza (12 cabezas) y un bloque
+feed-forward. El modelo tiene 110 millones de parámetros, de los cuales
+84{,}9 millones corresponden a las 72 capas lineales del encoder (6 matrices por
+capa $\times$ 12 capas), que constituyen el objetivo de la compresión SVD. La
+Tabla~\ref{tab:capas-bert} detalla las dimensiones de cada tipo de componente.
+
+\begin{table}[H]
+    \centering
+    \caption{Capas lineales del encoder de BERT-base (por capa).}
+    \label{tab:capas-bert}
+    \small
+    \begin{tabular}{@{}l l c r@{}}
+        \toprule
+        Bloque & Componente & Dimensiones & Parámetros \\
+        \midrule
+        Atención & Query ($W_Q$)            & $768 \times 768$   & 589.824 \\
+        Atención & Key ($W_K$)              & $768 \times 768$   & 589.824 \\
+        Atención & Value ($W_V$)            & $768 \times 768$   & 589.824 \\
+        Atención & Output ($W_O$)           & $768 \times 768$   & 589.824 \\
+        FFN      & Intermediate ($W_{int}$) & $768 \times 3072$  & 2.359.296 \\
+        FFN      & Output ($W_{out}$)       & $3072 \times 768$  & 2.359.296 \\
+        \midrule
+        \multicolumn{3}{l}{Total por capa del encoder} & 7.077.888 \\
+        \multicolumn{3}{l}{Total 12 capas} & 84.934.656 \\
+        \bottomrule
+    \end{tabular}
+    \\[0.15cm]{\small Fuente: elaboración propia.}
+\end{table}
+
+\subsubsection{\emph{Fine-tuning}}
+
+El modelo se fine-tuneó sobre el dataset GoEmotions (23 emociones) añadiendo una capa
+de clasificación lineal sobre el token \texttt{[CLS]} de la última capa del encoder.
+La clasificación multi-etiqueta se implementa con una función de pérdida
+\texttt{BCEWithLogitsLoss} (binary cross-entropy con logits), que trata cada emoción
+como una predicción binaria independiente.
+
+Los hiperparámetros de \emph{fine-tuning} se resumen en la Tabla~\ref{tab:hyperparams}.
+
+\begin{table}[H]
+    \centering
+    \caption{Hiperparámetros de \emph{fine-tuning}.}
+    \label{tab:hyperparams}
+    \small
+    \begin{tabular}{@{}l l@{}}
+        \toprule
+        Parámetro & Valor \\
+        \midrule
+        Optimizador        & AdamW \\
+        Learning rate      & $2 \times 10^{-5}$ \\
+        Epochs             & 4 \\
+        Batch size         & 32 \\
+        Warmup             & 10\% de los steps \\
+        Weight decay       & 0{,}01 \\
+        Max sequence length & 128 tokens \\
+        Semilla aleatoria  & 42 \\
+        \bottomrule
+    \end{tabular}
+    \\[0.15cm]{\small Fuente: elaboración propia.}
+\end{table}
+
+El modelo resultante alcanza un F1 macro de 0{,}577 y un F1 micro de 0{,}627 sobre
+el conjunto de test, lo que constituye el baseline contra el que se mide toda
+degradación posterior.
+
+% -------------------------------------------------------------
+\subsection{Compresión SVD}
+\label{sec:met-svd}
+% -------------------------------------------------------------
+
+\subsubsection{Fundamento teórico}
+
+La SVD factoriza cualquier matriz $W \in \mathbb{R}^{m \times n}$ como
+$W = U \Sigma V^T$, donde $U \in \mathbb{R}^{m \times m}$ y
+$V \in \mathbb{R}^{n \times n}$ son matrices ortogonales y
+$\Sigma \in \mathbb{R}^{m \times n}$ es diagonal con los valores singulares
+$\sigma_1 \geq \sigma_2 \geq \cdots \geq \sigma_{\min(m,n)} \geq 0$. El
+teorema de Eckart-Young \cite{eckart1936approximation} garantiza que la mejor
+aproximación de rango $k$ en norma de Frobenius es la SVD truncada:
+\begin{equation}
+    W_k = \sum_{i=1}^{k} \sigma_i u_i v_i^T = U_k \Sigma_k V_k^T
+    \label{eq:svd-truncada}
+\end{equation}
+con error $\|W - W_k\|_F^2 = \sum_{i=k+1}^{\min(m,n)} \sigma_i^2$. La SVD induce
+una descomposición ortogonal del espacio de salida $\mathbb{R}^m$:
+\begin{equation}
+    \mathbb{R}^m = \mathcal{S}_k \oplus \mathcal{S}_k^\perp,
+    \quad \mathcal{S}_k = \text{span}\{u_1, \ldots, u_k\}
+    \label{eq:subespacios}
+\end{equation}
+donde $\mathcal{S}_k$ es el \emph{subespacio conservado} (asociado a los $k$
+mayores valores singulares) y $\mathcal{S}_k^\perp$ el \emph{subespacio
+eliminado}. El operador de proyección sobre $\mathcal{S}_k^\perp$ es
+$P_k^\perp = I - U_k U_k^T$, y la fracción de señal $x \in \mathbb{R}^m$
+eliminada por la compresión a rango $k$ es
+$\|P_k^\perp x\|_2 / \|x\|_2$. Esta cantidad se utiliza en
+\S\ref{sec:neuron-analysis} para evaluar si la SVD discrimina selectivamente
+entre direcciones funcionalmente significativas (vectores de selectividad
+neuronal) o si elimina señal uniformemente.
+
+En la práctica, una capa lineal $W$ de dimensión $m \times n$ se reemplaza
+por dos capas: $V_k^T$ ($k \times n$) y $U_k \Sigma_k$ ($m \times k$),
+reduciendo los parámetros de $mn$ a $k(m+n)$.
+
+\subsubsection{Rango de break-even}
+
+La compresión SVD solo reduce parámetros si el rango elegido es menor que
+$mn/(m+n)$. Para BERT-base:
+\begin{itemize}[nosep]
+    \item Componentes de atención ($768 \times 768$): break-even en rango 384.
+    \item Componentes FFN ($768 \times 3072$): break-even en rango 614.
+\end{itemize}
+Rangos superiores a estos umbrales \emph{aumentan} el número total de parámetros.
+Este detalle técnico es relevante para interpretar correctamente las estrategias
+adaptativas de alta energía (Capítulo~\ref{sec:resultados-compresion}).
+
+\subsubsection{Implementación}
+
+El módulo de compresión (\texttt{src/compression/svd.py}) implementa una clase
+\texttt{SVDLinear} que almacena las dos matrices factorizadas y realiza la
+multiplicación en dos pasos durante el forward pass. La función
+\texttt{apply\_svd\_compression()} acepta un modelo BERT, una especificación de
+rangos por capa y componente, y devuelve el modelo comprimido. La SVD se computa
+siempre en \texttt{float32} para evitar inestabilidades numéricas, independientemente
+de la precisión del modelo.
+
+\subsubsection{Estrategias de compresión evaluadas}
+
+Se evaluaron cuatro familias de estrategias:
+
+\begin{enumerate}[nosep]
+    \item Uniforme: mismo rango $k \in \{32, 64, 128, 256, 384, 512\}$ para
+    las 72 matrices del encoder.
+    \item Adaptativa (energía): rango por matriz determinado por un umbral
+    de energía espectral ($E(k) \geq \{80\%, 90\%, 95\%, 99\%\}$), donde
+    $E(k) = \sum_{i=1}^k \sigma_i^2 / \sum_{i=1}^n \sigma_i^2$.
+    \item Informada heurística: rangos asignados manualmente a partir de
+    reglas derivadas de los resultados de interpretabilidad (proteger capas tardías,
+    comprimir agresivamente Q/K). Tres niveles de agresividad (light, moderate,
+    aggressive).
+    \item Greedy (data-driven): algoritmo que construye un menú de movimientos
+    de compresión (cada uno del tipo ``comprimir componente $X$ en capas $Y$ al
+    rango $Z$'') y los ordena por eficiencia, definida como parámetros ahorrados
+    por punto de F1 perdido. El algoritmo selecciona movimientos del más eficiente
+    al menos eficiente hasta alcanzar el ratio de parámetros objetivo. El coste
+    en F1 de cada movimiento proviene de datos empíricos de sensibilidad por
+    componente y profundidad, obtenidos en los notebooks de compresión y
+    \emph{activation patching}.
+\end{enumerate}
+
+% -------------------------------------------------------------
+\subsection{Técnicas de interpretabilidad mecánica}
+\label{sec:met-interpretabilidad}
+% -------------------------------------------------------------
+
+Se emplearon cuatro técnicas complementarias que cubren escalas progresivas de
+granularidad: capa completa (probing), capa y componente (\emph{activation patching}),
+cabeza individual (ablación) y neurona individual (análisis de selectividad).
+
+\subsubsection{Probing lineal}
+\label{sec:met-probing}
+
+Para cada una de las 13 capas de BERT (embedding + 12 encoder layers) y cada
+una de las 23 emociones, se entrena un probe de regresión logística
+(\texttt{LogisticRegression} de scikit-learn, $C = 1{,}0$ sin tuning) sobre
+la representación del token \texttt{[CLS]}. La decisión de fijar $C = 1{,}0$
+sigue la lógica de Hewitt y Liang \cite{hewitt2019designing}: el probe debe
+ser deliberadamente simple para medir la calidad de la representación, no la
+capacidad del clasificador. Esta elección tiene una contrapartida que conviene
+reconocer: información codificada no linealmente en capas tempranas no sería
+detectada por un probe lineal, lo que podría infraestimar la presencia de
+señal emocional en las primeras capas. La interpretación de los resultados
+(\S\ref{sec:probing}) se realiza con esta cautela.
+
+El total nominal de probes es $23 \times 13 = 299$; sin embargo, los probes
+sobre la capa de embedding producen F1 = 0 uniformemente para todas las
+emociones (el embedding crudo no contiene información emocional separable
+linealmente), por lo que se descartan del análisis efectivo. El número
+efectivo de probes que entran en las correlaciones y métricas es de
+$23 \times 12 = 276$, valor que utilizamos consistentemente en el resto de la
+memoria.
+
+La representación utilizada es el vector del token \texttt{[CLS]} de cada
+capa, en lugar del mean-pooling sobre todos los tokens. Esta decisión sigue
+la convención del propio BERT: durante el \emph{fine-tuning}, el token \texttt{[CLS]}
+es el único cuya representación se conecta directamente a la cabeza de
+clasificación, por lo que es la posición donde el modelo concentra la
+información relevante para la tarea. Utilizar mean-pooling mediría la
+información distribuida en toda la secuencia, lo que reflejaría una capacidad
+representacional distinta de la que el modelo realmente explota para
+clasificar.
+
+La métrica de probing es el F1 por probe. Se define la \emph{capa de
+cristalización} de una emoción como la primera capa donde su F1 alcanza el
+80\% del máximo observado en cualquier capa. Este umbral es una convención;
+el orden de cristalización es estable con umbrales de 0{,}7 y 0{,}9.
+
+\subsubsection{\emph{Logit lens}}
+\label{sec:met-logitlens}
+
+El \emph{logit lens} \cite{nostalgebraist2020logit} aplica la cabeza de
+clasificación entrenada del modelo (\texttt{BertPooler} + clasificador
+lineal) a la representación del token \texttt{[CLS]} de cada capa
+intermedia, sin re-entrenamiento. Para cada capa $\ell \in \{0, \ldots, 11\}$
+y cada ejemplo, se calcula:
+\begin{equation}
+    \hat{p}_\ell = \sigma\left(W_{\text{cls}} \cdot \tanh\left(W_{\text{pool}} \cdot h_\ell^{[\text{CLS}]}\right) + b_{\text{cls}}\right) \in \mathbb{R}^{23}
+    \label{eq:logitlens}
+\end{equation}
+donde $h_\ell^{[\text{CLS}]}$ es la representación del token \texttt{[CLS]}
+en la capa $\ell$ y $\sigma$ es la sigmoide aplicada componente a
+componente. Las predicciones se agregan sobre 2\,300 ejemplos del conjunto
+de test (submuestreo equilibrado entre los tres grupos de cristalización del
+probing). Las métricas reportadas son la sigmoid media de la emoción
+correcta (\emph{gold sigmoid}), la sigmoid media de la emoción más probable
+(\emph{top-1 sigmoid}) y la suma total de las 23 sigmoids.
+
+Esta técnica tiene una limitación de calibración conocida que se discute en
+\S\ref{sec:logit-lens}: los pesos del pooler y del clasificador fueron
+optimizados exclusivamente para representaciones de la última capa tras
+LayerNorm, por lo que los valores absolutos en capas intermedias no son
+estrictamente comparables al baseline. Las interpretaciones se realizan
+sobre tendencias relativas (entre capas o entre grupos emocionales), no
+sobre magnitudes absolutas.
+
+\subsubsection{\emph{Activation patching}}
+\label{sec:met-patching}
+
+El \emph{activation patching} parte de un modelo completamente colapsado:
+comprimido con SVD uniforme a rango 64 (F1 = 0{,}000). Se eligió el rango 64
+como punto de colapso porque es el rango más alto que produce un colapso
+total y uniforme del modelo (F1 = 0{,}000 en las 23 emociones), garantizando
+un estado base completamente destruido desde el cual cualquier recuperación
+es atribuible al componente restaurado. Rangos inferiores (32) producen el
+mismo colapso, pero con mayor distorsión de los pesos que podría introducir
+artefactos en el patching. Rangos superiores (128) permiten recuperación
+parcial espontánea en algunas emociones, lo que contaminaría la atribución
+causal.
+
+La corrupción mediante SVD truncada a rango 64 no es
+\emph{neutral} en sentido estadístico (a diferencia del \emph{causal tracing}
+clásico de Meng et al.\ \cite{meng2022locating}, que usa ruido gaussiano
+sobre los embeddings), sino una distorsión \emph{estructurada} que respeta
+la geometría espectral de los pesos. Las conclusiones extraídas tienen,
+por tanto, naturaleza \emph{funcional} (qué componentes son
+suficientes para reactivar el modelo desde el colapso) más que estrictamente
+causal en el sentido de Pearl. Esta distinción se discute con detalle en
+\S\ref{sec:activation-patching}; reconocerla forma parte del rigor
+metodológico del trabajo.
+
+Desde este estado, se restauran selectivamente los pesos originales de una
+capa o componente y se mide la recuperación del F1 macro. La métrica de
+interés es el porcentaje de restauración:
+\begin{equation}
+    \text{Restauración}(\%) = \frac{F1_{\text{patched}} - F1_{\text{comprimido}}}{F1_{\text{baseline}} - F1_{\text{comprimido}}} \times 100
+    \label{eq:restauracion}
+\end{equation}
+
+El patching se realiza a dos niveles de granularidad: (a) capa completa,
+restaurando las 6 matrices de una capa del encoder; y (b) componente,
+restaurando solo el bloque de atención o solo el bloque FFN de una capa.
+
+\subsubsection{Ablación de cabezas de atención}
+\label{sec:met-ablacion}
+
+Se anulan individualmente cada una de las 144 cabezas de atención ($12 \times 12$)
+estableciendo su salida a cero (\textit{zero-out}). Para cada cabeza se mide la
+caída en F1 macro y en F1 por emoción. Se construye una taxonomía bidimensional
+basada en dos métricas ortogonales:
+
+\begin{itemize}[nosep]
+    \item Importancia: caída absoluta en F1 macro al ablacionar la cabeza.
+    \item Selectividad: concentración del impacto en pocas emociones, medida
+    mediante el coeficiente de Gini sobre el vector de caídas por emoción.
+\end{itemize}
+
+Las cuatro categorías resultantes son: Critical Specialist (alta importancia, alta
+selectividad), Critical Generalist (alta importancia, baja selectividad), Minor
+Specialist (baja importancia, alta selectividad) y Dispensable (baja importancia,
+baja selectividad).
+
+\subsubsection{Análisis de neuronas FFN}
+\label{sec:met-neuronas}
+
+Para cada una de las 36.864 neuronas intermedias del modelo ($12 \times 3.072$) se
+extrae la activación post-GELU mediante forward hooks, promediando sobre las posiciones
+de la secuencia. Se procesa el conjunto de test completo.
+
+La \emph{selectividad neuronal} para una neurona $n$ y una emoción $e$ se define
+como un score tipo Cohen's $d$:
+\begin{equation}
+    s(n, e) = \frac{\bar{a}_{n,\text{presente}} - \bar{a}_{n,\text{ausente}}}{\sigma_{\text{pooled}}}
+    \label{eq:selectividad}
+\end{equation}
+donde $\bar{a}_{n,\text{presente}}$ es la activación media de la neurona $n$ cuando
+la emoción $e$ está presente en el texto, y $\bar{a}_{n,\text{ausente}}$ cuando está
+ausente. Se consideran significativas las neuronas con $|s| > 2{,}0$.
+
+Para conectar la especialización neuronal con la compresión SVD, se investiga
+una hipótesis concreta: \textit{¿las emociones cuyas neuronas especializadas
+caen mayoritariamente en el subespacio eliminado por la SVD son las más
+vulnerables a la compresión?} Para responder a esta pregunta, se proyecta el
+vector de selectividad de cada emoción (un vector de 3.072 dimensiones por capa,
+con la selectividad de cada neurona) sobre los subespacios conservado y eliminado
+por la SVD a rango 128, y se calcula la fracción de señal emocional que reside
+en cada subespacio. Si la hipótesis es correcta, las emociones con mayor fracción
+de señal en el subespacio eliminado deberían mostrar mayor caída de F1 bajo
+compresión.
+
+% -------------------------------------------------------------
+\subsection{Métricas de evaluación}
+\label{sec:met-metricas}
+% -------------------------------------------------------------
+
+La evaluación combina métricas a tres escalas: rendimiento global (F1 macro y
+micro), impacto diferencial por emoción (F1 por emoción, retención de F1) y
+calidad representacional (silhouette score).
+
+\begin{itemize}[nosep]
+    \item F1 macro: media no ponderada del F1 por emoción. Trata todas las
+    emociones por igual, independientemente de su frecuencia, y es sensible a la
+    degradación de emociones minoritarias. Es la métrica principal del proyecto.
+    \item F1 micro: F1 calculado sobre el total de predicciones. Favorece
+    las emociones frecuentes y proporciona una perspectiva complementaria.
+    \item F1 por emoción: permite identificar impactos diferenciales de la
+    compresión.
+    \item Retención de F1: $F1_{\text{comprimido}} / F1_{\text{baseline}}$,
+    expresada como porcentaje.
+    \item Ratio de parámetros: $\text{params}_{\text{comprimido}} /
+    \text{params}_{\text{original}}$, donde un ratio $< 1$ indica compresión
+    efectiva.
+    \item Silhouette score: calidad de los clusters en proyecciones t-SNE
+    de embeddings \texttt{[CLS]}.
+\end{itemize}
+
+\subsection{Entorno de ejecución}
+\label{sec:met-entorno}
+
+Todos los experimentos se ejecutaron en Google Colab (GPU Tesla T4, 16~GB VRAM) y/o
+en entorno local (CPU). Los notebooks son compatibles con ambos entornos. Se fijó la
+semilla aleatoria (42) en PyTorch, NumPy y Python para garantizar la reproducibilidad.
+El código se organizó en módulos reutilizables (\texttt{src/data},
+\texttt{src/models}, \texttt{src/compression}, \texttt{src/utils}), separados de los
+notebooks de experimentación (NB01--NB10).
+
+\subsection{Reproducibilidad}
+\label{sec:met-reproducibilidad}
+
+La reproducibilidad del proyecto se aborda en cuatro niveles:
+
+\begin{itemize}[nosep]
+    \item \textbf{Código.} El repositorio contiene los nueve notebooks
+    de experimentación (\texttt{notebooks/01b}--\texttt{09}) más el
+    notebook de \emph{logit lens} (\texttt{notebooks/08b}), todos ejecutables
+    end-to-end y con dependencias declaradas en \texttt{requirements.txt}.
+    Los módulos compartidos viven en \texttt{src/} (carga de datos,
+    SVD, métricas, hooks de extracción de activaciones).
+
+    \item \textbf{Datos.} GoEmotions \cite{demszky2020goemotions} es
+    público bajo licencia Apache~2.0 y se descarga vía la librería
+    \texttt{datasets} de Hugging Face. Los splits oficiales se utilizan
+    sin modificación más allá del filtrado de las cinco emociones
+    documentado en \S\ref{sec:met-dataset}.
+
+    \item \textbf{Modelo.} El checkpoint baseline
+    (\texttt{bert-goemotions-23emo-final}, 110~M parámetros) se obtiene
+    aplicando el procedimiento de \emph{fine-tuning} descrito en
+    \S\ref{sec:met-modelo} sobre BERT-base-uncased
+    \cite{devlin2019bert} con la semilla fija. La ejecución completa
+    ocupa unas 25~minutos en una GPU T4 de Colab.
+
+    \item \textbf{Resultados intermedios.} Cada notebook exporta sus
+    resultados a \texttt{csvs/notebookN/} y \texttt{results/notebookN/}
+    como ficheros CSV planos (más algunos PNG). Esto permite reproducir
+    cualquier figura o tabla de la memoria sin tener que re-ejecutar
+    los experimentos: basta con cargar los CSV correspondientes. Los
+    análisis estadísticos posteriores (correlaciones de Spearman,
+    bootstrap por emoción, intervalos de confianza al 95\%) son
+    deterministas dada la semilla y operan sobre estos CSV.
+\end{itemize}
+
+La principal fuente de no-determinismo residual es el orden de los
+\textit{batches} dentro de cada época de \emph{fine-tuning}, que en GPU
+introduce variaciones en la cuarta cifra decimal del F1 macro entre
+ejecuciones independientes. Las cifras reportadas en la memoria
+corresponden a la ejecución con semilla 42, y cualquier divergencia
+respecto a una réplica posterior debería caer dentro de ese margen.

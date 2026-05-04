@@ -1,0 +1,1089 @@
+% ============================================================
+% TFG — Entrega 4: Documento Final (Fita Inicial)
+% Anatomía Emocional de un Transformer: Interpretabilidad
+% Mecánica mediante Compresión Selectiva de BERT
+% Autor: Guido Biosca Lasa
+% ============================================================
+\documentclass[11pt, a4paper]{article}
+
+% --- Paquetes ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{setspace}
+\setstretch{1.30}
+\usepackage{parskip}
+\setlength{\parskip}{8pt}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!60!black,
+    citecolor=blue!60!black,
+    urlcolor=blue!60!black,
+}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{eurosym}
+\usepackage[table]{xcolor}
+\usepackage{pgfgantt}
+\usepackage{pdflscape}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+
+% --- Bibliografía ---
+\usepackage[backend=biber, style=numeric, sorting=none]{biblatex}
+\addbibresource{referencias.bib}
+
+% --- Encabezados y pies ---
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small TFG --- Anatomía Emocional de un Modelo Transformer}
+\fancyhead[R]{\small Guido Biosca Lasa}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% --- Formato de secciones ---
+\titleformat{\section}{\Large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection.}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection.}{0.5em}{}
+\titlespacing{\section}{0pt}{10pt}{5pt}
+\titlespacing{\subsection}{0pt}{8pt}{3pt}
+\titlespacing{\subsubsection}{0pt}{6pt}{2pt}
+
+% Colores Gantt
+\definecolor{ganttG0}{RGB}{173,216,230}
+\definecolor{ganttG1}{RGB}{144,238,144}
+\definecolor{ganttG2}{RGB}{255,200,100}
+\definecolor{ganttGE}{RGB}{255,140,100}
+\definecolor{ganttGO}{RGB}{180,180,180}
+\definecolor{ganttG9}{RGB}{200,170,210}
+
+% ============================================================
+\begin{document}
+
+% --- Portada ---
+\begin{titlepage}
+    \centering
+    \vspace*{1cm}
+
+    % \includegraphics[height=2cm]{images/logo-fib.png}\\[0.3cm]
+    \includegraphics[width=0.75\textwidth]{logo-upc.png}\\[0.5cm]
+    {\large Grau en Enginyeria Informàtica}\\[0.2cm]
+    {\normalsize Especialitat: Computació}
+
+    \vspace{1.5cm}
+    \rule{\textwidth}{1pt}
+    \vspace{0.5cm}
+
+    {\LARGE\bfseries Anatomía Emocional de un Modelo Transformer: Compresión Selectiva e Interpretabilidad Mecánica de BERT}
+
+    \vspace{0.5cm}
+    \rule{\textwidth}{1pt}
+
+    \vspace{0.8cm}
+    {\large Gestión de Proyectos --- Entrega 4\\
+    \textbf{Documento Final (Fita Inicial)}}
+
+    \vspace{2cm}
+
+    \begin{tabular}{rl}
+        \textbf{Autor:}            & Guido Biosca Lasa \\[0.3cm]
+        \textbf{Director/Ponente:} & Lluís Padró Cirera \\[0.3cm]
+        \textbf{Tutora de GEP:}    & Carolina Consolación Segura \\[0.3cm]
+        \textbf{Especialidad:}     & Computación \\
+    \end{tabular}
+
+    \vfill
+
+    {\large Marzo 2026}
+\end{titlepage}
+
+% --- Índice ---
+\newpage
+\tableofcontents
+\newpage
+
+% ============================================================
+% 1. INTRODUCCIÓN Y CONTEXTUALIZACIÓN
+% ============================================================
+\section{Introducción y contextualización}
+\label{sec:contexto}
+
+\subsection{Introducción}
+
+La arquitectura Transformer \cite{vaswani2017attention} ha redefinido el procesamiento del lenguaje natural (NLP). BERT (\textit{Bidirectional Encoder Representations from Transformers}) \cite{devlin2019bert}, con sus 110 millones de parámetros, fue de los primeros modelos en demostrar que una misma red pre-entrenada podía alcanzar resultados de referencia en tareas tan distintas como clasificación de texto, extracción de información o respuesta a preguntas. El problema es que 110 millones de parámetros es hoy la talla \textit{pequeña}: modelos más recientes escalan a cientos de miles de millones, y desplegarlos en entornos con recursos limitados ---dispositivos móviles, sistemas embebidos, infraestructuras con restricciones de latencia o energía--- sigue siendo un reto abierto \cite{strubell2019energy}.
+
+La \textbf{compresión de modelos} lleva años consolidándose como línea de investigación orientada a reducir el tamaño y el coste computacional de las redes neuronales sin destruir lo que han aprendido. Este trabajo fin de grado se centra en una técnica concreta ---la \textbf{descomposición en valores singulares (SVD)}--- aplicada de forma selectiva a las capas lineales de un modelo Transformer, y analiza su impacto tanto en métricas de rendimiento como en la estructura interna de las representaciones aprendidas. Además, el proyecto va más allá de la pura compresión: combina la SVD con técnicas de \textbf{interpretabilidad mecánica} (probing lineal, activation patching, ablación de cabezas de atención, análisis de neuronas FFN) para entender \textit{por qué} ciertos componentes toleran la compresión y otros no, produciendo un mapa detallado de cómo el modelo procesa internamente las emociones.
+
+\subsection{Marco del proyecto en la FIB}
+
+Este proyecto se enmarca en el Grado en Ingeniería Informática de la Facultat d'Informàtica de Barcelona (FIB), dentro de la especialidad de \textbf{Computación}. El trabajo integra conocimientos adquiridos en múltiples asignaturas del grado y de un intercambio internacional:
+
+\begin{itemize}[nosep]
+    \item \textbf{Matemáticas (M1, M2)}: álgebra lineal y cálculo matricial, base teórica de la SVD.
+    \item \textbf{Computación Numérica (CN)}: estabilidad numérica y aproximación matricial.
+    \item \textbf{Inteligencia Artificial (IA)}: fundamentos de aprendizaje automático y evaluación de modelos.
+    \item \textbf{Algorítmica (A) y Estructuras de Datos (EDA)}: diseño y análisis de complejidad.
+    \item \textbf{Paralelismo (PAR)}: ejecución eficiente en GPU y gestión de memoria.
+    \item \textbf{Projectes de Programació (PROP)}: metodologías de desarrollo de software y gestión de proyectos.
+    \item \textbf{Intercambio en DTU (Dinamarca, Q1 2024--25)}: asignaturas de nivel máster en \textit{Machine Learning}, \textit{Deep Learning} y \textit{Graph Neural Networks}, que proporcionaron la base técnica directa para el trabajo con Transformers y técnicas de interpretabilidad.
+\end{itemize}
+
+Adicionalmente, durante el Q2 2025--26 se cursa simultáneamente la asignatura \textbf{Compresión de Datos e Imagen (CDI)}, cuyo contenido es directamente complementario al tema del TFG.
+
+El proyecto tiene un carácter eminentemente experimental y de investigación: no se desarrolla un producto de software, sino que se realiza un \textbf{estudio sistemático} que produce conocimiento sobre cómo la compresión SVD afecta a diferentes componentes estructurales de un Transformer y qué revela esto sobre la organización interna de las representaciones emocionales en el modelo.
+
+\subsection{Conceptos fundamentales}
+\label{sec:conceptos}
+
+Para facilitar la comprensión del proyecto, se definen a continuación los conceptos clave que vertebran el estudio.
+
+\subsubsection{Modelos Transformer}
+
+La arquitectura Transformer, propuesta por Vaswani et al.\ \cite{vaswani2017attention}, reemplaza las redes recurrentes por un mecanismo de \textbf{autoatención} (\textit{self-attention}) que permite procesar secuencias de forma paralela. Cada capa del encoder contiene dos bloques principales:
+
+\begin{itemize}[nosep]
+    \item \textbf{Bloque de atención}: compuesto por matrices de proyección Query ($W_Q$), Key ($W_K$), Value ($W_V$) y una proyección de salida ($W_O$). Estas cuatro matrices lineales implementan la atención multi-cabeza.
+    \item \textbf{Bloque feed-forward (FFN)}: una red con dos capas lineales ---una intermedia que expande la dimensionalidad ($W_{inter}$, de 768 a 3072 en BERT-base) y una de salida que la reduce de vuelta ($W_{out}$, de 3072 a 768).
+\end{itemize}
+
+BERT-base \cite{devlin2019bert} apila 12 de estas capas, con un total de 6 matrices lineales por capa $\times$ 12 capas = \textbf{72 matrices comprimibles}. La Tabla~\ref{tab:capas} detalla las dimensiones de cada tipo de capa lineal en BERT-base.
+
+\begin{table}[H]
+    \centering
+    \caption{Capas lineales del encoder de BERT-base (por capa del encoder).}
+    \label{tab:capas}
+    \small
+    \begin{tabular}{@{}l l c c@{}}
+        \toprule
+        \textbf{Bloque} & \textbf{Componente} & \textbf{Dimensiones} & \textbf{Parámetros} \\
+        \midrule
+        Atención & Query ($W_Q$)           & $768 \times 768$  & 589.824 \\
+        Atención & Key ($W_K$)             & $768 \times 768$  & 589.824 \\
+        Atención & Value ($W_V$)           & $768 \times 768$  & 589.824 \\
+        Atención & Output ($W_O$)          & $768 \times 768$  & 589.824 \\
+        FFN      & Intermediate ($W_{inter}$)  & $768 \times 3072$ & 2.359.296 \\
+        FFN      & Output ($W_{out}$)      & $3072 \times 768$ & 2.359.296 \\
+        \midrule
+        \multicolumn{3}{l}{\textbf{Total por capa del encoder}} & 7.077.888 \\
+        \multicolumn{3}{l}{\textbf{Total 12 capas (encoder completo)}} & 84.934.656 \\
+        \bottomrule
+    \end{tabular}
+    \\[0.15cm]{\small Fuente: elaboración propia.}
+\end{table}
+
+BERT sigue el paradigma de \textbf{pre-entrenamiento y fine-tuning}: se pre-entrena sobre texto no etiquetado (Wikipedia + BookCorpus) con tareas auto-supervisadas (\textit{Masked Language Modeling} y \textit{Next Sentence Prediction}), y después se fine-tunea sobre datos etiquetados de la tarea objetivo añadiendo una capa de clasificación sobre el token \texttt{[CLS]}. Este paradigma hace que la compresión post-fine-tuning sea especialmente interesante: permite analizar pesos ya adaptados a la tarea, cuya estructura puede diferir de los pesos pre-entrenados.
+
+\subsubsection{Descomposición en Valores Singulares (SVD)}
+
+La SVD es una factorización matricial que descompone cualquier matriz $W \in \mathbb{R}^{m \times n}$ en tres componentes \cite{golub1971singular}:
+\begin{equation}
+    W = U \Sigma V^T
+\end{equation}
+donde $U \in \mathbb{R}^{m \times m}$ y $V \in \mathbb{R}^{n \times n}$ son matrices ortogonales, y $\Sigma \in \mathbb{R}^{m \times n}$ es una matriz diagonal con los valores singulares $\sigma_1 \geq \sigma_2 \geq \cdots \geq \sigma_{\min(m,n)} \geq 0$.
+
+El teorema de Eckart-Young \cite{eckart1936approximation} garantiza que la mejor aproximación de rango $k$ de $W$ (en norma de Frobenius) se obtiene truncando la SVD a los $k$ mayores valores singulares:
+\begin{equation}
+    W \approx W_k = U_k \Sigma_k V_k^T
+\end{equation}
+
+En la práctica, esto permite reemplazar una capa lineal $W$ de dimensión $m \times n$ por dos capas: $V_k^T$ ($k \times n$) y $U_k \Sigma_k$ ($m \times k$). Por ejemplo, para una capa de $768 \times 768$ (590K parámetros), una aproximación de rango $k=128$ requiere solo $768 \times 128 + 128 \times 768 = 196.608$ parámetros, una reducción del 67\%.
+
+Un concepto clave es la \textbf{energía de los valores singulares}: la fracción de la norma de Frobenius al cuadrado capturada por los $k$ primeros valores singulares,
+\begin{equation}
+    E(k) = \frac{\sum_{i=1}^{k} \sigma_i^2}{\sum_{i=1}^{n} \sigma_i^2}
+\end{equation}
+Capas con decaimiento rápido del espectro (energía alta con pocos valores singulares) son más comprimibles; capas con espectro plano requieren rangos más altos para preservar la información.
+
+\subsubsection{Clasificación multi-etiqueta de emociones}
+
+El dataset GoEmotions \cite{demszky2020goemotions} contiene 58.000 comentarios de Reddit anotados con 28 categorías de emoción. A diferencia de la clasificación estándar, cada texto puede expresar \textbf{múltiples emociones simultáneamente} (por ejemplo, \textit{admiración} y \textit{alegría}). Este escenario resulta especialmente exigente: el modelo debe resolver la co-ocurrencia de emociones con matices semánticos cercanos, lo que lo convierte en un buen banco de pruebas para evaluar la degradación bajo compresión.
+
+\subsection{Formulación del problema}
+\label{sec:problema}
+
+El problema central que aborda este proyecto puede formularse como:
+
+\begin{quote}
+    \textit{¿Cómo afecta la compresión SVD selectiva ---aplicada por tipo de componente y por profundidad de capa--- al rendimiento y a la calidad de las representaciones internas de un modelo Transformer fine-tuneado para clasificación de emociones? ¿Y qué revelan las técnicas de interpretabilidad mecánica sobre la organización interna de la información emocional en el modelo?}
+\end{quote}
+
+Los trabajos previos de compresión SVD en Transformers ---como los de Noach y Goldberg \cite{noach2020compressing} o Hsu et al.\ \cite{hsu2022language}--- han analizado mayoritariamente la compresión \textbf{uniforme}: se aplica el mismo grado de compresión a todas las capas por igual. Sin embargo, las distintas capas de BERT codifican tipos de información diferentes ---desde rasgos léxicos y sintácticos en capas tempranas hasta rasgos semánticos y específicos de la tarea en capas tardías \cite{tenney2019bert, jawahar2019what}. Del mismo modo, los componentes de atención (Q, K, V) y las capas FFN desempeñan roles funcionales distintos.
+
+Este proyecto propone un \textbf{análisis desagregado}: comprimir selectivamente cada tipo de componente y cada grupo de capas por separado, midiendo el impacto diferencial de cada configuración. El resultado es un mapa detallado de \textit{sensibilidad a la compresión} por componente y profundidad, complementado con evidencia causal procedente de técnicas de interpretabilidad mecánica.
+
+\subsection{Actores implicados}
+\label{sec:actores}
+
+Los resultados de este proyecto afectan, directa o indirectamente, a varios grupos:
+
+\begin{itemize}[nosep]
+    \item \textbf{Investigadores e ingenieros de NLP}: beneficiarios primarios de los mapas de sensibilidad, aplicables al diseño de estrategias de compresión y a decisiones de despliegue en entornos con recursos limitados.
+    \item \textbf{Comunidad académica y de código abierto}: el código reproducible y modular, basado en Hugging Face Transformers \cite{wolf2020transformers}, permite reutilizar la metodología para otros modelos y tareas.
+    \item \textbf{Empresas que usan modelos de lenguaje}: organizaciones que integran modelos en sus productos (moderación de contenido, análisis de opinión, clasificación de tickets) y buscan reducir costes de infraestructura.
+\end{itemize}
+
+% ============================================================
+% 2. JUSTIFICACIÓN
+% ============================================================
+\section{Justificación de la alternativa de resolución escogida}
+\label{sec:justificacion}
+
+\subsection{Estado del arte en compresión de Transformers}
+
+La compresión de modelos Transformer es un área de investigación consolidada con múltiples enfoques \cite{ganesh2021compressing}. Las principales familias de métodos son:
+
+\begin{enumerate}[nosep]
+    \item \textbf{Poda (\textit{pruning})}: eliminación de pesos o estructuras completas (cabezas de atención, capas) cuya contribución es marginal \cite{han2015deep, wang2019structured}. Requiere criterios de importancia y, a menudo, re-entrenamiento.
+    \item \textbf{Cuantización}: reducción de la precisión numérica de los pesos (de float32 a int8), reduciendo memoria y acelerando inferencia en hardware compatible \cite{jacob2018quantization}.
+    \item \textbf{Destilación del conocimiento}: un modelo pequeño (\textit{student}) imita a uno grande (\textit{teacher}). DistilBERT \cite{sanh2019distilbert} reduce BERT a 6 capas conservando el 97\% del rendimiento. Requiere entrenamiento completo.
+    \item \textbf{Factorización de bajo rango}: descomposición de matrices de pesos en productos de menor dimensión. La SVD es el método más directo \cite{jaderberg2014speeding, noach2020compressing, hsu2022language}.
+    \item \textbf{Adaptación de bajo rango (LoRA)}: fine-tuning eficiente con adaptadores de bajo rango sobre pesos congelados \cite{hu2022lora}. QLoRA \cite{dettmers2023qlora} lo combina con cuantización de 4 bits, permitiendo fine-tunear modelos de 65B parámetros en una sola GPU.
+\end{enumerate}
+
+Con la llegada de LLMs como LLaMA \cite{touvron2023llama}, que alcanzan decenas de miles de millones de parámetros, la compresión ha dejado de ser opcional: sin ella, estos modelos son inaccesibles para la mayoría de organizaciones.
+
+\subsection{Comparativa de enfoques}
+
+La Tabla~\ref{tab:comparativa} resume las características de cada familia de técnicas de compresión.
+
+\begin{table}[H]
+    \centering
+    \caption{Comparativa de técnicas de compresión para modelos Transformer.}
+    \label{tab:comparativa}
+    \small
+    \begin{tabular}{@{}l c c c c c@{}}
+        \toprule
+        \textbf{Criterio} & \textbf{Poda} & \textbf{Cuantiz.} & \textbf{Destilación} & \textbf{SVD} & \textbf{LoRA} \\
+        \midrule
+        Requiere re-entrenamiento  & Sí/Parcial & No/Parcial & Sí (completo) & No   & Sí (parcial) \\
+        Granularidad de control    & Media       & Baja       & Baja           & Alta & Alta \\
+        Garantías teóricas         & No          & Parcial    & No             & Sí   & Parcial \\
+        Aplicable post-hoc         & Parcial     & Sí         & No             & Sí   & No \\
+        Hardware especializado     & No          & Sí         & No             & No   & No \\
+        Combinable con otras       & Sí          & Sí         & Parcial        & Sí   & Sí \\
+        \bottomrule
+    \end{tabular}
+    \\[0.15cm]{\small Fuente: elaboración propia a partir de \cite{ganesh2021compressing, hu2022lora}.}
+\end{table}
+
+\subsection{Justificación del enfoque propuesto}
+
+De entre las técnicas disponibles, la \textbf{factorización SVD} es la que mejor encaja con este proyecto por cuatro razones: (1)~\textbf{no requiere re-entrenamiento}, permitiendo evaluar decenas de configuraciones sin repetir fine-tuning; (2)~ofrece \textbf{granularidad máxima}, aplicándose a cada capa lineal con un rango específico, lo que habilita el análisis diferenciado por componente y profundidad; (3)~el teorema de Eckart-Young \cite{eckart1936approximation} proporciona \textbf{garantías matemáticas} de que la aproximación de rango $k$ es óptima en norma de Frobenius; y (4)~el espectro de valores singulares aporta \textbf{interpretabilidad} directa, permitiendo relacionar la estructura matemática de los pesos con su sensibilidad a la compresión.
+
+Trabajos previos ya han demostrado la viabilidad de esta idea. Noach y Goldberg \cite{noach2020compressing} aplicaron factorización matricial a BERT con pérdidas moderadas de rendimiento, aunque trataron todas las capas de forma homogénea. Hsu et al.\ \cite{hsu2022language} propusieron una variante ponderada, pero su análisis se centra en el rendimiento global sin distinguir entre tipos de componente. Ninguno de estos estudios analiza el \textbf{impacto diferenciado por componente estructural y por profundidad de capa}, ni examina cómo la compresión altera la \textbf{geometría del espacio de embeddings}, ni complementa los resultados con técnicas de interpretabilidad mecánica para establecer evidencia causal. Estas son las contribuciones de este TFG.
+
+\subsection{Motivación desde la sostenibilidad}
+
+La compresión tiene también una dimensión energética relevante. Strubell et al.\ \cite{strubell2019energy} estimaron que entrenar ciertos modelos de NLP puede emitir cantidades de CO$_2$ comparables a las de varios coches a lo largo de su vida útil, y Schwartz et al.\ \cite{schwartz2020green} acuñaron el término \textit{Green AI} para abogar por priorizar la eficiencia computacional. La compresión SVD post-entrenamiento es especialmente afín a esta filosofía: reduce el coste de inferencia ---donde se concentra el gasto energético a largo plazo--- \textbf{sin requerir ningún entrenamiento adicional}. Este proyecto contribuye a identificar dónde comprimir más agresivamente, maximizando esa ganancia.
+
+% ============================================================
+% 3. ALCANCE
+% ============================================================
+\section{Alcance del proyecto}
+\label{sec:alcance}
+
+\subsection{Objetivo general}
+
+\begin{quote}
+    Caracterizar cómo la compresión SVD selectiva afecta a las representaciones internas y al rendimiento de un modelo BERT fine-tuneado para clasificación de emociones, combinando análisis de sensibilidad por componente y profundidad con técnicas de interpretabilidad mecánica, para producir tanto un mapa de sensibilidad a la compresión como una comprensión causal de la organización emocional del modelo, y derivar a partir de ello una estrategia de compresión optimizada que maximice la reducción de parámetros con mínima pérdida de rendimiento.
+\end{quote}
+
+\subsection{Sub-objetivos}
+\label{sec:subobjetivos}
+
+El objetivo general se descompone en los siguientes sub-objetivos:
+
+\begin{enumerate}[nosep]
+    \item \textbf{O1 --- Establecer un baseline competitivo}: Demostrar que BERT-base-uncased puede alcanzar clasificación multi-etiqueta funcional sobre las 28 emociones de GoEmotions, sirviendo como referencia para medir toda degradación posterior.
+    \item \textbf{O2 --- Implementar un módulo de compresión SVD reutilizable}: Desarrollar una herramienta que permita aplicar SVD truncada a capas lineales seleccionadas, con soporte para compresión uniforme y selectiva por componente y/o capa.
+    \item \textbf{O3 --- Cuantificar el trade-off compresión--rendimiento}: Determinar cómo evoluciona el F1 macro en función del rango SVD uniforme (512, 384, 256, 128, 64) sobre todas las capas del encoder, estableciendo los límites de la compresión ciega.
+    \item \textbf{O4 --- Evidenciar visualmente la degradación de representaciones}: Producir proyecciones t-SNE de embeddings [CLS] que muestren cómo los clusters de emociones se deterioran progresivamente con la compresión.
+    \item \textbf{O5 --- Identificar la sensibilidad diferenciada por componente}: Revelar qué tipos de capas lineales (Q, K, V, Output, FFN Inter, FFN Out) son más vulnerables a la compresión y cuáles son prescindibles, mediante compresión selectiva a tres niveles de rango.
+    \item \textbf{O6 --- Identificar la sensibilidad diferenciada por profundidad}: Determinar si las capas tempranas (0--3), intermedias (4--7) o tardías (8--11) del encoder son más críticas para la clasificación emocional.
+    \item \textbf{O7 --- Caracterizar el espectro SVD y diseñar compresión adaptativa}: Utilizar el perfil de energía de valores singulares de las 72 matrices del encoder para asignar rangos no uniformes y evaluar la estrategia adaptativa en la frontera de Pareto.
+    \item \textbf{O8 --- Localizar dónde cristaliza cada emoción}: Mediante probing lineal capa a capa (13 capas $\times$ 28 emociones = 364 probes), determinar a qué profundidad cada emoción se vuelve linealmente separable en las representaciones del modelo.
+    \item \textbf{O9 --- Establecer evidencia causal de localización emocional}: Usar activation patching para distinguir si una capa \textit{computa} información emocional o simplemente la \textit{transmite}, superando la limitación de los estudios correlacionales.
+    \item \textbf{O10 --- Mapear la especialización a nivel de cabeza y neurona}: Identificar cabezas de atención y neuronas FFN especializadas en emociones específicas mediante ablación sistemática y análisis de activaciones.
+    \item \textbf{O11 --- Sintetizar una estrategia de compresión informada}: Integrar los hallazgos de O5--O10 para diseñar una asignación de rangos SVD por capa y componente que supere a las estrategias uniforme y adaptativa en la frontera de Pareto.
+\end{enumerate}
+
+Los sub-objetivos O1--O11 constituyen el núcleo del TFG. Complementariamente, si el calendario lo permite, se abordarán: la cuantificación de la recuperación post-compresión mediante fine-tuning breve (2--3 epochs) y benchmarks de inferencia (latencia y throughput en CPU y GPU).
+
+\subsection{Requisitos}
+
+\subsubsection{Requisitos funcionales}
+
+\begin{itemize}[nosep]
+    \item \textbf{RF1}: Compresión SVD aplicable a cualquier subconjunto de capas lineales del encoder, por tipo de componente y/o índices de capa.
+    \item \textbf{RF2}: Evaluación automática de cada modelo comprimido con F1 macro y micro sobre el conjunto de test.
+    \item \textbf{RF3}: Extracción de embeddings [CLS] y generación de proyecciones t-SNE conjuntas.
+    \item \textbf{RF4}: Cálculo de silhouette score sobre las proyecciones t-SNE.
+    \item \textbf{RF5}: Extracción de hidden states de todas las capas para probing y análisis de activaciones.
+    \item \textbf{RF6}: Mecanismo de activation patching (intervención causal) por capa y componente.
+    \item \textbf{RF7}: Ablación individual de las 144 cabezas de atención con medición de F1 por emoción.
+    \item \textbf{RF8}: Generación de figuras y tablas exportables (PNG, CSV).
+    \item \textbf{RF9}: Rangos de compresión diferenciados por tipo de componente y por capa individual.
+    \item \textbf{RF10}: Medición de latencia (ms/batch) y throughput (muestras/s) en CPU y GPU.
+    \item \textbf{RF11}: Fine-tuning parcial del modelo comprimido con congelación selectiva de capas.
+\end{itemize}
+
+\subsubsection{Requisitos no funcionales}
+
+\begin{itemize}[nosep]
+    \item \textbf{RNF1 --- Reproducibilidad}: Experimentos reproducibles fijando semillas aleatorias (seed 42) y documentando versiones de dependencias.
+    \item \textbf{RNF2 --- Modularidad}: Código organizado en módulos reutilizables (\texttt{src/data}, \texttt{src/models}, \texttt{src/compression}, \texttt{src/utils}) separados de los notebooks.
+    \item \textbf{RNF3 --- Compatibilidad}: Notebooks ejecutables tanto en entorno local como en Google Colab.
+    \item \textbf{RNF4 --- Eficiencia de memoria}: Compresión sobre copias del modelo, liberando memoria tras cada evaluación.
+    \item \textbf{RNF5 --- Estabilidad numérica}: SVD computada en float32 independientemente de la precisión del modelo.
+\end{itemize}
+
+\subsection{Obstáculos y riesgos}
+\label{sec:riesgos}
+
+La Tabla~\ref{tab:riesgos} identifica los principales obstáculos y riesgos del proyecto, junto con su probabilidad, impacto y plan de mitigación.
+
+\begin{table}[H]
+    \centering
+    \caption{Identificación de obstáculos y riesgos del proyecto.}
+    \label{tab:riesgos}
+    \small
+    \begin{tabular}{@{}p{3.8cm} c c p{5.5cm}@{}}
+        \toprule
+        \textbf{Riesgo} & \textbf{Prob.} & \textbf{Impacto} & \textbf{Mitigación} \\
+        \midrule
+        R1 --- Recursos computacionales insuficientes (GPU) & Media & Alto & Uso de Google Colab Pro; evaluaciones en CPU si es necesario; subsampleo para t-SNE. \\[0.2cm]
+        R2 --- Inestabilidad numérica en SVD con rangos muy bajos & Baja & Medio & Cálculo en float32; validación de resultados antes de cada evaluación. \\[0.2cm]
+        R3 --- Tiempo de ejecución excesivo ($>$60 modelos $\times$ evaluación) & Alta & Medio & Ejecución secuencial con liberación de memoria; priorización de experimentos clave. \\[0.2cm]
+        R4 --- Métricas no capturan degradación real & Baja & Alto & Uso de métricas complementarias (F1 + silhouette + visualización cualitativa). \\[0.2cm]
+        R5 --- Bug en la selección de capas & Media & Medio & Tests de validación del módulo de filtrado; soluciones alternativas documentadas. \\[0.2cm]
+        R6 --- Fine-tuning post-SVD no recupera rendimiento & Media & Medio & Documentar como hallazgo válido; evaluar múltiples learning rates y epochs. \\[0.2cm]
+        R7 --- Desviación del calendario por complejidad imprevista & Media & Alto & Priorizar O1--O11 como núcleo del TFG; fine-tuning y benchmarks como opcionales. \\
+        \bottomrule
+    \end{tabular}
+    \\[0.15cm]{\small Fuente: elaboración propia.}
+\end{table}
+
+% ============================================================
+% 4. METODOLOGÍA Y RIGOR
+% ============================================================
+\section{Metodología y rigor}
+\label{sec:metodologia}
+
+\subsection{Metodología de trabajo}
+
+Dado el carácter experimental e iterativo del proyecto, se adopta una metodología \textbf{incremental iterativa}, tomando elementos de marcos ágiles como Scrum ---estudiados en la asignatura Projectes de Programació (PROP)--- adaptados a un contexto unipersonal. En concreto, de PROP se adoptan los principios de iteración corta con entregables verificables y retrospectiva al final de cada fase; sin embargo, al ser un proyecto unipersonal no se aplican ceremonias de equipo (daily standup, sprint review) sino reuniones quincenales con el director del TFG.
+
+Esta elección se justifica por la naturaleza exploratoria del proyecto: a diferencia de una metodología en cascada, la iteración permite ajustar el alcance y el diseño de fases posteriores en función de los hallazgos intermedios. Por ejemplo, los resultados de compresión uniforme (G3) motivaron el análisis desagregado por componente (G4), y los estudios de lesión (G5) revelaron la necesidad de técnicas causales como activation patching (G6) ---técnica que no estaba prevista en la planificación original y se incorporó tras observar que las lesiones no permitían distinguir computación de transmisión de información.
+
+Cada fase sigue un ciclo interno de: \textit{diseño} $\rightarrow$ \textit{implementación} $\rightarrow$ \textit{ejecución} $\rightarrow$ \textit{análisis} $\rightarrow$ \textit{validación}. El backlog de trabajo se gestiona mediante GitHub Issues, con etiquetas por fase y prioridad, y los resultados de cada fase se exportan en CSV y figuras PNG versionadas en el repositorio.
+
+La Figura~\ref{fig:pipeline} muestra el flujo lógico del proyecto: las fases de compresión y análisis (G3--G4) generan observaciones que motivan las fases de interpretabilidad (G5--G6), y ambas convergen en la síntesis informada (G7).
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+    node distance=0.6cm and 0.4cm,
+    block/.style={rectangle, rounded corners, draw=black!70, fill=#1!15, minimum height=0.9cm, minimum width=2.2cm, align=center, font=\small},
+    block/.default=blue,
+    arr/.style={-{Stealth[length=5pt]}, thick, black!60},
+]
+% Row 1: Core pipeline
+\node[block=green] (g1) {G1\\Baseline};
+\node[block=orange, right=of g1] (g2) {G2\\Módulo SVD};
+\node[block=red, right=of g2] (g3) {G3\\Uniforme+\\Espectral};
+\node[block=red, right=of g3] (g4) {G4\\Componente+\\Profundidad};
+\node[block=purple, right=of g4] (g7) {G7\\Síntesis\\Informada};
+
+% Row 2: Interpretability
+\node[block=cyan, below=0.8cm of g3] (g5) {G5\\Lesion\\Study};
+\node[block=cyan, right=of g5] (g6) {G6\\Interpretabilidad\\Mecánica};
+
+% Arrows main flow
+\draw[arr] (g1) -- (g2);
+\draw[arr] (g2) -- (g3);
+\draw[arr] (g3) -- (g4);
+\draw[arr] (g4) -- (g7);
+
+% Arrows to interpretability
+\draw[arr] (g2) |- (g5);
+\draw[arr] (g3) -- (g5);
+\draw[arr] (g5) -- (g6);
+\draw[arr] (g3) -- (g6);
+
+% Convergence
+\draw[arr] (g4.south) -- ++(0,-0.4) -| (g7.south);
+\draw[arr] (g6) -| (g7);
+
+% Labels
+\node[above=0.15cm of g3, font=\scriptsize\itshape, text=black!60] {Compresión y análisis};
+\node[below=0.15cm of g5, font=\scriptsize\itshape, text=black!60, xshift=1.2cm] {Interpretabilidad causal};
+\end{tikzpicture}
+}%
+\caption{Flujo lógico del proyecto. Las fases de compresión (rojo) y de interpretabilidad (azul) convergen en la síntesis informada (violeta).}
+\label{fig:pipeline}
+\end{figure}
+
+La Tabla~\ref{tab:fases} resume las fases del proyecto, sus entregables principales y los sub-objetivos que cubren.
+
+\begin{table}[H]
+    \centering
+    \caption{Fases del proyecto, entregables y sub-objetivos asociados.}
+    \label{tab:fases}
+    \small
+    \begin{tabular}{@{}c l l c@{}}
+        \toprule
+        \textbf{Fase} & \textbf{Descripción} & \textbf{Entregable principal} & \textbf{Obj.} \\
+        \midrule
+        G0 & Gestión del proyecto              & Entregas GEP + memoria          & --- \\
+        G1 & Configuración y baseline           & Modelo guardado + F1 base       & O1 \\
+        G2 & Módulo de compresión SVD           & Módulo \texttt{src/compression}  & O2 \\
+        G3 & Compresión uniforme y espectral    & Curvas, espectro, Pareto        & O3, O7 \\
+        G4 & Análisis comp.\ + profundidad      & Heatmaps + t-SNE + CSVs         & O4, O5, O6 \\
+        G5 & Lesion study                       & Mapa emocional + clustering     & O5, O6 \\
+        G6 & Interpretabilidad mecánica         & Probing, patching, ablación     & O8, O9, O10 \\
+        G7 & Síntesis informada                 & Estrategia óptima + Pareto      & O11 \\
+        G8 & Objetivos secundarios (opcionales) & FT recovery + benchmarks        & --- \\
+        G9 & Cierre y síntesis                  & Memoria final + presentación    & --- \\
+        \bottomrule
+    \end{tabular}
+    \\[0.15cm]{\small Fuente: elaboración propia.}
+\end{table}
+
+\subsection{Herramientas de desarrollo y seguimiento}
+\label{sec:herramientas}
+
+\begin{itemize}[nosep]
+    \item \textbf{Control de versiones}: Git con repositorio en GitHub para el código fuente y los notebooks.
+    \item \textbf{Seguimiento de tareas}: GitHub Issues como backlog del proyecto, con etiquetas por fase y prioridad.
+    \item \textbf{Entorno de experimentación}: Jupyter Notebooks, ejecutables localmente y en Google Colab.
+    \item \textbf{Lenguaje y ecosistema}: Python 3.10+, PyTorch, Hugging Face Transformers \cite{wolf2020transformers}, scikit-learn, matplotlib, seaborn.
+    \item \textbf{Gestión de dependencias}: \texttt{requirements.txt} con versiones fijadas para reproducibilidad.
+    \item \textbf{Seguimiento de resultados}: Cada notebook exporta resultados en CSV y figuras en PNG, versionados en el repositorio.
+\end{itemize}
+
+\subsection{Métodos de validación}
+
+Para validar que se alcanzan los objetivos del proyecto, se definen los siguientes criterios:
+
+\begin{itemize}[nosep]
+    \item \textbf{Validación cuantitativa}: F1 macro y micro sobre el conjunto de test completo de GoEmotions, junto con el ratio de compresión (parámetros originales / comprimidos).
+    \item \textbf{Validación de representaciones}: silhouette score sobre las proyecciones t-SNE de los embeddings [CLS], utilizando las emociones dominantes como etiquetas de cluster.
+    \item \textbf{Validación visual}: paneles de scatter plots y contornos KDE para inspección cualitativa de la degradación.
+    \item \textbf{Validación causal}: activation patching para distinguir computación de transmisión de información.
+    \item \textbf{Reproducibilidad}: todos los experimentos fijan la semilla aleatoria (42), y el código modular permite re-ejecutar cualquier configuración de forma aislada.
+\end{itemize}
+
+% ============================================================
+% 5. PLANIFICACIÓN TEMPORAL
+% ============================================================
+\section{Planificación temporal}
+\label{sec:planificacion}
+
+\subsection{Datos globales del proyecto}
+
+\begin{table}[H]
+\centering
+\caption{Parámetros temporales del proyecto.}
+\label{tab:globales}
+\small
+\begin{tabular}{@{}ll@{\quad}ll@{}}
+\toprule
+\textbf{Parámetro}          & \textbf{Valor}        & \textbf{Parámetro}                  & \textbf{Valor} \\
+\midrule
+Fecha de inicio              & 2 feb.\ 2026          & Horas diarias de trabajo            & 4 h/día (días lectivos) \\
+Fecha de fin prevista        & 26 jun.\ 2026         & Total horas núcleo                  & 457 h \\
+Duración total               & 22 semanas            & Total horas opcionales              & 40 h \\
+Fecha prevista de lectura    & Julio 2026            & \textbf{Total general}              & \textbf{497 h ($\approx$20 ECTS)} \\
+\bottomrule
+\end{tabular}
+\\[0.15cm]{\small Fuente: elaboración propia.}
+\end{table}
+
+\textbf{Recurso humano}: Guido Biosca Lasa (autor y desarrollador único), con dedicación de 4~h/día en días lectivos. Aunque todas las tareas son ejecutadas por el autor, se asigna a cada tarea el \textbf{perfil profesional} que mejor se ajusta al tipo de trabajo realizado: Jefe de Proyecto (JP), Científico de Datos (CD) o Desarrollador (Dev). Esta diferenciación refleja las competencias requeridas y permite una estimación presupuestaria realista.
+
+\begin{table}[H]
+\centering
+\caption{Recursos materiales del proyecto.}
+\label{tab:recursos}
+\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Recurso} & \textbf{Descripción} & \textbf{Tareas principales} \\
+\midrule
+PC personal       & Desarrollo, análisis, visualización          & Todas \\
+GPU (Google Colab) & Entrenamiento y evaluación de modelos        & T07, T11, T15--T16, T18, T21--T23, T24, T26 \\
+GitHub             & Control de versiones y repositorio de código & T06 y todas \\
+Overleaf           & Editor \LaTeX{} en línea para la memoria      & T01--T03, T05, T28 \\
+PyTorch + HF       & Framework de deep learning y modelos         & T07--T25 \\
+Videoconferencia   & Reuniones con el director                    & T04 \\
+\bottomrule
+\end{tabular}
+\\[0.15cm]{\small Fuente: elaboración propia.}
+\end{table}
+
+\subsection{Descripción de las fases y tareas}
+\label{sec:tareas}
+
+A continuación se describe cada fase con sus tareas, entregables y justificación de horas.
+
+\subsubsection{G0 --- Gestión del proyecto (130 h)}
+
+Comprende las tres entregas GEP, el seguimiento con el director y la documentación continua. Se ejecuta de forma \textbf{concurrente} durante todo el proyecto.
+
+\begin{itemize}[nosep, leftmargin=1.2em, itemsep=2pt]
+    \item \textbf{T01} (20~h, JP): Contextualización y alcance (Entrega~1 GEP). Incluye estado del arte, definición de los sub-objetivos y análisis de riesgos inicial. \textit{Entregable}: documento E1.
+    \item \textbf{T02} (15~h, JP): Planificación temporal (Entrega~2 GEP). Desglose de tareas, estimaciones, diagrama de Gantt y planes de contingencia. \textit{Entregable}: documento E2.
+    \item \textbf{T03} (15~h, JP): Presupuesto, sostenibilidad e impacto ético (Entrega~3 GEP). \textit{Entregable}: documento E3.
+    \item \textbf{T04} (20~h, JP, concurrente): Seguimiento con el director --- 10 reuniones $\times$ 2~h (preparación + reunión + acta). Validación de resultados intermedios y reorientación si procede.
+    \item \textbf{T05} (60~h, JP, concurrente): Redacción progresiva de la memoria. Las 60~h se justifican por un volumen estimado de $\approx$70 páginas con figuras, tablas y análisis. \textit{Entregable}: borrador acumulativo de la memoria.
+\end{itemize}
+
+\subsubsection{G1 --- Configuración y baseline (39 h)}
+
+Establece el entorno de desarrollo y el modelo de referencia contra el que se medirá toda degradación posterior.
+
+\begin{itemize}[nosep, leftmargin=1.2em, itemsep=2pt]
+    \item \textbf{T06} (8~h, Dev): Creación del repositorio GitHub, entorno Python con \texttt{requirements.txt} y compatibilidad con Google Colab. \textit{Entregable}: repo funcional.
+    \item \textbf{T07} (25~h, CD): Fine-tuning de BERT-base-uncased sobre GoEmotions (28 emociones, clasificación multi-etiqueta). Incluye pipeline de datos, entrenamiento con Hugging Face Trainer y ajuste de hiperparámetros (learning rate, epochs, batch size). Las 25~h contemplan múltiples ejecuciones de ajuste. \textit{Entregable}: checkpoint del modelo en \texttt{results/bert-goemotions-final/}.
+    \item \textbf{T08} (6~h, CD): Evaluación del baseline --- F1 macro, F1 micro y F1 por emoción sobre el test set. Exportación a CSV como referencia. \textit{Entregable}: métricas baseline.
+\end{itemize}
+
+\subsubsection{G2 --- Módulo de compresión SVD (30 h)}
+
+Implementación del núcleo técnico del proyecto: la sustitución de capas \texttt{nn.Linear} por factorizaciones de bajo rango.
+
+\begin{itemize}[nosep, leftmargin=1.2em, itemsep=2pt]
+    \item \textbf{T09} (20~h, Dev): Implementación de \texttt{SVDLinear} (factorización $W \approx U_k \Sigma_k V_k^\top$) y \texttt{apply\_svd\_compression()} con soporte para rango uniforme y por capa. Las 20~h se justifican por la complejidad de la indexación dinámica de capas en la arquitectura Hugging Face. \textit{Entregable}: módulo \texttt{src/compression/svd.py}.
+    \item \textbf{T10} (10~h, Dev): Tests de validación --- verificación de dimensiones, conteo de parámetros reducidos y comprobación de que rango completo reproduce exactamente las métricas del baseline. \textit{Entregable}: suite de tests.
+\end{itemize}
+
+\subsubsection{G3 --- Compresión uniforme y análisis espectral (50 h)}
+
+Primer bloque experimental: compresión uniforme y estudio de la distribución de valores singulares para fundamentar una compresión no uniforme.
+
+\begin{itemize}[nosep, leftmargin=1.2em, itemsep=2pt]
+    \item \textbf{T11} (15~h, CD): Experimentos con rangos $\{512, 384, 256, 128, 64\}$ sobre las 72 matrices del encoder. \textit{Entregable}: resultados en CSV.
+    \item \textbf{T12} (10~h, CD): Cálculo del perfil de energía ($\sum \sigma_i^2$) de las 72 matrices del encoder. Fingerprint espectral por componente y mapa de compresibilidad. Ejecutable en paralelo con T11. \textit{Entregable}: datos de energía espectral.
+    \item \textbf{T13} (10~h, CD): Diseño de la estrategia adaptativa (selección de rango por umbral de energía a 80\%, 85\%, 90\%, 95\%, 99\%). \textit{Entregable}: configuraciones adaptativas.
+    \item \textbf{T14} (15~h, CD): Generación de curvas F1 macro/micro vs.\ ratio de compresión, análisis de vulnerabilidad por emoción y construcción de la frontera de Pareto (uniforme vs.\ adaptativa). Diseño de recetas mixtas data-driven. \textit{Entregable}: figuras para la memoria.
+\end{itemize}
+
+\subsubsection{G4 --- Análisis por componente y profundidad (45 h)}
+
+Compresión selectiva para identificar qué partes del Transformer son más sensibles, incluyendo análisis visual de representaciones.
+
+\begin{itemize}[nosep, leftmargin=1.2em, itemsep=2pt]
+    \item \textbf{T15} (20~h, CD): Experimentos por componente --- se comprimen individualmente los 8 tipos (Q, K, V, output, FFN-intermediate, FFN-output, atención completa, FFN completo) a 3 rangos cada uno (24 configuraciones). Se extraen embeddings [CLS] para 1.500 muestras en cada configuración. Requiere T11; ejecutable en paralelo con T12.
+    \item \textbf{T16} (15~h, CD): Experimentos por profundidad --- se comprimen los 3 grupos de capas (0--3, 4--7, 8--11) por separado a 3 rangos (9 configuraciones). Incluye extracción de embeddings.
+    \item \textbf{T17} (10~h, CD): Generación de heatmaps de sensibilidad componente $\times$ profundidad, proyecciones t-SNE conjuntas (scatter + contornos KDE), cálculo de silhouette score y dashboards comparativos. \textit{Entregable}: notebook con figuras exportadas.
+\end{itemize}
+
+\subsubsection{G5 --- Lesion study (23 h)}
+
+Inspirado en los estudios de lesión de neurociencia: compresión sistemática de cada parte individual del modelo para revelar \textit{dónde vive} cada emoción.
+
+\begin{itemize}[nosep, leftmargin=1.2em, itemsep=2pt]
+    \item \textbf{T18} (15~h, CD): Lesiones por capa (12 experimentos: comprimir todas las matrices de una capa a rango 128) y por componente (6 experimentos: comprimir un tipo de componente en todas las capas a rango 128). Medición de F1 por emoción en cada caso. \textit{Entregable}: CSVs de lesión por capa y componente.
+    \item \textbf{T19} (8~h, CD): Generación del mapa emocional dual (componente $\times$ emoción + capa $\times$ emoción), clustering jerárquico de emociones por perfil de sensibilidad, orden de extinción bajo compresión progresiva y escáner individual de 4 emociones representativas. \textit{Entregable}: visualizaciones del mapa emocional.
+\end{itemize}
+
+\subsubsection{G6 --- Interpretabilidad mecánica (55 h)}
+
+Técnicas de interpretabilidad para entender \textit{por qué} ciertos componentes son críticos, proporcionando evidencia causal más allá de la correlación.
+
+\begin{itemize}[nosep, leftmargin=1.2em, itemsep=2pt]
+    \item \textbf{T20} (15~h, CD): Probing lineal --- se entrenan regresiones logísticas (probes) en cada uno de los 13 hidden states de BERT (embedding + 12 capas) para cada una de las 28 emociones (364 probes). Permite determinar a qué profundidad cada emoción cristaliza (se vuelve linealmente separable). \textit{Entregable}: CSV de resultados de probing y tabla de cristalización.
+    \item \textbf{T21} (20~h, CD): Activation patching --- intervención causal inspirada en Meng et al.\ (2022). Se crea un modelo agresivamente comprimido (rango 64) y, para cada capa, se restaura la activación del baseline midiendo la recuperación de F1 por emoción. Incluye patching a nivel de componente (atención vs.\ FFN) en las capas más importantes. Las 20~h se justifican por la complejidad de la implementación de hooks y la evaluación de $>$20 configuraciones. \textit{Entregable}: CSVs de patching por capa y componente.
+    \item \textbf{T22} (10~h, CD): Ablación de cabezas de atención --- se anula cada una de las 144 cabezas (12 capas $\times$ 12 cabezas) individualmente y se mide la caída de F1 por emoción. Categorización de cabezas (Critical Specialists, General Purpose, Redundant). \textit{Entregable}: matriz de importancia y categorías de cabezas.
+    \item \textbf{T23} (10~h, CD): Análisis de neuronas FFN --- extracción de activaciones post-GELU de las 36.864 neuronas intermedias, cálculo de scores de selectividad por emoción (Cohen's d) y catalogación de neuronas emocionales. \textit{Entregable}: catálogo de neuronas especializadas.
+\end{itemize}
+
+\subsubsection{G7 --- Síntesis informada (30 h)}
+
+Integración de todos los hallazgos anteriores en una estrategia de compresión optimizada.
+
+\begin{itemize}[nosep, leftmargin=1.2em, itemsep=2pt]
+    \item \textbf{T24} (20~h, CD): Diseño de la estrategia de compresión informada: asignación de rangos SVD por capa y componente basada en los scores de importancia derivados de probing (cristalización), activation patching (restauración causal), ablación de cabezas y selectividad neuronal. Las 20~h incluyen el cálculo de scores compuestos y la evaluación de múltiples configuraciones. \textit{Entregable}: configuraciones de rangos informados.
+    \item \textbf{T25} (10~h, CD): Comparativa grand finale: uniforme vs.\ adaptativa (energía) vs.\ informada en la frontera de Pareto. Análisis de impacto por emoción para las tres estrategias a ratios de compresión comparables. Formulación de una \textit{receta práctica} de compresión. \textit{Entregable}: tabla comparativa y recomendaciones finales.
+\end{itemize}
+
+\subsubsection{G8 --- Objetivos secundarios [opcionales] (40 h)}
+
+Tareas que amplían el alcance del proyecto si el calendario lo permite. No forman parte de la cadena crítica.
+
+\begin{itemize}[nosep, leftmargin=1.2em, itemsep=2pt]
+    \item \textbf{T26} (25~h, CD, opt.): Fine-tuning post-SVD --- reentrenar brevemente (2--3 epochs) el modelo comprimido para medir la recuperación de F1 por emoción. Permite determinar si las representaciones emocionales son \textit{distribuidas} (recuperables) o \textit{concentradas} (permanentemente perdidas). Ejecutable tras T25.
+    \item \textbf{T27} (15~h, CD, opt.): Benchmarks de latencia y throughput en CPU y GPU para cuantificar la ganancia práctica de la compresión. Ejecutable en paralelo con T26.
+\end{itemize}
+
+\subsubsection{G9 --- Cierre y síntesis (55 h)}
+
+\begin{itemize}[nosep, leftmargin=1.2em, itemsep=2pt]
+    \item \textbf{T28} (40~h, JP): Integración final de resultados, coherencia entre secciones, redacción de conclusiones y revisión global de la memoria. Complementa la redacción progresiva de T05. \textit{Entregable}: memoria final del TFG.
+    \item \textbf{T29} (15~h, JP): Preparación de la presentación oral (10--15 min): diapositivas, discurso, práctica cronometrada y simulacro.
+\end{itemize}
+
+\subsection{Tabla resumen de tareas}
+
+\begin{longtable}{@{}p{0.55cm} p{4.6cm} c c p{2.3cm} p{1.5cm}@{}}
+    \caption{Tabla resumen de tareas.}
+    \label{tab:tareas}\\
+    \toprule
+    \textbf{Cód.} & \textbf{Tarea} & \textbf{Perfil} & \textbf{h} & \textbf{Dependencias} & \textbf{Rec.\ mat.} \\
+    \midrule
+    \endfirsthead
+    \multicolumn{6}{c}{\footnotesize(Tabla~\ref{tab:tareas}, continuación)}\\
+    \toprule
+    \textbf{Cód.} & \textbf{Tarea} & \textbf{Perfil} & \textbf{h} & \textbf{Dependencias} & \textbf{Rec.\ mat.} \\
+    \midrule
+    \endhead
+    \midrule\endfoot
+    \bottomrule\\[-4pt]
+    \multicolumn{6}{@{}l}{\footnotesize [opt]=opcional; [conc.]=concurrente; par.=paralelo. Rec.\ humano en todas: Guido Biosca Lasa. Fuente: elab.\ propia.}
+    \endlastfoot
+    \rowcolor{ganttG0!40}\multicolumn{6}{@{}l}{\footnotesize\textbf{G0 --- Gestión del proyecto (130 h)}}\\
+    T01 & Contextualización y alcance (E1)     & JP  & 20 & ---   & Overleaf \\
+    T02 & Planificación temporal (E2)           & JP  & 15 & T01   & Overleaf \\
+    T03 & Presupuesto y sostenibilidad (E3)     & JP  & 15 & T01   & Overleaf \\
+    T04 & Reuniones director \textit{[conc.]}   & JP  & 20 & T01   & Videoconf. \\
+    T05 & Redacción memoria \textit{[conc.]}    & JP  & 60 & T01   & Overleaf \\
+    \midrule
+    \rowcolor{ganttG1!40}\multicolumn{6}{@{}l}{\footnotesize\textbf{G1 --- Configuración y baseline (39 h)}}\\
+    T06 & Config.\ entorno + repositorio        & Dev &  8 & T01   & PC, GitHub \\
+    T07 & Fine-tuning BERT en GoEmotions        & CD  & 25 & T06   & GPU \\
+    T08 & Evaluación baseline (F1 macro/micro)  & CD  &  6 & T07   & PC \\
+    \midrule
+    \rowcolor{ganttG2!40}\multicolumn{6}{@{}l}{\footnotesize\textbf{G2 --- Módulo de compresión SVD (30 h)}}\\
+    T09 & Impl.\ SVDLinear + apply\_svd         & Dev & 20 & T08   & PC \\
+    T10 & Tests validación (dims, params, F1)   & Dev & 10 & T09   & PC \\
+    \midrule
+    \rowcolor{ganttGE!30}\multicolumn{6}{@{}l}{\footnotesize\textbf{G3 --- Comp.\ uniforme y espectral (50 h)}}\\
+    T11 & Exp.\ comp.\ uniforme (5 rangos)      & CD  & 15 & T10   & GPU \\
+    T12 & Análisis espectral 72 matrices        & CD  & 10 & T10; par.\ T11 & PC \\
+    T13 & Estrategia adaptativa (5 umbrales)    & CD  & 10 & T12   & PC \\
+    T14 & Pareto + vulnerabilidad + recetas     & CD  & 15 & T11, T13 & GPU \\
+    \midrule
+    \rowcolor{ganttGE!45}\multicolumn{6}{@{}l}{\footnotesize\textbf{G4 --- Comp.\ componente + profundidad (45 h)}}\\
+    T15 & Exp.\ por componente (24 configs)     & CD  & 20 & T11; par.\ T12 & GPU \\
+    T16 & Exp.\ por profundidad (9 configs)     & CD  & 15 & T15   & GPU \\
+    T17 & Heatmaps, t-SNE, KDE, silhouette      & CD  & 10 & T16   & PC \\
+    \midrule
+    \rowcolor{ganttGE!55}\multicolumn{6}{@{}l}{\footnotesize\textbf{G5 --- Lesion study (23 h)}}\\
+    T18 & Lesiones capa (12) + componente (6)   & CD  & 15 & T10   & GPU \\
+    T19 & Mapa emocional + clustering + extinción & CD &  8 & T18   & PC \\
+    \midrule
+    \rowcolor{ganttGE!70}\multicolumn{6}{@{}l}{\footnotesize\textbf{G6 --- Interpretabilidad mecánica (55 h)}}\\
+    T20 & Probing lineal (364 probes)           & CD  & 15 & T08   & PC \\
+    T21 & Activation patching (causal)          & CD  & 20 & T11   & GPU \\
+    T22 & Ablación cabezas atención (144)       & CD  & 10 & T08   & GPU \\
+    T23 & Análisis neuronal FFN (36.864 neur.)  & CD  & 10 & T08   & GPU \\
+    \midrule
+    \rowcolor{ganttGE!85}\multicolumn{6}{@{}l}{\footnotesize\textbf{G7 --- Síntesis informada (30 h)}}\\
+    T24 & Estrategia informada (scores comp.)   & CD  & 20 & T17, T19--T23 & GPU \\
+    T25 & Grand comparison + receta práctica    & CD  & 10 & T24   & PC \\
+    \midrule
+    \rowcolor{ganttGO!50}\multicolumn{6}{@{}l}{\footnotesize\textbf{G8 --- Objetivos secundarios [opt.] (40 h)}}\\
+    T26 & Fine-tuning post-SVD \textit{[opt.]}  & CD  & 25 & T25   & GPU \\
+    T27 & Benchmarks latencia/throughput \textit{[opt.]} & CD & 15 & T25; par.\ T26 & PC+GPU \\
+    \midrule
+    \rowcolor{ganttG9!50}\multicolumn{6}{@{}l}{\footnotesize\textbf{G9 --- Cierre y síntesis (55 h)}}\\
+    T28 & Integración + revisión memoria final  & JP  & 40 & T25   & Overleaf \\
+    T29 & Preparación presentación oral         & JP  & 15 & T28   & PC \\
+    \midrule
+    \multicolumn{3}{@{}l}{\textbf{Total núcleo (T01--T25, T28--T29)}} & \textbf{457} & & \\
+    \multicolumn{3}{@{}l}{\textbf{Total opcionales (T26, T27)}} & \textbf{40} & & \\
+    \multicolumn{3}{@{}l}{\textbf{Total general}} & \textbf{497} & & \\
+\end{longtable}
+
+\subsection{Estimaciones y diagrama de Gantt}
+
+Las estimaciones se expresan en horas de trabajo activo. Las tareas de experimentación contemplan la configuración y supervisión, no el cómputo de GPU. T05 (60~h) está justificada por el volumen de la memoria ($\approx$70~páginas). Ninguna tarea supera las 60~h.
+
+\subsection{Gestión del riesgo: planes alternativos y obstáculos}
+
+Los planes B \textbf{no forman parte del Gantt principal}: se activan únicamente si el riesgo se materializa. Los riesgos R1--R7 se coordinan con los identificados en la sección~\ref{sec:riesgos}.
+
+\begin{table}[H]
+\centering
+\caption{Identificación de riesgos y planes alternativos.}
+\label{tab:planesb}
+\footnotesize
+\begin{tabular}{@{}p{2.1cm} c c p{5.3cm} p{1.5cm} p{1.2cm}@{}}
+\toprule
+\textbf{Riesgo} & \textbf{Prob.} & \textbf{Imp.} & \textbf{Plan B} & \textbf{Rec.\ adic.} & \textbf{$\Delta$h} \\
+\midrule
+R1 --- GPU insuf.
+  & Media & Alto
+  & Reducir T15 a 4 componentes; subsamplear t-SNE a 1.500 puntos; evaluar solo 3 componentes clave.
+  & Ninguno & $-$13~h \\
+\midrule
+R2 --- Inestab.\ num.
+  & Baja & Medio
+  & Añadir T10b «Valid.\ numérica» (5~h): norma residual para $k\leq32$, comparar float64.
+  & 5~h extra & $+$5~h \\
+\midrule
+R3 --- Tiempo excesivo
+  & Alta & Medio
+  & Reducir T15 a 4 componentes (Q, V, FFN-inter, FFN-out); T16 solo capas tardías (8--11). Paralelizar T11 y T18.
+  & Ninguno & $-$15~h \\
+\midrule
+R4 --- Métricas insuf.
+  & Baja & Alto
+  & Añadir T17b «Análisis cualitativo» (8~h): revisión manual de errores del modelo comprimido.
+  & 8~h extra & $+$8~h \\
+\midrule
+R5 --- Bug capas
+  & Media & Medio
+  & T10 incluye tests. Si persiste, T09b «Indexación manual» (4~h) como respaldo.
+  & 4~h extra & $+$4~h \\
+\midrule
+R6 --- FT no recupera
+  & Media & Medio
+  & Documentar como hallazgo negativo. Redirigir 25~h de T26 a T28+T29. T26 ya es opcional.
+  & Ninguno & $0$~h \\
+\midrule
+R7 --- Desviación gral.
+  & Media & Alto
+  & N1: eliminar T26+T27 ($-$40~h). N2: reducir T22+T23 ($-$10~h). N3: reducir G4; documentar como trabajo futuro.
+  & Ninguno & $-$40/50~h \\
+\bottomrule
+\end{tabular}
+\\[0.15cm]{\small En el peor escenario (R1+R3+R7 nivel~3), el núcleo se reduce a $\approx$370~h, garantizando O1--O9. Fuente: elab.\ propia.}
+\end{table}
+
+El diagrama de Gantt visualiza la planificación temporal completa del proyecto. Las barras representan la duración estimada de cada tarea, las flechas señalan la cadena de dependencias crítica, y las barras superpuestas reflejan tareas concurrentes (T04+T05 durante todo el proyecto; T12 en paralelo con T11; G5 y G6 ejecutables en paralelo con G3--G4). La \textbf{cadena de dependencias crítica} es: T06 $\to$ T07 $\to$ T08 $\to$ T09 $\to$ T10 $\to$ T11 $\to$ T15 $\to$ T16 $\to$ T17 $\to$ T24 $\to$ T25 $\to$ T28 $\to$ T29.
+
+\textit{Nota sobre el Gantt}: Algunas tareas consecutivas dentro de una misma fase se agrupan en una sola barra (p.~ej., T18--T19, T22--T23) por legibilidad, ya que comparten el mismo período de ejecución y perfil. Las horas, dependencias y entregables de cada tarea individual se detallan en la Tabla~\ref{tab:tareas}. Las tareas opcionales (G8) se representan con barras diferenciadas para indicar que su ejecución depende del progreso del núcleo obligatorio.
+
+\begin{landscape}
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{ganttchart}[
+    hgrid, vgrid,
+    x unit=0.9cm, y unit title=0.62cm, y unit chart=0.44cm,
+    title height=1,
+    title label font=\scriptsize\bfseries,
+    bar label font=\scriptsize,
+    group label font=\bfseries\scriptsize,
+    milestone label font=\itshape\scriptsize,
+    bar height=0.65, bar top shift=0.175,
+    group right shift=0, group top shift=0.65, group height=0.35, group peaks height=0.2,
+    milestone height=0.55, milestone top shift=0.225,
+]{1}{22}
+\gantttitle{Febrero}{4}\gantttitle{Marzo}{4}\gantttitle{Abril}{5}\gantttitle{Mayo}{4}\gantttitle{Junio}{5}\\
+\gantttitlelist{1,...,22}{1}\\
+%--- G0 ---
+\ganttgroup[group/.append style={fill=ganttG0,draw=black}]{G0: Gestión}{1}{22}\\
+\ganttbar[name=t01,bar/.append style={fill=ganttG0}]{T01--T03 Entregas GEP}{1}{7}\\
+\ganttbar[name=t04,bar/.append style={fill=ganttG0!60,draw=gray!60}]{T04+T05 Reuniones+Doc.\ [conc.]}{1}{22}\\
+%--- G1 ---
+\ganttgroup[group/.append style={fill=ganttG1,draw=black}]{G1: Baseline}{1}{7}\\
+\ganttbar[name=t06,bar/.append style={fill=ganttG1}]{T06 Config.\ entorno}{1}{2}\\
+\ganttbar[name=t07,bar/.append style={fill=ganttG1}]{T07 Fine-tuning BERT}{2}{6}\\
+\ganttbar[name=t08,bar/.append style={fill=ganttG1}]{T08 Eval.\ baseline}{6}{7}\\
+%--- G2 ---
+\ganttgroup[group/.append style={fill=ganttG2,draw=black}]{G2: Módulo SVD}{7}{10}\\
+\ganttbar[name=t09,bar/.append style={fill=ganttG2}]{T09 Impl.\ SVDLinear}{7}{9}\\
+\ganttbar[name=t10,bar/.append style={fill=ganttG2}]{T10 Tests validación}{9}{10}\\
+%--- G3 ---
+\ganttgroup[group/.append style={fill=ganttGE!70,draw=black}]{G3: Uniforme+Espectral}{10}{13}\\
+\ganttbar[name=t11,bar/.append style={fill=ganttGE!70}]{T11 Comp.\ uniforme}{10}{12}\\
+\ganttbar[name=t12,bar/.append style={fill=ganttGE!50}]{T12 Análisis espectral}{10}{11}\\
+\ganttbar[name=t13,bar/.append style={fill=ganttGE!50}]{T13--T14 Adaptativa+Pareto}{12}{13}\\
+%--- G4 ---
+\ganttgroup[group/.append style={fill=ganttGE,draw=black}]{G4: Comp.+Prof.}{12}{16}\\
+\ganttbar[name=t15,bar/.append style={fill=ganttGE}]{T15 Exp.\ componente (24)}{12}{14}\\
+\ganttbar[name=t16,bar/.append style={fill=ganttGE}]{T16 Exp.\ profundidad (9)}{14}{15}\\
+\ganttbar[name=t17,bar/.append style={fill=ganttGE}]{T17 Heatmaps+t-SNE}{15}{16}\\
+%--- G5 ---
+\ganttgroup[group/.append style={fill=ganttGE!85,draw=black}]{G5: Lesion study}{10}{13}\\
+\ganttbar[name=t18,bar/.append style={fill=ganttGE!85}]{T18--T19 Lesiones+Mapa}{10}{13}\\
+%--- G6 ---
+\ganttgroup[group/.append style={fill=ganttGE!90,draw=black}]{G6: Interpretabilidad}{8}{16}\\
+\ganttbar[name=t20,bar/.append style={fill=ganttGE!90}]{T20 Probing lineal}{8}{10}\\
+\ganttbar[name=t21,bar/.append style={fill=ganttGE!90}]{T21 Act.\ patching}{12}{14}\\
+\ganttbar[name=t22,bar/.append style={fill=ganttGE!90}]{T22--T23 Heads+Neurons}{10}{13}\\
+%--- G7 ---
+\ganttgroup[group/.append style={fill=ganttGE,draw=black}]{G7: Síntesis}{16}{18}\\
+\ganttbar[name=t24,bar/.append style={fill=ganttGE}]{T24--T25 Informada+Comp.}{16}{18}\\
+%--- G8 ---
+\ganttgroup[group/.append style={fill=ganttGO,draw=black}]{G8: Opcionales}{18}{20}\\
+\ganttbar[name=t26,bar/.append style={fill=ganttGO}]{T26--T27 FT+Bench [opt]}{18}{20}\\
+%--- G9 ---
+\ganttgroup[group/.append style={fill=ganttG9,draw=black}]{G9: Cierre}{19}{22}\\
+\ganttbar[name=t28,bar/.append style={fill=ganttG9}]{T28 Memoria final}{19}{22}\\
+\ganttbar[name=t29,bar/.append style={fill=ganttG9}]{T29 Presentación oral}{22}{22}\\
+%--- Hito ---
+\ganttmilestone[name=m1,milestone/.append style={fill=red!80,draw=red}]{Lectura TFG}{22}\\
+%--- Dependencias ---
+\ganttlink{t06}{t07}\ganttlink{t07}{t08}\ganttlink{t08}{t09}\ganttlink{t09}{t10}
+\ganttlink{t10}{t11}\ganttlink{t11}{t15}\ganttlink{t15}{t16}\ganttlink{t16}{t17}
+\ganttlink{t17}{t24}\ganttlink{t24}{t28}\ganttlink{t28}{t29}
+\end{ganttchart}
+}%
+\caption{Diagrama de Gantt. Semanas 1--4: feb.; 5--8: mar.; 9--13: abr.; 14--17: may.; 18--22: jun.\ 2026. T04+T05 concurrentes. Grises: opcionales. Flechas: cadena crítica.}
+\label{fig:gantt}
+\end{figure}
+\end{landscape}
+
+% ============================================================
+% 6. GESTIÓN ECONÓMICA
+% ============================================================
+\section{Gestión económica (presupuesto)}
+\label{sec:presupuesto}
+
+\subsection{Identificación de costes}
+
+El presupuesto se estructura en cuatro partidas siguiendo la metodología del módulo de Gestión Económica: \textbf{costes de personal por actividad} (CPA), \textbf{costes genéricos} (CG), \textbf{contingencia} y \textbf{partidas de imprevistos}.
+
+\subsection{Costes de personal por actividad (CPA)}
+
+Los costes por hora se calculan a partir de salarios brutos anuales de referencia para perfiles junior en Barcelona (fuente: \textit{Guía Salarial Hays España 2025} y \textit{Glassdoor España}), incluyendo el coste de la Seguridad Social ($\times 1{,}3$) y asumiendo 1.720~horas laborales anuales:
+
+\begin{table}[H]
+\centering
+\caption{Coste por hora por perfil profesional.}
+\label{tab:perfiles}
+\small
+\begin{tabular}{@{}l r r r@{}}
+\toprule
+\textbf{Perfil} & \textbf{Bruto anual} & \textbf{Con SS ($\times$1,3)} & \textbf{Coste/hora} \\
+\midrule
+Jefe de proyecto (JP)   & 32.000\,\euro{} & 41.600\,\euro{} & 24,19\,\euro{}/h $\approx$ \textbf{24\,\euro{}/h} \\
+Científico de datos (CD) & 28.000\,\euro{} & 36.400\,\euro{} & 21,16\,\euro{}/h $\approx$ \textbf{21\,\euro{}/h} \\
+Desarrollador (Dev)      & 25.000\,\euro{} & 32.500\,\euro{} & 18,90\,\euro{}/h $\approx$ \textbf{19\,\euro{}/h} \\
+\bottomrule
+\end{tabular}
+\\[0.15cm]{\small Fuente: elaboración propia a partir de Hays 2025 y Glassdoor España.}
+\end{table}
+
+La Tabla~\ref{tab:cpa} desglosa el coste de personal para cada tarea del Gantt.
+
+\begin{longtable}{@{}p{0.5cm} p{4.2cm} c c r r@{}}
+    \caption{Costes de personal por actividad (CPA).}
+    \label{tab:cpa}\\
+    \toprule
+    \textbf{Cód.} & \textbf{Tarea} & \textbf{Perfil} & \textbf{h} & \textbf{\euro{}/h} & \textbf{Coste} \\
+    \midrule
+    \endfirsthead
+    \multicolumn{6}{c}{\footnotesize(Tabla~\ref{tab:cpa}, continuación)}\\
+    \toprule
+    \textbf{Cód.} & \textbf{Tarea} & \textbf{Perfil} & \textbf{h} & \textbf{\euro{}/h} & \textbf{Coste} \\
+    \midrule
+    \endhead
+    \midrule\endfoot
+    \bottomrule
+    \endlastfoot
+    \rowcolor{gray!10}\multicolumn{5}{@{}l}{\footnotesize\textbf{G0 --- Gestión del proyecto (130 h)}} & \textbf{3.120\,\euro{}} \\
+    T01 & Contextualización y alcance       & JP & 20 & 24 & 480\,\euro{} \\
+    T02 & Planificación temporal             & JP & 15 & 24 & 360\,\euro{} \\
+    T03 & Presupuesto y sostenibilidad       & JP & 15 & 24 & 360\,\euro{} \\
+    T04 & Reuniones con el director          & JP & 20 & 24 & 480\,\euro{} \\
+    T05 & Redacción progresiva de la memoria & JP & 60 & 24 & 1.440\,\euro{} \\
+    \midrule
+    \rowcolor{gray!10}\multicolumn{5}{@{}l}{\footnotesize\textbf{G1 --- Configuración y baseline (39 h)}} & \textbf{803\,\euro{}} \\
+    T06 & Configuración del entorno          & Dev & 8  & 19 & 152\,\euro{} \\
+    T07 & Fine-tuning BERT en GoEmotions     & CD  & 25 & 21 & 525\,\euro{} \\
+    T08 & Evaluación baseline                & CD  & 6  & 21 & 126\,\euro{} \\
+    \midrule
+    \rowcolor{gray!10}\multicolumn{5}{@{}l}{\footnotesize\textbf{G2 --- Módulo SVD (30 h)}} & \textbf{570\,\euro{}} \\
+    T09 & Implementación SVDLinear            & Dev & 20 & 19 & 380\,\euro{} \\
+    T10 & Tests de validación                 & Dev & 10 & 19 & 190\,\euro{} \\
+    \midrule
+    \rowcolor{gray!10}\multicolumn{5}{@{}l}{\footnotesize\textbf{G3 --- Uniforme + espectral (50 h)}} & \textbf{1.050\,\euro{}} \\
+    T11 & Exp.\ compresión uniforme           & CD  & 15 & 21 & 315\,\euro{} \\
+    T12 & Análisis espectral 72 matrices      & CD  & 10 & 21 & 210\,\euro{} \\
+    T13 & Estrategia adaptativa               & CD  & 10 & 21 & 210\,\euro{} \\
+    T14 & Pareto + vulnerabilidad + recetas   & CD  & 15 & 21 & 315\,\euro{} \\
+    \midrule
+    \rowcolor{gray!10}\multicolumn{5}{@{}l}{\footnotesize\textbf{G4 --- Comp.\ + profundidad (45 h)}} & \textbf{945\,\euro{}} \\
+    T15 & Exp.\ por componente (24 configs)    & CD  & 20 & 21 & 420\,\euro{} \\
+    T16 & Exp.\ por profundidad (9 configs)    & CD  & 15 & 21 & 315\,\euro{} \\
+    T17 & Heatmaps, t-SNE, KDE                 & CD  & 10 & 21 & 210\,\euro{} \\
+    \midrule
+    \rowcolor{gray!10}\multicolumn{5}{@{}l}{\footnotesize\textbf{G5 --- Lesion study (23 h)}} & \textbf{483\,\euro{}} \\
+    T18 & Lesiones capa + componente            & CD  & 15 & 21 & 315\,\euro{} \\
+    T19 & Mapa emocional + clustering           & CD  &  8 & 21 & 168\,\euro{} \\
+    \midrule
+    \rowcolor{gray!10}\multicolumn{5}{@{}l}{\footnotesize\textbf{G6 --- Interpretabilidad (55 h)}} & \textbf{1.155\,\euro{}} \\
+    T20 & Probing lineal (364 probes)            & CD  & 15 & 21 & 315\,\euro{} \\
+    T21 & Activation patching                    & CD  & 20 & 21 & 420\,\euro{} \\
+    T22 & Ablación cabezas atención              & CD  & 10 & 21 & 210\,\euro{} \\
+    T23 & Análisis neuronal FFN                  & CD  & 10 & 21 & 210\,\euro{} \\
+    \midrule
+    \rowcolor{gray!10}\multicolumn{5}{@{}l}{\footnotesize\textbf{G7 --- Síntesis informada (30 h)}} & \textbf{630\,\euro{}} \\
+    T24 & Estrategia informada                   & CD  & 20 & 21 & 420\,\euro{} \\
+    T25 & Grand comparison + receta              & CD  & 10 & 21 & 210\,\euro{} \\
+    \midrule
+    \rowcolor{gray!10}\multicolumn{5}{@{}l}{\footnotesize\textbf{G8 --- Opcionales (40 h)}} & \textbf{840\,\euro{}} \\
+    T26 & Fine-tuning post-SVD                   & CD  & 25 & 21 & 525\,\euro{} \\
+    T27 & Benchmarks latencia/throughput          & CD  & 15 & 21 & 315\,\euro{} \\
+    \midrule
+    \rowcolor{gray!10}\multicolumn{5}{@{}l}{\footnotesize\textbf{G9 --- Cierre (55 h)}} & \textbf{1.320\,\euro{}} \\
+    T28 & Redacción memoria final                & JP  & 40 & 24 & 960\,\euro{} \\
+    T29 & Presentación oral                      & JP  & 15 & 24 & 360\,\euro{} \\
+    \midrule
+    \multicolumn{3}{@{}l}{\textbf{Total CPA núcleo (T01--T25, T28--T29)}} & \textbf{457} & & \textbf{10.076\,\euro{}} \\
+    \multicolumn{3}{@{}l}{\textbf{Total CPA opcionales (T26, T27)}} & \textbf{40} & & \textbf{840\,\euro{}} \\
+    \multicolumn{3}{@{}l}{\textbf{Total CPA}} & \textbf{497} & & \textbf{10.916\,\euro{}} \\
+\end{longtable}
+
+\subsection{Costes genéricos (CG)}
+
+\begin{table}[H]
+\centering
+\caption{Costes genéricos del proyecto.}
+\label{tab:cg}
+\small
+\begin{tabular}{@{}l l r r r@{}}
+\toprule
+\textbf{Concepto} & \textbf{Detalle} & \textbf{Coste total} & \textbf{Vida útil} & \textbf{Imputado} \\
+\midrule
+Amortización PC portátil & 1.200\,\euro{}, uso 5 meses & 1.200\,\euro{} & 4 años (48 m.) & 125\,\euro{} \\
+Google Colab Pro         & 11,99\,\euro{}/mes $\times$ 5 meses & --- & --- & 60\,\euro{} \\
+Electricidad             & 0,1\,kW $\times$ 497\,h $\times$ 0,20\,\euro{}/kWh & --- & --- & 10\,\euro{} \\
+Software                 & Python, PyTorch, HF (open source) & --- & --- & 0\,\euro{} \\
+Overleaf                 & Plan gratuito & --- & --- & 0\,\euro{} \\
+GitHub                   & Plan gratuito & --- & --- & 0\,\euro{} \\
+Internet                 & Uso parcial conexión doméstica & --- & --- & 25\,\euro{} \\
+Espacio de trabajo       & Uso parcial domicilio (10\,m$^2$, 5 meses) & --- & --- & 50\,\euro{} \\
+\midrule
+\multicolumn{4}{@{}l}{\textbf{Total costes genéricos}} & \textbf{270\,\euro{}} \\
+\bottomrule
+\end{tabular}
+\\[0.15cm]{\small Amortización: $1.200 \times 5/48 = 125$\,\euro{}. Espacio de trabajo: estimación proporcional del coste de alquiler de una habitación en Barcelona ($\approx$500\,\euro{}/mes $\times$ 10\,m$^2$/80\,m$^2$ $\times$ 80\% dedicación $\approx$ 50\,\euro{}/mes $\times$ 1 mes equiv.). El trabajo se realiza en domicilio; no hay costes de desplazamiento. Fuente: elab.\ propia.}
+\end{table}
+
+\subsection{Contingencia}
+
+Se aplica un ratio de contingencia del \textbf{15\%} sobre la suma de CPA y CG, dentro del rango habitual del 10--20\% en proyectos informáticos. Este porcentaje se justifica por la naturaleza experimental del proyecto: aunque la metodología está bien definida, los experimentos pueden requerir ajustes no previstos.
+
+\[
+\text{Contingencia} = (10.916 + 270) \times 0{,}15 = 11.186 \times 0{,}15 = \textbf{1.678\,\euro{}}
+\]
+
+\subsection{Imprevistos}
+
+Las partidas de imprevistos se vinculan directamente a los riesgos identificados, ponderados por su probabilidad de ocurrencia.
+
+\begin{table}[H]
+\centering
+\caption{Partidas de imprevistos vinculadas a riesgos.}
+\label{tab:imprevistos}
+\small
+\begin{tabular}{@{}l c r r r@{}}
+\toprule
+\textbf{Riesgo} & \textbf{Prob.} & \textbf{Coste si ocurre} & \textbf{Detalle} & \textbf{Imputado} \\
+\midrule
+R1 --- GPU insuficientes    & 50\% & 150\,\euro{} & Upgrade Colab Pro+ (3 m.) & 75\,\euro{} \\
+R2 --- Inestab.\ numérica   & 20\% & 105\,\euro{} & 5\,h extra CD              & 21\,\euro{} \\
+R4 --- Métricas insuficientes & 20\% & 168\,\euro{} & 8\,h extra CD             & 34\,\euro{} \\
+R5 --- Bug selección capas   & 50\% & 76\,\euro{}  & 4\,h extra Dev             & 38\,\euro{} \\
+\midrule
+\multicolumn{4}{@{}l}{\textbf{Total imprevistos}} & \textbf{168\,\euro{}} \\
+\bottomrule
+\end{tabular}
+\\[0.15cm]{\small R3, R6 y R7 se mitigan reduciendo alcance, sin coste adicional. Fuente: elab.\ propia.}
+\end{table}
+
+\subsection{Presupuesto total}
+
+\begin{table}[H]
+\centering
+\caption{Resumen del presupuesto total del proyecto.}
+\label{tab:total}
+\small
+\begin{tabular}{@{}l r r@{}}
+\toprule
+\textbf{Partida} & \textbf{Importe} & \textbf{\% del total} \\
+\midrule
+Costes de personal (CPA)    & 10.916\,\euro{} & 83,8\% \\
+Costes genéricos (CG)       & 270\,\euro{}    & 2,1\% \\
+Contingencia (15\%)          & 1.678\,\euro{}  & 12,8\% \\
+Imprevistos                  & 168\,\euro{}    & 1,3\% \\
+\midrule
+\textbf{Total presupuesto}  & \textbf{13.032\,\euro{}} & \textbf{100\%} \\
+\bottomrule
+\end{tabular}
+\\[0.15cm]{\small El coste de personal representa el 84\% del total, habitual en proyectos de investigación aplicada. Fuente: elab.\ propia.}
+\end{table}
+
+\subsection{Control de gestión}
+\label{sec:control}
+
+Para detectar y corregir desviaciones presupuestarias durante la ejecución del proyecto, se definen los siguientes mecanismos e indicadores:
+
+\textbf{Procedimiento de control.} Al finalizar cada fase del Gantt (G1--G9), se registran las horas reales dedicadas a cada tarea y se comparan con las estimadas. Este registro se mantiene en una hoja de cálculo con las columnas: tarea, horas estimadas, horas reales, coste estimado, coste real y desviación. Las reuniones quincenales con el director (T04) sirven como punto de revisión formal.
+
+\textbf{Indicadores numéricos de desviación:}
+
+\begin{itemize}[nosep, leftmargin=1.2em]
+    \item \textbf{Desviación en horas por tarea}: $\Delta h_i = h_i^{\text{real}} - h_i^{\text{est}}$. Si $\Delta h_i > 0{,}2 \times h_i^{\text{est}}$ (desviación superior al 20\%), se activa una revisión de la planificación restante.
+    \item \textbf{Desviación en coste acumulado por fase}: $\Delta C_g = C_g^{\text{real}} - C_g^{\text{est}}$. Si $\Delta C_g > 0{,}15 \times C_g^{\text{est}}$, se evalúa la activación del plan B correspondiente (Tabla~\ref{tab:planesb}).
+    \item \textbf{Índice de rendimiento del coste (CPI)}: $\text{CPI} = \frac{\text{Valor ganado (EV)}}{\text{Coste real (AC)}}$. Un CPI $< 0{,}85$ en cualquier punto de control indica sobrecostes significativos que requieren acción correctiva.
+    \item \textbf{Porcentaje de contingencia consumida}: $\%_{\text{cont}} = \frac{\text{Contingencia usada}}{1.678}$. Si $\%_{\text{cont}} > 50\%$ antes de completar el 75\% del proyecto, se priorizan los objetivos O1--O11 y se eliminan las tareas opcionales.
+\end{itemize}
+
+\textbf{Acciones correctivas.} Ante desviaciones significativas: (1)~redistribuir horas de tareas opcionales (G8) hacia tareas críticas; (2)~reducir el alcance experimental según los planes B; (3)~comunicar la situación al director en la reunión de control más próxima.
+
+% ============================================================
+% 7. SOSTENIBILIDAD Y COMPROMISO SOCIAL
+% ============================================================
+\section{Sostenibilidad y compromiso social}
+\label{sec:sostenibilidad}
+
+\subsection{Autoavaluación de la competencia de sostenibilidad}
+
+Tras responder la encuesta de autoevaluación de sostenibilidad, reflexiono sobre mis puntos fuertes y débiles en esta competencia.
+
+Como \textbf{puntos fuertes}, considero que tengo una sensibilidad clara hacia el impacto ambiental de la computación: el propio tema del TFG ---compresión de modelos--- está motivado en parte por la reducción del coste energético de la inferencia, y he incorporado referencias como Strubell et al.\ \cite{strubell2019energy} y Schwartz et al.\ \cite{schwartz2020green} sobre \textit{Green AI} desde la definición del proyecto. También soy consciente de la dimensión económica: he estimado el presupuesto con detalle, diferenciando perfiles y justificando cada partida. A nivel social, entiendo que la democratización de modelos eficientes tiene implicaciones positivas para organizaciones con recursos limitados.
+
+Como \textbf{puntos débiles}, reconozco que mi formación en sostenibilidad ha sido más teórica que práctica. No he realizado anteriormente un análisis de ciclo de vida energético de un proyecto informático, y mi conocimiento sobre normativas ambientales aplicables a centros de datos es limitado. Además, la dimensión social del proyecto ---más allá de la accesibilidad--- requiere una reflexión más profunda sobre sesgos en los datos de emociones y sobre quién se beneficia realmente de estas tecnologías.
+
+En conjunto, valoro que este TFG me ha obligado a integrar las tres dimensiones (económica, ambiental y social) de forma explícita, lo cual ha enriquecido mi comprensión del impacto integral de un proyecto de investigación en inteligencia artificial.
+
+\subsection{Dimensión económica}
+
+\textbf{PPP --- Reflexión sobre el coste estimado del proyecto.} El presupuesto total de 13.032\,\euro{} es razonable para un proyecto académico de 497 horas. El coste está dominado por el recurso humano (83,8\%), lo cual refleja que se trata de un proyecto de investigación aplicada sin necesidad de infraestructura costosa. El uso de herramientas open source (PyTorch, Hugging Face, scikit-learn) y servicios gratuitos o de bajo coste (Google Colab Pro, GitHub, Overleaf) mantiene los costes genéricos en un mínimo. Se imputa un coste estimado del espacio de trabajo en domicilio, calculado proporcionalmente al uso de una habitación en Barcelona. El riesgo económico principal es la posible necesidad de más horas de GPU, cubierta parcialmente por la partida de imprevistos.
+
+\textbf{Vida Útil --- ¿Cómo se resuelven actualmente los costes del problema?} Actualmente, desplegar modelos Transformer de gran tamaño requiere GPUs de alto coste (A100, H100) con consumos energéticos elevados, tanto para entrenamiento como para inferencia. Empresas y centros de investigación invierten miles de euros mensuales en infraestructura cloud (AWS, GCP) para servir estos modelos. Las técnicas de compresión existentes (destilación, cuantización) requieren re-entrenamiento costoso o hardware especializado.
+
+\textbf{¿En qué mejorará económicamente la solución?} La compresión SVD post-entrenamiento que estudia este proyecto no requiere re-entrenamiento ni hardware especial. El mapa de sensibilidad producido permite a ingenieros comprimir selectivamente solo los componentes menos críticos, maximizando la reducción de parámetros con mínima pérdida de calidad. Esto se traduce en menores costes de inferencia (menos memoria, menor latencia) sin inversión adicional en entrenamiento.
+
+\subsection{Dimensión ambiental}
+
+\textbf{PPP --- ¿Has estimado el impacto ambiental de la realización del proyecto?} Sí. El principal impacto ambiental proviene del consumo eléctrico de las GPUs durante los experimentos. Estimamos un uso de GPU de aproximadamente 80--100 horas. Con un consumo típico de una GPU T4 en Colab de $\approx$70\,W, esto supone $\approx$7\,kWh. Sumando el PC personal (497\,h $\times$ 0,1\,kW = 48\,kWh), el consumo total estimado es de $\approx$55\,kWh, equivalente a $\approx$12\,kg de CO$_2$ (factor de emisión medio en España: 0,22\,kg CO$_2$/kWh). Es un impacto modesto comparado con el entrenamiento de modelos grandes.
+
+\textbf{PPP --- ¿Te has planteado minimizar el impacto, reutilizando recursos?} Sí. Se reutiliza un modelo BERT-base ya pre-entrenado por Google (evitando el enorme coste de pre-entrenamiento). La compresión SVD se aplica post-hoc sobre el modelo fine-tuneado, sin requerir entrenamiento adicional para la mayoría de experimentos. Además, se liberan copias del modelo de memoria tras cada evaluación (RNF4) y se utiliza subsampleo para visualizaciones (1.500 muestras en t-SNE).
+
+\textbf{Vida Útil --- ¿En qué mejorará ambientalmente la solución?} La contribución ambiental principal del proyecto es indirecta: los mapas de sensibilidad permiten comprimir modelos de forma informada, reduciendo el tamaño y el consumo energético durante la inferencia. Dado que la inferencia representa la mayor parte del gasto energético a largo plazo de un modelo desplegado, guiar la compresión de forma óptima tiene un impacto ambiental positivo acumulativo significativo, alineado con la filosofía \textit{Green AI}.
+
+\subsection{Dimensión social}
+
+\textbf{PPP --- ¿Qué te aportará a nivel personal la realización del proyecto?} Este proyecto me permite profundizar en tres áreas clave para mi desarrollo profesional: (1)~comprensión profunda de la arquitectura Transformer y sus mecanismos internos, que es conocimiento fundamental en la IA actual; (2)~habilidades en álgebra lineal aplicada y análisis numérico, conectando teoría matemática con aplicaciones prácticas; y (3)~experiencia en diseño y ejecución de estudios experimentales sistemáticos, incluyendo la gestión de múltiples configuraciones y la interpretación de resultados.
+
+\textbf{Vida Útil --- ¿Cómo se resuelve actualmente? ¿En qué mejorará socialmente?} Actualmente, los modelos de lenguaje grandes son accesibles principalmente para grandes empresas con recursos computacionales significativos, lo que genera una brecha tecnológica. La compresión eficiente democratiza el acceso a estos modelos, permitiendo su despliegue en dispositivos con recursos limitados (móviles, sistemas embebidos) y en organizaciones con presupuestos reducidos (universidades, ONGs, PYMES). En particular, un modelo de clasificación de emociones comprimido podría usarse en aplicaciones de salud mental, moderación de contenido o análisis de opinión en contextos donde antes era inviable.
+
+\textbf{Vida Útil --- ¿Existe una necesidad real del proyecto?} Sí. La tendencia hacia modelos cada vez más grandes (GPT-4, LLaMA, etc.) hace que la compresión sea no solo deseable sino necesaria para su adopción generalizada. Además, el análisis clasificatorio de emociones tiene aplicaciones reales en salud mental, educación y moderación de plataformas. Este proyecto no solo demuestra \textit{cómo} comprimir, sino \textit{dónde} hacerlo de forma segura, lo cual es una contribución con utilidad práctica directa.
+
+% ============================================================
+% BIBLIOGRAFÍA
+% ============================================================
+\newpage
+\printbibliography[heading=bibintoc, title={Referencias}]
+
+\end{document}

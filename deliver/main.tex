@@ -1,0 +1,362 @@
+% ============================================================
+% TFG — Anatomía Emocional de un Modelo Transformer:
+% Compresión Selectiva e Interpretabilidad Mecánica de BERT
+% Autor: Guido Biosca Lasa
+% Versión MH: archivos renombrados, includes actualizados
+% ============================================================
+\documentclass[11pt, a4paper]{article}
+
+% --- Tipografía ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{newpxtext}          % Palatino para texto
+\usepackage{newpxmath}          % Palatino para matemáticas
+\usepackage[scaled=0.85]{beramono} % Bera Mono para monoespaciado
+\usepackage{microtype}          % Mejora kerning y justificación
+
+% --- Idioma ---
+\usepackage[catalan, english, main=spanish]{babel}
+
+% --- Geometría ---
+\usepackage{geometry}
+\geometry{
+    margin=2.5cm,
+    headheight=14pt
+}
+
+% --- Espaciado ---
+\usepackage{setspace}
+\setstretch{1.25}
+\usepackage{parskip}
+\setlength{\parskip}{4pt}
+
+% --- Tablas y figuras ---
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{caption}
+\captionsetup{
+    font=small,
+    labelfont=bf,
+    skip=8pt
+}
+
+% --- Listas ---
+\usepackage{enumitem}
+
+% --- Matemáticas y símbolos ---
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{eurosym}
+
+% --- Color ---
+\usepackage[table]{xcolor}
+\definecolor{linkblue}{RGB}{10,60,120}
+
+% --- Hiperenlaces ---
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=linkblue,
+    citecolor=linkblue,
+    urlcolor=linkblue,
+    pdfauthor={Guido Biosca Lasa},
+    pdftitle={Anatomía Emocional de un Modelo Transformer},
+}
+
+% --- Encabezados y pies ---
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\itshape Anatomía Emocional de un Modelo Transformer}
+\fancyhead[R]{\small\itshape G.\ Biosca Lasa}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\fancypagestyle{plain}{
+    \fancyhf{}
+    \fancyfoot[C]{\thepage}
+    \renewcommand{\headrulewidth}{0pt}
+}
+
+% --- Formato de secciones (serif bold, sin sans-serif) ---
+\usepackage{titlesec}
+
+\titleformat{\section}{\Large\bfseries}{\thesection.}{0.5em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection.}{0.5em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection.}{0.5em}{}
+
+\titlespacing{\section}{0pt}{12pt}{6pt}
+\titlespacing{\subsection}{0pt}{10pt}{4pt}
+\titlespacing{\subsubsection}{0pt}{8pt}{3pt}
+
+% --- Gantt (anexo de gestión) ---
+\usepackage{pgfgantt}
+\usepackage{pdflscape}
+\definecolor{ganttG0}{RGB}{173,216,230}
+\definecolor{ganttG1}{RGB}{144,238,144}
+\definecolor{ganttG2}{RGB}{255,200,100}
+\definecolor{ganttGE}{RGB}{255,140,100}
+\definecolor{ganttGO}{RGB}{180,180,180}
+\definecolor{ganttG9}{RGB}{200,170,210}
+
+% --- Algoritmos ---
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\renewcommand{\listalgorithmname}{Lista de algoritmos}
+
+% --- Glosario / acrónimos ligero (tabla manual en anexo) ---
+
+% --- TikZ extra para diagramas de cap2/cap3 ---
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric, decorations.pathreplacing,
+                fit, backgrounds, calc, shadings}
+
+% --- Bibliografía ---
+\usepackage[backend=biber, style=numeric, sorting=none]{biblatex}
+\addbibresource{referencias.bib}
+
+% ============================================================
+\begin{document}
+
+% --- Portada ---
+\begin{titlepage}
+    \centering
+    \vspace*{1.5cm}
+
+    % \includegraphics[height=2cm]{images/logo-fib.png}\\[0.5cm]
+
+    {\Large\textbf{Universitat Politècnica de Catalunya}}\\[0.2cm]
+    {\large Facultat d'Informàtica de Barcelona}\\[0.15cm]
+    {\normalsize Grau en Enginyeria Informàtica --- Especialitat: Computació}
+
+    \vspace{2cm}
+
+    \rule{0.8\textwidth}{0.5pt}
+    \vspace{0.6cm}
+
+    {\LARGE\bfseries Anatomía Emocional de un\\[0.3em]
+    Modelo Transformer}\\[0.6em]
+    {\Large Compresión Selectiva e Interpretabilidad\\[0.2em]
+    Mecánica de BERT}
+
+    \vspace{0.6cm}
+    \rule{0.8\textwidth}{0.5pt}
+
+    \vspace{1cm}
+
+    {\large\textbf{Trabajo Final de Grado}}
+
+    \vfill
+
+    \begin{tabular}{rl}
+        \textbf{Autor:}     & Guido Biosca Lasa \\[0.3cm]
+        \textbf{Director:}  & Lluís Padró Cirera \\[0.3cm]
+        \textbf{Tutora GEP:} & Carolina Consolación Segura \\
+    \end{tabular}
+
+    \vspace{2cm}
+    {\large Mayo 2026}
+    \vspace{1cm}
+\end{titlepage}
+
+% --- Resúmenes (catalán, español, inglés) ---
+\newpage
+\thispagestyle{plain}
+
+\begin{otherlanguage}{catalan}
+\section*{Resum}
+\addcontentsline{toc}{section}{Resum}
+\noindent
+On viu, dins d'un Transformer fine-tuneado, la capacitat de classificar
+emocions? Aquest treball aborda la pregunta obrint BERT-base amb un
+bisturí matemàtic ---la compressió per descomposició en valors singulars
+(SVD)---: comprimir cadascun dels 72 components lineals del model i
+observar què es trenca mesura la seva contribució funcional amb l'eina
+més directa possible, la seva absència. Sobre GoEmotions (classificació
+multietiqueta de 23 emocions) s'apliquen cinc tècniques
+d'interpretabilitat mecànica ---\emph{probing} lineal, \emph{logit lens},
+\emph{activation patching}, ablació de les 144 capçaleres d'atenció i
+anàlisi de selectivitat de les 36\,864 neurones \emph{feed-forward}---
+coordinades amb un estudi sistemàtic de sensibilitat a la compressió.
+
+Els components no contribueixen per igual: comprimir Query a rang 64
+reté el 98{,}6\% del rendiment, mentre que comprimir FFN Intermediate al
+mateix rang el destrueix completament, una asimetria de factor 72$\times$
+normalitzada per paràmetres eliminats. Les cinc tècniques convergeixen
+en una arquitectura funcional de tres nivells ---senyal lèxica en capes
+primerenques, còmput de transició en intermèdies i alineació geomètrica
+amb la base del classificador en tardanes--- on la \emph{xarxa
+feed-forward de la capa 11 actua com a coll d'ampolla suficient}:
+restaurar-la sola en un model prèviament col·lapsat per compressió
+recupera el 100\% del rendiment, un resultat que matisa la narrativa
+habitual sobre el paper central de l'atenció en favor d'un repartiment
+funcional on l'atenció encamina i la FFN computa.
+
+Com a aplicació derivada del mapa funcional, un algorisme greedy
+informat per dades empíriques de sensibilitat domina la frontera de
+Pareto sobre 21 estratègies avaluades (8 dels 9 punts Pareto-òptims).
+Un resultat negatiu el precedeix i el justifica metodològicament: l'intent
+previ de traduir interpretabilitat qualitativa a heurístiques explícites
+convergeix exactament sobre la mateixa frontera que les baselines cegues,
+evidenciant que el coneixement mecanicista qualitatiu és necessari però
+no suficient sense quantificació empírica. El treball es tanca amb cinc
+prediccions falsables sobre la generalització del framework a altres
+models i tasques.
+
+\textbf{Paraules clau:} interpretabilitat mecànica de Transformers, BERT,
+compressió SVD, classificació d'emocions, GoEmotions, \emph{probing},
+\emph{activation patching}, frontera de Pareto.
+\end{otherlanguage}
+
+\vspace{1cm}
+
+\section*{Resumen}
+\addcontentsline{toc}{section}{Resumen}
+\noindent
+¿Dónde vive, dentro de un Transformer fine-tuneado, la capacidad de
+clasificar emociones? Este trabajo aborda la pregunta abriendo BERT-base
+con un bisturí matemático ---la compresión por descomposición en valores
+singulares (SVD)---: comprimir cada uno de los 72 componentes lineales del
+modelo y observar qué se rompe mide su contribución funcional con la
+herramienta más directa posible, su ausencia. Sobre GoEmotions
+(clasificación multi-etiqueta de 23 emociones) se aplican cinco técnicas de
+interpretabilidad mecánica ---\emph{probing} lineal, \emph{logit lens},
+\emph{activation patching}, ablación de las 144 cabezas de atención y
+análisis de selectividad de las 36\,864 neuronas \emph{feed-forward}---
+coordinadas con un estudio sistemático de sensibilidad a la compresión.
+
+Los componentes no contribuyen por igual: comprimir Query a rango 64
+retiene el 98{,}6\% del rendimiento, mientras que comprimir FFN
+Intermediate al mismo rango lo destruye por completo, una asimetría de
+factor 72$\times$ normalizada por parámetros eliminados. Las cinco
+técnicas convergen en una arquitectura funcional de tres niveles ---señal
+léxica en capas tempranas, cómputo de transición en intermedias y
+alineación geométrica con la base del clasificador en tardías--- donde la
+\emph{red feed-forward de la capa 11 actúa como cuello de botella
+suficiente}: restaurarla sola en un modelo previamente colapsado por
+compresión recupera el 100\% del rendimiento, un resultado que matiza la
+narrativa habitual sobre el papel central de la atención en favor de un
+reparto funcional donde la atención enruta y la FFN computa.
+
+Como aplicación derivada del mapa funcional, un algoritmo greedy
+informado por datos empíricos de sensibilidad domina la frontera de
+Pareto sobre 21 estrategias evaluadas (8 de los 9 puntos
+Pareto-óptimos). Un resultado negativo lo precede y lo justifica
+metodológicamente: el intento previo de traducir interpretabilidad
+cualitativa a heurísticas explícitas converge exactamente sobre la misma
+frontera que las baselines ciegas, evidenciando que el conocimiento
+mecanicista cualitativo es necesario pero no suficiente sin cuantificación
+empírica. El trabajo cierra con cinco predicciones falsables sobre la
+generalización del framework a otros modelos y tareas.
+
+\textbf{Palabras clave:} interpretabilidad mecánica de Transformers, BERT,
+compresión SVD, clasificación de emociones, GoEmotions, \emph{probing},
+\emph{activation patching}, frontera de Pareto.
+
+\vspace{1cm}
+
+\begin{otherlanguage}{english}
+\section*{Abstract}
+\addcontentsline{toc}{section}{Abstract}
+\noindent
+Where, inside a fine-tuned Transformer, does the ability to classify
+emotions live? This work tackles the question by opening BERT-base with a
+mathematical scalpel ---selective singular value decomposition (SVD)
+compression---: compressing each of the 72 linear components and observing
+what breaks measures its functional contribution as directly as possible,
+through its absence. On GoEmotions (multi-label classification of 23
+emotions), five mechanistic interpretability techniques ---linear probing,
+logit lens, activation patching, ablation of the 144 attention heads and
+selectivity analysis of the 36{,}864 \emph{feed-forward} neurons--- are
+combined with a systematic compression sensitivity study.
+
+Components do not contribute equally: compressing Query to rank 64
+retains 98.6\% of the performance, whereas compressing FFN Intermediate
+at the same rank destroys the model entirely, a 72$\times$ asymmetry once
+normalised by removed parameters. The five techniques converge on a
+three-tier functional architecture ---lexical signal in early layers,
+transition computation in middle layers, geometric alignment with the
+classifier basis in late layers--- where the \emph{layer-11 feed-forward
+network acts as a sufficient bottleneck}: restoring it alone in a model
+previously collapsed by compression recovers 100\% of the original
+performance, a result that nuances the conventional narrative about the
+central role of attention in favour of a functional split where attention
+routes and FFN computes.
+
+As a practical application of the functional map obtained, a greedy
+algorithm informed by empirical sensitivity data dominates the Pareto
+frontier across 21 evaluated strategies (8 out of 9 Pareto-optimal
+points). A negative result precedes and methodologically justifies it:
+attempts to translate qualitative interpretability into explicit
+heuristics converge exactly onto the same frontier as blind baselines,
+showing that qualitative mechanistic knowledge is necessary but not
+sufficient without empirical quantification. The work closes with five
+falsifiable predictions on the generalisation of the framework to other
+models and tasks.
+
+\textbf{Keywords:} Transformer mechanistic interpretability, BERT, SVD
+compression, emotion classification, GoEmotions, probing, activation
+patching, Pareto frontier.
+\end{otherlanguage}
+
+% --- Índice y listas auxiliares ---
+\newpage
+\tableofcontents
+\newpage
+\listoffigures
+\newpage
+\listoftables
+\newpage
+
+% --- Glosario de acrónimos ---
+\section*{Glosario de acrónimos}
+\addcontentsline{toc}{section}{Glosario de acrónimos}
+\begin{tabular}{@{}ll@{}}
+    \textbf{BCE}    & Binary Cross-Entropy (entropía cruzada binaria) \\
+    \textbf{BERT}   & Bidirectional Encoder Representations from Transformers \\
+    \textbf{CLS}    & Classification token (token especial de clasificación) \\
+    \textbf{CPI}    & Cost Performance Index (índice de rendimiento del coste) \\
+    \textbf{CSV}    & Comma-Separated Values \\
+    \textbf{DTU}    & Technical University of Denmark \\
+    \textbf{F1}     & Métrica armónica de precisión y recall (macro/micro) \\
+    \textbf{FFN}    & Feed-Forward Network \\
+    \textbf{FIB}    & Facultat d'Informàtica de Barcelona \\
+    \textbf{GeLU}   & Gaussian Error Linear Unit \\
+    \textbf{GEP}    & Gestió de Projectes (asignatura de gestión del proyecto) \\
+    \textbf{GPU}    & Graphics Processing Unit \\
+    \textbf{KL}     & Kullback--Leibler (divergencia) \\
+    \textbf{LoRA}   & Low-Rank Adaptation \\
+    \textbf{MHA}    & Multi-Head Attention \\
+    \textbf{MLM}    & Masked Language Modeling \\
+    \textbf{NB}     & Notebook (Jupyter) \\
+    \textbf{NLP}    & Natural Language Processing \\
+    \textbf{NSP}    & Next Sentence Prediction \\
+    \textbf{Q, K, V} & Query, Key, Value (proyecciones de atención) \\
+    \textbf{SVD}    & Singular Value Decomposition (descomposición en valores singulares) \\
+    \textbf{TFG}    & Trabajo Fin de Grado \\
+    \textbf{t-SNE}  & t-distributed Stochastic Neighbor Embedding \\
+    \textbf{UPC}    & Universitat Politècnica de Catalunya \\
+\end{tabular}
+\newpage
+
+% --- Capítulos ---
+\include{capitulo1_introduccion}
+\include{capitulo2_estado_arte}
+\include{capitulo3_metodologia}
+\include{capitulo4_compresion_svd}
+\include{capitulo5_interpretabilidad_mecanica}
+\include{capitulo6_sintesis}
+\include{capitulo7_conclusiones}
+
+% --- Bibliografía ---
+\newpage
+\printbibliography[title={Referencias}]
+
+% --- Anexo de gestión del proyecto (GEP) ---
+\appendix
+\include{anexo_gestion}
+
+\end{document}

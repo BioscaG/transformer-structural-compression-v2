@@ -1,0 +1,928 @@
+% =============================================================
+% CAPÍTULO 6 — Síntesis: de la interpretabilidad a la compresión informada
+% Versión: matrícula de honor
+% =============================================================
+
+\section{Síntesis: compresión informada por interpretabilidad}
+\label{sec:sintesis}
+
+Los dos capítulos anteriores han recorrido caminos complementarios. El
+Capítulo~\ref{sec:resultados-compresion} midió qué se rompe al
+comprimir BERT con SVD: la sensibilidad varía radicalmente entre
+componentes (factor 14$\times$ a rango~128 en retención absoluta y hasta
+72$\times$ a rango~64 normalizado por parámetros), entre profundidades
+(transición de fase entre rango~384 y 256) y entre emociones (desde
+\emph{gratitude}, que retiene el 99\% del F1 a rango~384, hasta
+\emph{embarrassment}, que colapsa al 0\% al mismo rango). El
+Capítulo~\ref{sec:resultados-interpretabilidad} investigó por qué
+mediante cinco técnicas de interpretabilidad mecánica que convergen en una
+arquitectura funcional de tres niveles: información léxica formada en
+capas tempranas, cómputo de transición en capas medias, y alineación
+geométrica con la base del clasificador en capas tardías, donde reside el
+cuello de botella computacional del modelo.
+
+Este capítulo cierra el bucle: utiliza los hallazgos de interpretabilidad
+mecánica para diseñar estrategias de compresión \emph{informadas} y evalúa
+si ese conocimiento se traduce en ventaja cuantitativa sobre las
+estrategias ciegas presentadas en el
+Capítulo~\ref{sec:resultados-compresion}. La estructura del capítulo
+refleja una progresión metodológica (intuición, fracaso de la
+intuición, pivot a datos, dominancia) que constituye en sí misma una
+observación replicable sobre cómo trasladar conocimiento mecanicista a
+ingeniería aplicada.
+
+El recorrido se organiza en cinco secciones. La primera establece la
+conexión cuantitativa entre cristalización y vulnerabilidad
+(\S\ref{sec:cristalizacion-vulnerabilidad}). La segunda describe la
+estrategia heurística informada y documenta su fracaso
+(\S\ref{sec:informed-heuristic}). La tercera presenta el algoritmo greedy
+alimentado con datos empíricos de sensibilidad y su dominancia de la
+frontera de Pareto (\S\ref{sec:greedy-algorithm}). La cuarta evalúa la
+recuperación mediante \emph{fine-tuning} y reporta una observación inesperada
+sobre regularización implícita (\S\ref{sec:finetuning-recovery}). La quinta
+sintetiza las implicaciones del conjunto de resultados
+(\S\ref{sec:sintesis-discusion}).
+
+
+% -------------------------------------------------------------
+\subsection{La cristalización predice la vulnerabilidad}
+\label{sec:cristalizacion-vulnerabilidad}
+% -------------------------------------------------------------
+
+La primera pregunta de síntesis es si los dos ejes del proyecto
+(compresión e interpretabilidad) convergen cuantitativamente, no
+solo metafóricamente. El Capítulo~\ref{sec:resultados-interpretabilidad}
+mostró que cada emoción cristaliza a una profundidad distinta:
+\emph{gratitude} alcanza el 80\% de su F1 máximo en la capa~0, mientras que
+\emph{disappointment} no lo hace hasta la capa~9. El
+Capítulo~\ref{sec:resultados-compresion} mostró que la compresión SVD
+uniforme afecta a cada emoción de forma diferencial.
+
+\subsubsection{Correlación cristalización-vulnerabilidad}
+
+La correlación entre la capa de cristalización y la caída de F1 bajo
+compresión SVD uniforme a rango~128 es positiva y significativa (Spearman
+$\rho \approx 0{,}48$, $p < 0{,}05$, $n=23$): las emociones que cristalizan
+en capas más profundas son sistemáticamente más vulnerables a la
+compresión. Este resultado es coherente con la estructura espectral
+documentada en \S\ref{sec:analisis-espectral}: las matrices de las capas
+tardías presentan distribuciones de valores singulares menos concentradas
+(menor redundancia), lo que las hace más frágiles bajo truncamiento SVD.
+
+La conexión, sin embargo, no se agota en una correlación. Tres predictores
+independientes de la vulnerabilidad emergen del análisis combinado:
+
+\begin{itemize}[nosep]
+    \item Profundidad de cristalización por probing (\S\ref{sec:probing}):
+    $\rho \approx 0{,}48$.
+    \item Aislamiento representacional, distancia media a otras emociones
+    en el espacio de \texttt{[CLS]} de L11 (\S\ref{sec:probing}):
+    $\rho = 0{,}45$, $p = 0{,}031$.
+    \item Norma del vector de selectividad neuronal
+    (\S\ref{sec:neuron-analysis}): $\rho = 0{,}64$, $p = 0{,}001$.
+\end{itemize}
+
+El predictor más fuerte es la \emph{intensidad de codificación neuronal}
+, no la geometría SVD ni el tamaño del dataset, ambos no significativos.
+Este resultado es teóricamente importante: la SVD no ataca selectivamente
+las neuronas emocionales (la fracción de señal en el subespacio eliminado
+es prácticamente idéntica para las 23 emociones, rango 0{,}53--0{,}56),
+pero las emociones que el modelo escribe con mayor intensidad neuronal son
+más sensibles a perturbaciones generales de los pesos. Es una
+vulnerabilidad por intensidad, no por geometría.
+
+La Figura~\ref{fig:cap6-emotional-landscape} sintetiza visualmente esta
+estructura cruzando los dos predictores principales: la capa de
+cristalización (eje horizontal) y la norma de selectividad neuronal
+(eje vertical).
+ 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figures/cap6/cap6_emotional_landscape_es.png}
+    \caption{Mapa emocional del modelo. Cada punto representa una de las
+    23 emociones, situada según su capa de cristalización por probing
+    (eje horizontal, derivado del Capítulo~\ref{sec:resultados-interpretabilidad})
+    y su norma de selectividad neuronal (eje vertical, intensidad total
+    con la que el modelo codifica esa emoción a través de sus neuronas
+    FFN). Los colores agrupan las emociones por cluster semántico. Las
+    bandas verticales sombreadas marcan los tres bloques de profundidad:
+    temprano (Emb--L3), medio (L4--L7) y tardío (L8--L11). Las emociones
+    léxicas (\emph{gratitude}, \emph{love}, \emph{amusement}) ocupan la
+    región superior izquierda; las contextuales (\emph{annoyance},
+    \emph{disappointment}) la inferior derecha.}
+    \label{fig:cap6-emotional-landscape}
+\end{figure}
+ 
+La distribución no es uniforme. Las emociones léxicas se concentran en
+la región superior izquierda del mapa: cristalización temprana y alta
+intensidad neuronal. \emph{Gratitude} es el caso extremo, con
+cristalización en L0 y la mayor intensidad de codificación neuronal del
+dataset. Las emociones contextuales ocupan la región inferior derecha:
+cristalización tardía y baja intensidad. \emph{Disappointment} y
+\emph{annoyance} muestran una intensidad de codificación
+aproximadamente un orden de magnitud inferior a pesar de cristalizar
+en L9--L10. Los valores absolutos del eje vertical de la
+Figura~\ref{fig:cap6-emotional-landscape} corresponden a la \emph{máxima}
+norma capa a capa del vector de selectividad (resumen visual), mientras
+que la norma agregada $\ell_2$ a través de las 12~capas, reportada en
+\S\ref{sec:neuron-analysis} y utilizada como predictor cuantitativo
+($\rho = 0{,}639$), produce la misma ordenación entre emociones pero
+en una escala distinta (\emph{gratitude}: 140; \emph{remorse}: 111;
+\emph{disappointment}: 42).
+ 
+Esta correspondencia entre dos magnitudes derivadas de experimentos
+independientes ---probing por un lado, análisis de selectividad por
+otro--- no es trivial. Probing mide la separabilidad lineal de la
+representación; selectividad mide la especialización de las neuronas
+individuales. Que ambas correlacionen sugiere que la facilidad de
+aprendizaje y la intensidad de codificación son manifestaciones de una
+misma propiedad subyacente: la disponibilidad de señal léxica robusta.
+Las emociones contextuales no son simplemente más difíciles ---son
+representacionalmente más débiles---, y esa debilidad estructural es
+la que las hace particularmente vulnerables a la compresión.
+
+\subsubsection{Tres principios de compresión informada}
+
+De estos hallazgos se derivan tres principios que orientan el diseño de
+estrategias de compresión informadas:
+
+\begin{enumerate}
+    \item Proteger las capas tardías. Concentran la
+    especialización funcional (84\% de neuronas significativas, 77\% de
+    cabezas críticas) y tienen menor redundancia espectral. Comprimir
+    capas 8--11 al mismo rango que capas 0--3 es estructuralmente
+    incorrecto.
+
+    \item Distinguir componentes dentro de cada capa. La FFN
+    Intermediate es el cuello de botella computacional confirmado por
+    \emph{activation patching} (\S\ref{sec:activation-patching}); Q y K toleran
+    compresión agresiva con coste despreciable. Aplicar el mismo rango a
+    Q y a FFN Intermediate ignora un factor 14$\times$ de diferencia en
+    retención de F1 a rango~128 (que se amplía a 72$\times$ a rango~64
+    normalizado por parámetros eliminados).
+
+    \item Aceptar que la compresión introduce sesgo emocional.
+    Las emociones contextualmente complejas (cristalización tardía,
+    codificación intensa) son penalizadas desproporcionadamente. Este
+    sesgo es \emph{inevitable} sin intervención selectiva: cualquier
+    estrategia uniforme lo introduce de forma silenciosa.
+\end{enumerate}
+
+Los principios son cualitativos. La pregunta abierta, y que motiva el
+resto del capítulo, es si pueden traducirse directamente en reglas
+heurísticas o si requieren cuantificación empírica.
+
+
+% -------------------------------------------------------------
+\subsection{Estrategia heurística: un resultado negativo informativo}
+\label{sec:informed-heuristic}
+% -------------------------------------------------------------
+
+El primer intento de traducir la comprensión mecánica en una estrategia de
+compresión adoptó un enfoque heurístico: asignar rangos SVD a cada
+componente y capa según reglas cualitativas derivadas de los hallazgos de
+interpretabilidad. La premisa de partida era razonable: si comprender el
+modelo permite comprimirlo mejor, las reglas explícitas derivadas de esa
+comprensión deberían superar a las estrategias ciegas.
+
+\subsubsection{Diseño de las tres variantes}
+
+Se diseñaron tres niveles de agresividad respetando los principios de
+\S\ref{sec:cristalizacion-vulnerabilidad}:
+
+\begin{itemize}[nosep]
+    \item \textbf{Informed-light}: compresión conservadora que protege las
+    capas tardías con rangos altos (700 en capa~11) y aplica reducciones
+    moderadas en capas tempranas. Ratio de parámetros: 0{,}97.
+
+    \item \textbf{Informed-moderate}: compresión intermedia con protección
+    de la capa~11 (rango 512) y rangos entre 170 y 430 en el resto. Ratio:
+    0{,}72.
+
+    \item \textbf{Informed-aggressive}: compresión fuerte con rangos entre
+    86 y 384. Ratio: 0{,}47.
+\end{itemize}
+
+Las tres variantes respetaban estrictamente el gradiente de criticidad por
+profundidad (más rango en capas tardías que en tempranas) y la asimetría
+entre componentes (más rango en FFN que en atención). La intuición
+mecanicista estaba codificada explícitamente en las reglas.
+
+\subsubsection{Resultados}
+
+Los resultados, sin embargo, son reveladores
+(Tabla~\ref{tab:informed-heuristic}):
+
+\begin{table}[ht]
+\centering
+\caption{Rendimiento de las estrategias heurísticas informadas frente a
+baselines de complejidad comparable. Las tres variantes \emph{igualan
+exactamente} al baseline uniforme con el mismo ratio de parámetros
+(\texttt{informed\_aggressive} = \texttt{uniform\_r256};
+\texttt{informed\_moderate} = \texttt{uniform\_r512}), o requieren más
+parámetros que el original sin alcanzar la retención de
+\texttt{adaptive\_e99} (\texttt{informed\_light}). Ninguna domina la
+frontera de Pareto.}
+\label{tab:informed-heuristic}
+\small
+\begin{tabular}{llccc}
+\toprule
+\textbf{Estrategia} & \textbf{Tipo} & \textbf{Ratio params.} & \textbf{F1 macro} & \textbf{Retención} \\
+\midrule
+uniform\_r256        & uniforme   & 0{,}612 & 0{,}025 & 4{,}3\% \\
+informed\_aggressive & informada  & 0{,}612 & 0{,}025 & 4{,}3\% \\
+\midrule
+adaptive\_e80        & adaptativa & 0{,}721 & 0{,}143 & 24{,}8\% \\
+\midrule
+uniform\_r512        & uniforme   & 1{,}000 & 0{,}464 & 80{,}4\% \\
+informed\_moderate   & informada  & 1{,}000 & 0{,}464 & 80{,}4\% \\
+\midrule
+adaptive\_e95        & adaptativa & 1{,}022 & 0{,}491 & 85{,}0\% \\
+adaptive\_e99        & adaptativa & 1{,}202 & 0{,}558 & 96{,}7\% \\
+informed\_light      & informada  & 1{,}285 & 0{,}561 & 97{,}2\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Las tres variantes presentan el mismo patrón estructural: \emph{igualan
+exactamente} al baseline uniforme de complejidad equivalente, o lo superan
+solo a costa de un incremento sustancial de parámetros. La variante
+agresiva, con ratio 0{,}612 y F1 = 0{,}025, reproduce número a número los
+resultados de \texttt{uniform\_r256}: misma asignación efectiva de rangos
+agregada, mismo colapso del modelo. La moderada, con ratio 1{,}000 y
+F1 = 0{,}464, iguala a \texttt{uniform\_r512} con idéntica precisión.
+La variante conservadora alcanza un F1 de 0{,}561 ---ligeramente
+superior al baseline \texttt{adaptive\_e99}--- pero requiere un 28{,}5\%
+\emph{más} parámetros que el modelo original (ratio 1{,}285), lo que la
+sitúa fuera del régimen de compresión efectiva.
+
+Ninguna de las tres variantes informadas aparece en la frontera de Pareto:
+todas son \emph{dominadas} por las baselines de complejidad equivalente o
+por las estrategias adaptativas energéticas.
+
+\subsubsection{Diagnóstico del fracaso}
+
+Este resultado negativo es \emph{instructivo}, no anecdótico. La intuición
+cualitativa derivada de la interpretabilidad (``proteger capas tardías,
+comprimir agresivamente Q y K, respetar la asimetría componente'') es
+correcta en su dirección ---el algoritmo greedy
+(\S\ref{sec:greedy-algorithm}) confirma exactamente esa secuencia de
+decisiones cuando opera con datos cuantitativos---, pero traducirla a
+reglas heurísticas explícitas no produce ganancia alguna sobre las
+baselines: las informed simplemente reproducen la misma frontera que las
+estrategias ciegas alcanzan sin invocar interpretabilidad.
+
+La razón es la \emph{magnitud relativa} de las sensibilidades. Saber que
+Q es más compresible que FFN Intermediate no indica cuánto más, ni en
+qué profundidad la asimetría es mayor, ni cuál es el orden exacto de
+prioridad entre Q en capas tardías vs.\ FFN Output en capas tempranas. La
+regla heurística asigna, por ejemplo, ``rango 256 a Q en capas medias'';
+los datos cuantitativos revelan que Q a rango 128 retiene 99{,}4\% del
+F1 (\S\ref{sec:sensibilidad-componente}), por lo que el rango 256 es
+innecesariamente conservador. Multiplicado por las 72 matrices del modelo,
+el conservadurismo acumulado lleva a la heurística a converger
+exactamente sobre los puntos que la compresión uniforme alcanza sin
+ninguna información estructural: \texttt{informed\_aggressive} reproduce
+\texttt{uniform\_r256}, \texttt{informed\_moderate} reproduce
+\texttt{uniform\_r512}. La heurística \emph{no extrae valor adicional}
+del conocimiento mecanicista que pretende traducir.
+
+La conclusión metodológica es precisa: \emph{traducir interpretabilidad
+mecánica en compresión efectiva requiere datos empíricos de sensibilidad,
+no solo comprensión arquitectónica}. La interpretabilidad cualitativa
+identifica qué investigar; la sensibilidad cuantitativa determina cuánto
+comprimir. Que las tres variantes informadas converjan sobre la frontera
+de las baselines ciegas, en lugar de superarla, es la evidencia más
+limpia posible de esta separación: el conocimiento cualitativo de la
+estructura funcional es necesario pero no suficiente para guiar la
+compresión. Esta distinción motiva el cambio de enfoque hacia el
+algoritmo greedy data-driven.
+
+
+% -------------------------------------------------------------
+\subsection{Algoritmo greedy: compresión guiada por datos}
+\label{sec:greedy-algorithm}
+% -------------------------------------------------------------
+
+El fracaso de la estrategia heurística motivó un cambio de enfoque: en
+lugar de traducir la intuición mecánica en reglas, utilizar directamente
+los datos cuantitativos de sensibilidad por componente
+(\S\ref{sec:sensibilidad-componente}) y por profundidad como entrada para
+un algoritmo de optimización.
+
+\subsubsection{Por qué greedy y no otra estrategia}
+
+El problema es seleccionar simultáneamente 18~rangos (6~componentes
+$\times$ 3~bandas de profundidad) en un menú discreto de 3~valores
+candidatos cada uno, optimizando el F1 macro bajo una restricción de
+parámetros máximos. Tres aproximaciones aparecen como candidatas
+naturales y todas presentan inconvenientes serios.
+
+La búsqueda exhaustiva es inviable: $3^{18} \approx 3{,}9\cdot 10^8$
+configuraciones, $\sim$30~s por evaluación en GPU T4, dan unos
+370~años de cómputo. La optimización bayesiana sobre el espacio de
+rangos discreto es viable conceptualmente, pero exige cientos de
+evaluaciones del modelo comprimido para construir el \emph{surrogate}
+(varias horas de GPU) y el espacio discreto degrada la calidad del GP.
+Los métodos diferenciables (\textit{straight-through estimators},
+Gumbel-softmax sobre rangos) requieren relajaciones que cambian la
+naturaleza del problema y no aprovechan los datos de sensibilidad ya
+medidos.
+
+El greedy data-driven evita estas tres limitaciones. Es interpretable
+---la secuencia de movimientos se puede leer y se corresponde con una
+narrativa funcional que valida cruzadamente los hallazgos del
+Capítulo~\ref{sec:resultados-interpretabilidad}---, lineal en el
+número de movimientos ($O(|moves|)$) y resuelve el problema en menos
+de un segundo, sin requerir ninguna evaluación adicional del modelo
+porque los costes provienen de los datos pre-calculados de
+sensibilidad. Como contrapartida es sub-óptimo: el algoritmo no
+explora el espacio combinatorio completo y no garantiza alcanzar el
+máximo global. Su validación es empírica: 8~de los 9~puntos
+Pareto-óptimos sobre 21~configuraciones evaluadas son greedy
+(\S\ref{sec:greedy-algorithm}), lo que sugiere que la sub-optimalidad
+real es modesta dentro de la región funcional del espacio
+compresión--rendimiento.
+
+\subsubsection{Diseño del algoritmo}
+
+El algoritmo greedy opera sobre un menú finito de \emph{movimientos de
+compresión}, donde cada movimiento consiste en reducir el rango SVD de un
+componente (Q, K, V, Attn Output, FFN Intermediate, FFN Output) en una
+banda de profundidad (Early: capas 0--3, Middle: 4--7, Late: 8--11) desde
+su rango actual a un rango inferior. Los rangos candidatos no son
+uniformes para todos los componentes: se restringen a aquellos donde la
+pérdida de F1 medida en \S\ref{sec:sensibilidad-componente} es asumible.
+En concreto, Q y K admiten los tres rangos $\{256, 128, 64\}$; V, Attn
+Output y FFN Output sólo $\{256, 128\}$; FFN Intermediate sólo $\{256\}$,
+porque a rango~128 ya colapsa al 6{,}9\% de retención y a rango~64 al
+0\%. Esta restricción es un \emph{filtro previo} derivado de los
+hallazgos de sensibilidad y reduce el menú a 14~movimientos por banda
+($\times$\,3 bandas = 42 movimientos posibles). Para llegar al rango más
+agresivo el algoritmo debe pasar por los intermedios: los movimientos son
+incrementales.
+
+Cada movimiento tiene dos magnitudes asociadas:
+
+\begin{itemize}
+    \item \textbf{Coste incremental} ($\Delta$F1): la caída de F1 macro
+    al bajar del rango previo al actual (no respecto al baseline), de
+    modo que el algoritmo trata la compresión como una secuencia de
+    decisiones independientes. El coste se modula por la banda de
+    profundidad según las proporciones empíricas de impacto observadas
+    en \S\ref{sec:sensibilidad-componente}: las capas tempranas absorben
+    el 14{,}8\% del coste total, las medias el 17{,}7\% y las tardías el
+    67{,}5\%. Como filtro adicional, se descartan los movimientos cuyo
+    coste incremental excede 15~puntos porcentuales (\textit{cap} de
+    seguridad \texttt{max\_cost\_per\_move=15.0} en la implementación),
+    lo que evita decisiones catastróficas como comprimir FFN Intermediate
+    en capas tardías.
+
+    \item \textbf{Ahorro}: la reducción en número de parámetros al bajar el
+    rango. Un detalle técnico crítico es el \emph{rango de equilibrio}
+    (\textit{break-even rank}): la descomposición SVD $W \approx U \Sigma V^T$
+    solo reduce parámetros cuando $r < mn/(m+n)$. Para las matrices de
+    atención ($768 \times 768$), el equilibrio está en rango~384; para las
+    matrices FFN ($768 \times 3072$), en rango~614{,}4. Rangos superiores a
+    estos umbrales \emph{incrementan} el número de parámetros, lo que el
+    algoritmo evita por construcción.
+\end{itemize}
+
+La eficiencia de cada movimiento se define como el cociente entre el
+ahorro de parámetros y el coste incremental en F1:
+\begin{equation}
+    \mathcal{E}(\text{movimiento}) =
+    \begin{cases}
+        +\infty & \text{si } \Delta F1 \leq 0 \\[4pt]
+        \dfrac{\text{params\_ahorrados}}{\Delta F1 \cdot 100} & \text{en otro caso}
+    \end{cases}
+    \label{eq:eficiencia}
+\end{equation}
+El algoritmo selecciona movimientos en orden decreciente de eficiencia
+hasta alcanzar un ratio de parámetros objetivo. Los movimientos con coste
+incremental nulo o negativo (componentes que mejoran ligeramente al
+comprimirse, lo que ocurre, por ejemplo, con Q a rango~256 con retención
+del 100{,}4\%) tienen eficiencia infinita y se aplican primero. La
+formalización completa se recoge en el Algoritmo~\ref{alg:greedy}.
+
+\begin{algorithm}[H]
+\caption{Greedy SVD Compression (informed by sensitivity)}
+\label{alg:greedy}
+\begin{algorithmic}[1]
+\Require Modelo $M$, ratio objetivo de parámetros $r_{\text{tgt}}$,
+         tabla de retención $S[c][k]$, fracciones de profundidad $f[d]$,
+         cap de coste $\tau$
+\Ensure Asignación de rangos $\sigma:(c,d)\!\to\!\text{rank}\cup\{\text{full}\}$
+\State $\text{moves}\gets\emptyset$
+\For{cada componente $c$}
+  \For{cada par consecutivo $(k_{\text{prev}},k)$ en $S[c]$}
+    \For{cada banda de profundidad $d\in\{\text{early},\text{mid},\text{late}\}$}
+      \State $\Delta F1 \gets \big(S[c][k_{\text{prev}}]-S[c][k]\big)\cdot f[d]$
+      \State $\text{saved}\gets |d|\cdot\big(k_{\text{prev}}(m{+}n)-k(m{+}n)\big)$
+      \State $\text{eff} \gets \begin{cases}+\infty & \Delta F1\le 0\\ \text{saved}/\Delta F1 & \text{otro caso}\end{cases}$
+      \State $\text{moves}.\text{add}(\langle c,d,k_{\text{prev}}{\to}k,\Delta F1,\text{saved},\text{eff}\rangle)$
+    \EndFor
+  \EndFor
+\EndFor
+\State ordenar $\text{moves}$ por $\text{eff}$ descendente
+\State $\sigma[c,d]\gets\text{full}$ para todo $(c,d)$
+\For{$m\in\text{moves}$}
+  \If{$\sigma[m.c,m.d]\ne m.k_{\text{prev}}$} \textbf{continue} \EndIf
+  \If{$m.\Delta F1>\tau$} \textbf{continue} \EndIf
+  \State $\sigma[m.c,m.d]\gets m.k$
+  \If{$\text{params\_ratio}(\sigma)\le r_{\text{tgt}}$} \textbf{break} \EndIf
+\EndFor
+\State \Return $\sigma$
+\end{algorithmic}
+\end{algorithm}
+
+
+\subsubsection{Secuencia de decisiones}
+
+La secuencia con que el algoritmo asigna compresión revela una jerarquía
+de importancia que valida \emph{independientemente} los hallazgos de
+interpretabilidad (Tabla~\ref{tab:greedy-sequence}):
+
+\begin{table}[ht]
+\centering
+\caption{Secuencia de decisiones del algoritmo greedy. Cada fila muestra
+los componentes comprimidos al alcanzar el ratio indicado. El algoritmo
+opera exclusivamente con datos numéricos de sensibilidad, sin acceso a
+los hallazgos cualitativos de interpretabilidad.}
+\label{tab:greedy-sequence}
+\small
+\begin{tabular}{ccp{8.0cm}}
+\toprule
+\textbf{Config.} & \textbf{Ratio} & \textbf{Componentes comprimidos} \\
+\midrule
+greedy\_95 & 0{,}950 & Solo Q y K \\
+greedy\_90 & 0{,}864 & Q, K, FFN Output (capas tempranas) \\
+greedy\_85 & 0{,}813 & Q, K, FFN Output (tempranas + medias) \\
+greedy\_80 & 0{,}799 & Q, K, V (tempranas), FFN Output \\
+greedy\_75 & 0{,}741 & Q, K, V, FFN Inter+Out (tempranas) \\
+greedy\_70 & 0{,}670 & Todos los componentes, mayoritariamente
+                       tempranos y medios \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Tres observaciones emergen de esta secuencia, cada una con su contraparte
+en interpretabilidad:
+
+\begin{enumerate}
+    \item Q y K son esencialmente gratuitas de comprimir. El
+    primer 5\% de reducción de parámetros proviene íntegramente de
+    comprimir las proyecciones de Query y Key, con un coste en F1 inferior
+    al 0{,}5\%. Esto es coherente con el análisis de sensibilidad por
+    componente (\S\ref{sec:sensibilidad-componente}), que documentó
+    retenciones del 99{,}4\% para Q y 98{,}4\% para K a rango~128, y con
+    el solapamiento espectral elevado entre subespacios Q-K
+    (hasta 0{,}63 para los 32 vectores singulares principales,
+    \S\ref{sec:analisis-espectral}). Q y K codifican esencialmente
+    redundancia, no información distintiva.
+
+    \item La FFN Intermediate no se comprime en capas tardías.
+    Ninguna configuración greedy con retención superior al 30\% toca la
+    FFN Intermediate de las capas 8--11. El algoritmo descubre de forma
+    independiente el cuello de botella identificado por activation
+    patching (\S\ref{sec:activation-patching}): restaurar únicamente la
+    FFN de la capa~11 recuperaba el 100\% del rendimiento del modelo. La
+    convergencia entre dos métodos completamente disjuntos (uno mide
+    sensibilidad puntual, otro mide suficiencia causal) en el mismo
+    componente como \emph{único} crítico es una validación cruzada fuerte.
+
+    \item Las capas tardías se protegen sistemáticamente. Incluso
+    en las configuraciones más agresivas (\texttt{greedy\_70}, ratio
+    0{,}67), las capas 8--11 retienen rangos sustancialmente mayores que
+    las tempranas. Esto valida el gradiente de criticidad documentado por
+    la ablación de cabezas (\S\ref{sec:head-ablation}): el 77\% de las
+    cabezas en capas 8--11 son críticas frente al 27\% en capas 0--4.
+\end{enumerate}
+
+La convergencia entre la secuencia de decisiones del algoritmo (que opera
+solo con datos numéricos de sensibilidad por componente y profundidad) y
+los hallazgos cualitativos de interpretabilidad (que explican \emph{por
+qué} esos componentes son sensibles) constituye una validación cruzada de
+ambas líneas de análisis. Si interpretabilidad y compresión llegan a las
+mismas conclusiones por caminos disjuntos, la probabilidad de que ambas
+estén sistemáticamente sesgadas en la misma dirección es baja.
+
+
+\subsubsection{Dominancia en la frontera de Pareto}
+
+La Figura~\ref{fig:pareto-all-strategies} presenta la comparación completa
+de las 21 configuraciones evaluadas (6 uniformes, 4 adaptativas, 3
+heurísticas informadas y 8 greedy) en el espacio ratio de parámetros
+vs.\ F1 macro.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.95\textwidth]{figures/cap6/cap6_pareto_all_strategies_es.png}
+\caption{Frontera de Pareto para las cuatro familias de estrategias de
+compresión. Los puntos sobre la curva envolvente representan
+configuraciones Pareto-óptimas. 8 de los 9 puntos Pareto-óptimos
+corresponden a estrategias greedy. La única estrategia no-greedy en la
+frontera es \texttt{uniform\_r32}, que aparece solo por tener el menor
+ratio absoluto pero con F1 = 0 (el modelo está colapsado).}
+\label{fig:pareto-all-strategies}
+\end{figure}
+
+De los 9 puntos Pareto-óptimos en sentido estricto, 8 son estrategias
+greedy. El algoritmo basado en datos empíricos domina la frontera
+completa en la región funcional ($F1 > 0$), desde un ratio de
+0{,}58 hasta 0{,}95. La Tabla~\ref{tab:head-to-head} cuantifica las
+ventajas en comparaciones directas a ratios de parámetros similares:
+
+\begin{table}[ht]
+\centering
+\caption{Comparaciones directas entre estrategias greedy y alternativas a
+ratios de parámetros comparables. Los intervalos de confianza al 95\% se
+obtienen mediante \emph{bootstrap por emoción} (10\,000 réplicas,
+$n=23$); el \emph{p}-valor en la columna $\Delta$F1 corresponde a un
+test \emph{paired bootstrap} sobre la diferencia por emoción cuando se
+dispone de datos por emoción para ambas estrategias.}
+\label{tab:head-to-head}
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Comparación a ratio similar} & \textbf{Greedy F1 [CI95]} & \textbf{Alt.\ F1 [CI95]} & $\Delta$\textbf{F1} & \textbf{Sig.} \\
+\midrule
+greedy\_80 ($\rho=0{,}80$) vs uniform\_r384 ($\rho=0{,}81$)
+  & 0{,}502\textsuperscript{$\dagger$}
+  & 0{,}251 [0{,}151; 0{,}365]
+  & $+$0{,}251 & --- \\
+greedy\_90 ($\rho=0{,}86$) vs adaptive\_e90 ($\rho=0{,}89$)
+  & 0{,}539 [0{,}467; 0{,}613]
+  & 0{,}357 [0{,}255; 0{,}466]
+  & $+$0{,}181 [$+$0{,}130; $+$0{,}241]
+  & $p<0{,}001$ \\
+greedy\_95 ($\rho=0{,}95$) vs adaptive\_e95 ($\rho=1{,}02$)
+  & 0{,}575\textsuperscript{$\dagger$}
+  & 0{,}491 [0{,}400; 0{,}581]
+  & $+$0{,}084 & --- \\
+\bottomrule
+\multicolumn{5}{@{}l}{\footnotesize \textsuperscript{$\dagger$}Se reporta
+únicamente el F1 macro puntual: los datos por emoción para
+\texttt{greedy\_80} y \texttt{greedy\_95} no se exportaron a CSV en NB09. El
+test \emph{paired bootstrap} para greedy\_90 vs adaptive\_e90 produce un
+$\Delta$F1 = $+$0{,}181 con $p<0{,}001$ y CI estrictamente positivo, lo}\\
+\multicolumn{5}{@{}l}{\footnotesize que es la evidencia estadística más
+limpia disponible. Para los otros dos comparativos, los puntos del greedy
+caen \emph{fuera} del intervalo de confianza al 95\% de la alternativa, lo
+que es consistente con significancia direccional.}
+\end{tabular}
+\end{table}
+
+El resultado más llamativo se da en el rango intermedio: a un ratio de
+$\sim$0{,}80, la estrategia greedy retiene el 87{,}0\% del F1 original,
+mientras que la uniforme a rango~384 solo retiene el 43{,}5\%: una
+ventaja superior al doble en retención. La comparación
+\texttt{greedy\_90} vs \texttt{adaptive\_e90}, donde sí se dispone de
+datos por emoción para ambas, permite cuantificar formalmente la ventaja:
+$\Delta$F1 = $+$0{,}181 con intervalo de confianza al 95\%
+$[+0{,}130; +0{,}241]$ (\emph{paired bootstrap} sobre las 23 emociones,
+10\,000 réplicas, $p<0{,}001$). El intervalo está estrictamente alejado
+de cero, descartando la posibilidad de que la ventaja del greedy sea
+atribuible a variabilidad muestral entre emociones. Nótese que la
+comparación con \texttt{adaptive\_e95} es particularmente reveladora: el
+algoritmo greedy obtiene un F1 superior con un 7\% \emph{menos} de
+parámetros, dado que la estrategia adaptativa al 95\% de energía produce
+un ratio de 1{,}02 (es decir, \emph{incrementa} los parámetros, como se
+discutió en \S\ref{sec:compresion-adaptativa}).
+
+A ratio 0{,}95, la estrategia \texttt{greedy\_95} alcanza una retención
+del 99{,}6\% del F1 baseline (sin pérdida medible) con
+una reducción del 5\% en parámetros que viene íntegramente de comprimir Q
+y K, lo que ilustra que existe un margen de compresión genuinamente
+gratuito que las estrategias ciegas son incapaces de explotar.
+
+\subsubsection{Comparación cualitativa con destilación}
+\label{sec:greedy-vs-distilbert}
+
+Las cifras del greedy se entienden mejor situándolas frente a la
+familia ortogonal de compresión más popular: la destilación de
+conocimiento.
+DistilBERT~\cite{sanh2019distilbert}, la destilación canónica de
+BERT-base, reduce el modelo a 6~capas (66~M parámetros, ratio
+0{,}60 sobre los 110~M de BERT-base) reteniendo, según los autores,
+el 97\% del rendimiento de BERT-base en GLUE. Esta comparación no es
+estrictamente trasladable a GoEmotions multi-etiqueta sin re-evaluar
+DistilBERT en la misma tarea ---ejercicio que se propone como
+trabajo futuro (\S\ref{sec:trabajo-futuro})---, pero permite tres
+observaciones de calibración.
+
+A nivel de compresión agresiva ($\rho \approx 0{,}60$), DistilBERT
+domina cómodamente: nuestra \texttt{greedy\_60} retiene apenas el
+5{,}5\% del F1, mientras que la destilación re-entrena el modelo
+pequeño desde cero con supervisión de un \emph{teacher} y puede
+reorganizar libremente sus pesos. La SVD opera sobre los pesos
+existentes sin re-entrenamiento, una restricción que pasa factura en
+el régimen de alta reducción.
+
+En la zona de compresión moderada ($\rho \in [0{,}80, 0{,}90]$) la
+situación se invierte. La SVD greedy es competitiva o superior a las
+técnicas ciegas convencionales sin necesidad de re-entrenar. Y si se
+admite \emph{fine-tuning} posterior, la combinación greedy + FT
+(\S\ref{sec:finetuning-recovery}) supera incluso al baseline sin
+comprimir, algo que ninguna técnica ciega consigue a este ratio.
+
+Las dos familias son complementarias más que competidoras. La
+destilación es la opción correcta cuando se tolera el coste de
+pre-procesamiento y la latencia de desarrollo larga; la SVD informada
+lo es cuando se requiere intervenir directamente sobre un modelo ya
+desplegado, o cuando se buscan reducciones moderadas
+($<25\%$ params) sin tocar el ciclo de entrenamiento. La combinación
+de ambas ---destilación seguida de SVD sobre el destilado--- está
+poco explorada y constituye un experimento natural derivado de este
+trabajo.
+
+La elección del SVD selectivo en este TFG no pretende superar a la
+destilación en su propio terreno, sino habilitar una zona del espacio
+compresión--rendimiento que la destilación deja sin cubrir: ratios
+0{,}80--0{,}95 con intervención post-hoc sobre el modelo
+ya \emph{fine-tuneado}.
+
+
+% -------------------------------------------------------------
+\subsection{Recuperación mediante \emph{fine-tuning}}
+\label{sec:finetuning-recovery}
+% -------------------------------------------------------------
+
+La compresión SVD, incluso con asignación de rangos óptima, introduce una
+perturbación en los pesos del modelo. Una pregunta natural es si un breve
+re-entrenamiento puede recuperar, o incluso superar, el rendimiento
+original.
+
+Se seleccionó la configuración \texttt{greedy\_90} (86{,}4\% de los
+parámetros, F1 macro = 0{,}539) como candidata para \emph{fine-tuning}, por
+ofrecer un equilibrio atractivo entre compresión y rendimiento. El
+re-entrenamiento consistió en 3~épocas sobre GoEmotions con los
+hiperparámetros estándar (tasa de aprendizaje $2 \times 10^{-5}$,
+\textit{warmup} 10\%, \textit{batch size} 32, idénticos a los del
+\emph{fine-tuning} original).
+
+\subsubsection{Resultado agregado}
+
+\begin{table}[ht]
+\centering
+\caption{Rendimiento del modelo comprimido (\texttt{greedy\_90}) antes y
+después de \emph{fine-tuning}, comparado con el baseline sin comprimir.}
+\label{tab:finetuning-summary}
+\small
+\begin{tabular}{lccc}
+\toprule
+\textbf{Modelo} & \textbf{Parámetros} & \textbf{F1 macro} & \textbf{vs.\ baseline} \\
+\midrule
+Baseline (sin compresión) & 100{,}0\% & 0{,}577 & --- \\
+greedy\_90 (comprimido)   & 86{,}4\%  & 0{,}539 & $-$6{,}7\% \\
+greedy\_90 (\emph{fine-tuned})   & 86{,}4\%  & \textbf{0{,}591} & \textbf{$+$2{,}4\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El modelo comprimido y re-entrenado supera al baseline original con un
+13{,}6\% menos de parámetros. Tres épocas de \emph{fine-tuning} no solo recuperan
+la caída de 6{,}7 puntos porcentuales, sino que añaden 1{,}4 puntos
+adicionales (todos los porcentajes calculados sobre F1 macro = 0{,}577 del
+baseline). Este resultado, observado consistentemente al repetir el
+experimento con distintas semillas aleatorias, sugiere que la compresión
+SVD, al eliminar componentes de bajo valor singular, actúa durante el
+re-entrenamiento como una forma de regularización implícita.
+
+Esta interpretación tiene una limitación metodológica: el experimento no incluye un grupo de control consistente
+en el baseline original con tres épocas adicionales de \emph{fine-tuning}. Es
+posible, aunque improbable dada la saturación de F1 macro observada
+durante las 4 épocas iniciales, que parte de la mejora provenga
+simplemente de más entrenamiento y no del efecto regularizador de la
+compresión. El experimento de control que verificaría la hipótesis se propone en el Capítulo~\ref{sec:conclusiones}.
+
+
+\subsubsection{Análisis por emoción}
+
+El patrón de recuperación no es uniforme: las emociones con F1 baseline
+bajo son las que más se benefician de la compresión seguida de
+\emph{fine-tuning}, y este patrón es sistemático
+(Tabla~\ref{tab:finetuning-emotions}).
+
+\begin{table}[ht]
+\centering
+\caption{Emociones con mayor ganancia y mayor pérdida tras compresión +
+\emph{fine-tuning}, respecto al baseline original. La columna $\Delta$ es la
+diferencia entre F1 \emph{fine-tuned} y F1 baseline.}
+\label{tab:finetuning-emotions}
+\small
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Emoción} & \textbf{F1 base} & \textbf{F1 comprim.} & \textbf{F1 \emph{fine-tuned}} & \textbf{$\Delta$ vs.\ base} \\
+\midrule
+\multicolumn{5}{l}{\emph{Mayores ganancias}} \\
+embarrassment & 0{,}267 & 0{,}273 & 0{,}509 & \textbf{$+$0{,}242} \\
+desire        & 0{,}535 & 0{,}554 & 0{,}621 & $+$0{,}086 \\
+excitement    & 0{,}454 & 0{,}431 & 0{,}497 & $+$0{,}043 \\
+realization   & 0{,}271 & 0{,}195 & 0{,}298 & $+$0{,}027 \\
+disappointment & 0{,}275 & 0{,}178 & 0{,}301 & $+$0{,}026 \\
+\midrule
+\multicolumn{5}{l}{\emph{Mayores pérdidas}} \\
+caring        & 0{,}542 & 0{,}479 & 0{,}504 & $-$0{,}038 \\
+admiration    & 0{,}757 & 0{,}695 & 0{,}727 & $-$0{,}029 \\
+fear          & 0{,}710 & 0{,}680 & 0{,}691 & $-$0{,}018 \\
+confusion     & 0{,}515 & 0{,}443 & 0{,}497 & $-$0{,}018 \\
+sadness       & 0{,}632 & 0{,}575 & 0{,}621 & $-$0{,}011 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El caso de \emph{embarrassment} es el más extremo: el modelo comprimido
+mantiene una capacidad similar al baseline (F1 = 0{,}273 frente a 0{,}267),
+pero el \emph{fine-tuning} la eleva hasta F1 = 0{,}509, un 90{,}6\% superior al
+baseline original. Una observación parecida ocurre con \emph{desire}: el
+modelo comprimido apenas pierde rendimiento (0{,}554 vs 0{,}535), pero
+tras tres épocas de \emph{fine-tuning} alcanza 0{,}621, un $+16\%$ relativo.
+Este patrón, en el que la compresión apenas afecta y el \emph{fine-tuning}
+amplifica, encaja con la interpretación de la SVD como
+regularizador estructural: al eliminar direcciones de baja energía, la
+compresión proporciona al re-entrenamiento un punto de partida sin
+sobreajuste a patrones espurios. Las emociones infrarrepresentadas
+(\emph{embarrassment}, \emph{desire}, \emph{realization},
+\emph{disappointment}) son las que más se benefician de este efecto.
+
+Las pérdidas, por contraste, son pequeñas (máximo 0{,}038 en
+\emph{caring}) y afectan a emociones que ya tenían un F1 razonablemente
+alto. La compresión seguida de \emph{fine-tuning} actúa como un ecualizador:
+recorta ligeramente las emociones bien representadas y amplifica las
+infrarrepresentadas. Este efecto es consistente con la eliminación de
+componentes de alta varianza y baja contribución que caracteriza al
+truncamiento SVD: el modelo, al perder direcciones que codificaban
+sobreajuste a patrones frecuentes, recupera capacidad para las clases
+minoritarias.
+
+
+\subsubsection{Plasticidad asimétrica: qué cambia durante el \emph{fine-tuning}}
+ 
+Una pregunta complementaria es \emph{dónde} reorganiza el modelo sus pesos
+durante el \emph{fine-tuning} de recuperación. Si el efecto regularizador
+hipotetizado en el apartado anterior es real, cabría esperar que el
+re-entrenamiento concentrara su esfuerzo en los componentes funcionalmente
+más relevantes para la tarea. La Figura~\ref{fig:cap6-finetuning-diff}
+mide esta plasticidad como la magnitud relativa del cambio de cada
+matriz, $\|\Delta W\| / \|W_0\|$, donde $\|\cdot\|$ es la norma de
+Frobenius y $W_0$ el peso del modelo comprimido antes del \emph{fine-tuning}.
+ 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{figures/cap6/cap6_finetuning_diff_es.png}
+    \caption{Magnitud relativa del cambio de pesos durante las tres
+    épocas de \emph{fine-tuning} posterior a la compresión, calculada como
+    $\|\Delta W\| / \|W_0\|$ por capa (filas) y componente (columnas).
+    La FFN de la capa~11 es el componente más reorganizado (FFN-i:
+    5{,}1\%, FFN-o: 5{,}4\%), seguido de la atención de la misma capa
+    (Attn-O: 4{,}6\%). Las proyecciones Q y K son las menos modificadas
+    en todas las capas (3{,}0\%--3{,}4\%). El patrón refleja una
+    asignación selectiva del esfuerzo de re-entrenamiento.}
+    \label{fig:cap6-finetuning-diff}
+\end{figure}
+ 
+El resultado proporciona una validación cruzada con los hallazgos de
+sensibilidad del Capítulo~\ref{sec:resultados-compresion}: los
+componentes que más se reorganizan durante el \emph{fine-tuning} son
+precisamente los más sensibles a la compresión. La FFN Intermediate de
+la capa~11, cuyo colapso bajo compresión a rango 128 reducía el F1 al
+7\% (\S\ref{sec:sensibilidad-componente}), es también el componente con
+mayor cambio durante el re-entrenamiento. Las proyecciones Q y K, que
+toleraban compresión a rango 128 con retención del 99\% del F1, son
+también las que menos cambian al re-entrenarse.
+ 
+Este paralelismo sugiere que sensibilidad a la compresión y plasticidad
+bajo \emph{fine-tuning} miden, desde ángulos distintos, una misma propiedad
+subyacente: la importancia funcional del componente para la tarea. Los
+componentes que la tarea necesita más son los que más se reorganizan al
+re-entrenarse, y los que más se rompen al comprimirse. Esta convergencia
+añade una tercera evidencia ---junto a la sensibilidad por componente y
+la convergencia del algoritmo greedy--- de que la jerarquía funcional
+documentada por interpretabilidad mecánica no es un artefacto de un
+método particular, sino una propiedad estructural del modelo.
+
+
+% -------------------------------------------------------------
+\subsection{Discusión y síntesis de hallazgos}
+\label{sec:sintesis-discusion}
+% -------------------------------------------------------------
+
+Los resultados de este capítulo permiten extraer tres conclusiones
+principales que integran las líneas de compresión e interpretabilidad del
+proyecto.
+
+\subsubsection{La interpretabilidad mecánica tiene valor aplicado, pero
+requiere cuantificación}
+
+El resultado negativo de las estrategias heurísticas
+(\S\ref{sec:informed-heuristic}) y el éxito del algoritmo greedy
+(\S\ref{sec:greedy-algorithm}) establecen un matiz importante para la
+literatura de compresión informada: la interpretabilidad mecánica no
+genera valor mediante la intuición cualitativa, sino a través de la
+medición sistemática de sensibilidades. Las heurísticas informed
+convergen exactamente sobre la frontera de las baselines ciegas
+(\texttt{informed\_aggressive} $\equiv$ \texttt{uniform\_r256},
+\texttt{informed\_moderate} $\equiv$ \texttt{uniform\_r512}), evidencia
+limpia de que el conocimiento cualitativo no extrae ganancia adicional
+sobre lo que la compresión uniforme alcanza sin invocar interpretabilidad.
+Saber que ``la FFN es más importante que la atención'' no basta; lo que
+permite diseñar estrategias superiores es cuantificar que Q a rango~256
+retiene el 100{,}4\% del F1 mientras que FFN Intermediate a rango~64
+colapsa al 0\%.
+
+Esto no invalida la interpretabilidad cualitativa: los hallazgos de
+probing, \emph{logit lens}, \emph{activation patching} y ablación siguen siendo
+esenciales para explicar el comportamiento del modelo, pero
+delimita su utilidad para la ingeniería de compresión: la interpretabilidad
+identifica qué investigar, y la sensibilidad empírica determina
+cuánto comprimir. La distinción es metodológicamente importante
+porque permite predecir cuándo otros trabajos de ``compresión informada
+por interpretabilidad'' tendrán éxito o fracasarán, en función de si se
+basan en reglas heurísticas o en datos cuantitativos.
+
+\subsubsection{Convergencia de cuatro métodos independientes}
+
+La Tabla~\ref{tab:triangulation} resume la convergencia entre los
+diferentes métodos experimentales del proyecto respecto a las tres
+conclusiones estructurales principales:
+
+\begin{table}[ht]
+\centering
+\caption{Triangulación de hallazgos: cuatro métodos independientes
+convergen en las mismas conclusiones estructurales.}
+\label{tab:triangulation}
+\small
+\begin{tabular}{p{3.0cm}p{3.3cm}p{3.5cm}p{3.5cm}}
+\toprule
+\textbf{Conclusión} & \textbf{Compresión} & \textbf{Interpretabilidad} & \textbf{Síntesis} \\
+\midrule
+Q/K son redundantes &
+  Retención $>$99\% a rango 128 (\S\ref{sec:sensibilidad-componente}) &
+  Solapamiento espectral 0{,}63 con K (\S\ref{sec:analisis-espectral});
+  bajo impacto en ablación (\S\ref{sec:head-ablation}) &
+  Primeros en comprimirse en greedy (\S\ref{sec:greedy-algorithm}) \\
+\addlinespace
+FFN es el cuello de botella &
+  Asimetría 14$\times$ Q vs.\ FFN Intermediate (\S\ref{sec:sensibilidad-componente}) &
+  Restaurar FFN L11 = 100\% (\S\ref{sec:activation-patching});
+  84\% neuronas significativas en L8--11 (\S\ref{sec:neuron-analysis}) &
+  Nunca comprimida en capas tardías (\S\ref{sec:greedy-algorithm}) \\
+\addlinespace
+Capas tardías son críticas &
+  50{,}5\% del impacto total (\S\ref{sec:sensibilidad-componente}) &
+  77\% cabezas críticas en L8--11 (\S\ref{sec:head-ablation});
+  cristalización tardía predice F1 (\S\ref{sec:probing});
+  cristalización geométrica L9--L11 (\S\ref{sec:logit-lens}) &
+  Protegidas sistemáticamente (\S\ref{sec:greedy-algorithm}) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Esta convergencia es significativa porque los métodos son
+\emph{independientes en su diseño experimental}: el análisis de
+sensibilidad mide F1 bajo perturbación de pesos; la ablación de cabezas
+mide F1 bajo anulación de componentes; el probing mide separabilidad
+lineal de representaciones; el \emph{logit lens} mide alineación con la base del
+clasificador; y el \emph{activation patching} mide restauración funcional. Que
+los cinco coincidan en las mismas conclusiones refuerza la validez de cada
+método individual y, simultáneamente, la robustez de las conclusiones
+estructurales. La probabilidad de que cinco métodos disjuntos compartan
+exactamente el mismo sesgo sistemático es despreciable.
+
+\subsubsection{La compresión como técnica de regularización: una hipótesis
+con apoyo preliminar}
+
+El resultado de \emph{fine-tuning} post-compresión (un modelo con 13{,}6\%
+menos de parámetros que supera al original en F1 macro) invita a
+reinterpretar la compresión SVD no solo como reducción de tamaño, sino
+como una técnica de regularización implícita. El truncamiento de valores
+singulares bajos elimina componentes de los pesos que contribuyen poco a
+la varianza explicada pero pueden codificar ruido o sobreajuste. El
+re-entrenamiento posterior permite al modelo reorganizar su
+representación sobre una base más compacta.
+
+Este efecto es particularmente visible en las emociones infrarrepresentadas
+en el dataset (\emph{embarrassment}, \emph{realization}, \emph{desire}),
+donde el baseline original sufre de sobreajuste a patrones espurios que la
+compresión elimina. La mejora de 90{,}6\% en F1 de \emph{embarrassment}
+(de 0{,}267 a 0{,}509) es el ejemplo más extremo, pero el patrón se
+observa consistentemente en emociones de baja frecuencia.
+
+La interpretación causal de este patrón (compresión $\rightarrow$
+regularización $\rightarrow$ mejora) requiere experimentos de control
+que no se han realizado en este trabajo y que se proponen en
+\S\ref{sec:trabajo-futuro}. La observación que sí se sostiene es: \emph{la compresión greedy seguida de fine-tuning
+produce un modelo simultáneamente más pequeño y más preciso que el
+baseline, con ganancias concentradas en clases minoritarias}. Si la
+hipótesis de regularización implícita se confirma con grupos de control
+adecuados, la compresión SVD podría incorporarse como paso estándar en
+pipelines de entrenamiento, no solo como técnica de reducción de tamaño.
+
+La implicación práctica es clara independientemente de la causalidad
+subyacente: un pipeline de \emph{fine-tuning $\rightarrow$ compresión
+greedy $\rightarrow$ re-\emph{fine-tuning}} produce modelos que son
+simultáneamente más pequeños y al menos tan buenos como el baseline
+original, siempre que la compresión respete la estructura funcional del
+modelo ---lo cual requiere, a su vez, el tipo de análisis de
+interpretabilidad mecánica presentado en esta memoria.

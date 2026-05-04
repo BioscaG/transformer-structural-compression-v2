@@ -16,8 +16,10 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 # Plotly figures
-from viz.plots import (crystallization, fingerprints, heads_matrix,
-                       lesion_theater, pareto_3d, sunburst)
+from viz.plots import (component_sensitivity, crystallization, fingerprints,
+                       finetuning_recovery, heads_matrix, heuristic_negative,
+                       info_gain, lesion_theater, neurons, pareto_3d,
+                       sunburst)
 from viz.interactive import (bert_architecture, compression_decay,
                              finetuning_diff, galaxy_formation,
                              greedy_replay, internal_compression,
@@ -191,6 +193,11 @@ PLOTLY_FIGS = [
     ("emotional_landscape",   fingerprints.build_landscape_figure),
     ("greedy_replay",         greedy_replay.build_replay_figure),
     ("finetuning_diff",       finetuning_diff.build_diff_figure),
+    ("component_sensitivity", component_sensitivity.build_figure),
+    ("info_gain",             info_gain.build_figure),
+    ("finetuning_recovery",   finetuning_recovery.build_figure),
+    ("neurons",               neurons.build_figure),
+    ("heuristic_negative",    heuristic_negative.build_figure),
 ]
 
 

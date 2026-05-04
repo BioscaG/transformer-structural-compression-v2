@@ -1,0 +1,358 @@
+% =============================================================
+% CAPÍTULO 1 — Introducción
+% Versión: matrícula de honor
+% =============================================================
+
+\section{Introducción}
+\label{sec:introduccion}
+
+\subsection{Contexto y motivación}
+\label{sec:contexto-motivacion}
+
+Los modelos de lenguaje basados en la arquitectura Transformer
+\cite{vaswani2017attention} han transformado el procesamiento del lenguaje natural
+en la última década. BERT \cite{devlin2019bert}, con sus 110~millones de parámetros,
+demostró en 2018 que una sola red pre-entrenada podía alcanzar resultados de
+referencia en tareas tan diversas como clasificación de texto, extracción de
+información o respuesta a preguntas. Hoy, 110~millones de parámetros es la talla
+\emph{pequeña}: GPT-3 alcanzó los 175\,000~millones \cite{brown2020language}, y los
+modelos abiertos recientes operan en el rango de 8\,000 a 405\,000~millones. El coste
+de desplegarlos en dispositivos móviles, sistemas embebidos o infraestructuras con
+restricciones de latencia y energía sigue siendo un problema abierto, y proyecciones
+recientes estiman que la inferencia ---no el entrenamiento--- concentra el grueso del
+gasto energético a largo plazo de un modelo desplegado \cite{strubell2019energy,
+schwartz2020green}.
+
+Frente a este escenario, una pregunta directa orienta este trabajo: ¿se puede hacer
+un modelo más pequeño sin destruir lo que ha aprendido? La compresión de modelos
+lleva años intentando responderla con cuatro herramientas principales ---poda,
+cuantización, destilación y factorización de bajo rango. Aquí se utiliza la última
+en su variante más clásica: la descomposición en valores singulares (SVD), aplicada
+de forma selectiva a las 72 matrices lineales del encoder de BERT-base. La SVD
+ofrece tres ventajas para los objetivos de este trabajo: no requiere
+re-entrenamiento, admite granularidad arbitraria (rango específico por matriz), y
+proporciona garantías matemáticas de optimalidad respecto a la norma de Frobenius
+mediante el teorema de Eckart-Young \cite{eckart1936approximation}.
+
+Pero el proyecto no se limita a la compresión. Lo que comenzó como un análisis de
+cuánto puede comprimirse cada componente derivó en algo más interesante: al observar
+qué se rompe y qué sobrevive a la eliminación selectiva de partes del modelo, se
+obtiene un mapa empírico de cómo está organizada internamente la información. La
+compresión funciona, en este sentido, como un \emph{bisturí experimental}: cada
+configuración comprimida es una intervención controlada que revela la importancia
+funcional del componente afectado. Esta perspectiva conecta directamente la
+compresión con la \emph{interpretabilidad mecánica}, una línea de investigación
+reciente que busca abrir el modelo y caracterizar los circuitos internos
+responsables de comportamientos específicos \cite{elhage2021mathematical,
+meng2022locating, conmy2023towards}.
+
+El trabajo combina así dos perspectivas habitualmente disjuntas en la literatura.
+Por un lado, la compresión SVD selectiva por componente y profundidad. Por otro,
+cinco técnicas de interpretabilidad mecánica ---probing lineal, \emph{logit lens},
+\emph{activation patching}, ablación de cabezas de atención y análisis de selectividad
+neuronal en las redes feed-forward--- que examinan la organización interna del
+modelo desde ángulos diferentes pero convergentes. Y cierra el bucle traduciendo
+esa comprensión en una estrategia de compresión \emph{informada por datos} que
+domina la frontera de Pareto frente a las aproximaciones ciegas.
+
+La elección de la clasificación de emociones como dominio de aplicación no es
+arbitraria. GoEmotions \cite{demszky2020goemotions} ofrece 23~categorías
+emocionales con propiedades semánticas heterogéneas: algunas emociones tienen
+vocabulario distintivo (\emph{gratitude} $\leftrightarrow$ ``thanks''), mientras que
+otras requieren comprensión pragmática profunda (\emph{disappointment},
+\emph{realization}). Esta diversidad convierte la tarea en un test exigente para la
+compresión, porque permite observar cómo la degradación del modelo afecta de forma
+\emph{diferencial} a emociones con distintos perfiles lingüísticos. Un dataset
+binario (sentimiento positivo/negativo) no haría visible esta vulnerabilidad
+selectiva, que constituye uno de los hallazgos centrales del proyecto.
+
+La motivación tiene tres vertientes. Desde el punto de vista \emph{práctico}, la
+compresión SVD se aplica después del entrenamiento, no requiere hardware
+especializado y es directamente escalable a cualquier modelo con capas lineales.
+Desde el punto de vista \emph{científico}, la compresión selectiva proporciona
+acceso a la organización interna del modelo de un modo que las técnicas
+correlacionales (como el probing) no pueden replicar: cuando comprimir un componente
+destruye una capacidad, esa relación es funcional, no solo asociativa. Y desde el
+punto de vista de la \emph{sostenibilidad computacional}, reducir el tamaño de los
+modelos para inferencia contribuye directamente a la filosofía \textit{Green AI}
+\cite{schwartz2020green}.
+
+
+\subsection{Formulación del problema}
+\label{sec:formulacion-problema}
+
+El problema central de este trabajo se articula en torno a tres preguntas
+encadenadas. La primera describe; la segunda explica; la tercera prescribe.
+
+\begin{quote}
+    \textbf{P1 (descriptiva).} \textit{¿Cómo afecta la compresión SVD selectiva,
+    aplicada por tipo de componente y por profundidad de capa, al rendimiento y a
+    la calidad de las representaciones internas de un modelo Transformer
+    \emph{fine-tuneado} para clasificación de emociones?}
+\end{quote}
+
+\begin{quote}
+    \textbf{P2 (explicativa).} \textit{¿Qué revelan las técnicas de interpretabilidad
+    mecánica sobre la organización interna de la información emocional en el
+    modelo, y qué propiedades estructurales explican la sensibilidad diferencial
+    observada en P1?}
+\end{quote}
+
+\begin{quote}
+    \textbf{P3 (prescriptiva).} \textit{¿Puede el conocimiento mecanicista
+    obtenido en P2 traducirse en estrategias de compresión que dominen a las
+    aproximaciones ciegas establecidas en la literatura?}
+\end{quote}
+
+Los trabajos previos de compresión SVD en Transformers \cite{noach2020compressing,
+hsu2022language} se han centrado mayoritariamente en compresión uniforme: el mismo
+grado de reducción para todas las capas y componentes. Esta uniformidad ignora dos
+asimetrías documentadas. Primero, las distintas capas de BERT codifican tipos de
+información diferentes ---las tempranas capturan rasgos léxicos y sintácticos, las
+tardías capturan rasgos semánticos y específicos de la tarea \cite{tenney2019bert,
+jawahar2019what}. Segundo, los componentes de atención y las redes feed-forward
+desempeñan roles funcionales distintos \cite{geva2021transformer, voita2019analyzing}.
+La hipótesis subyacente del proyecto es que tratarlos igual es subóptimo, y que
+medir cuánto subóptimo es ---y por qué--- requiere combinar compresión sistemática
+con interpretabilidad mecánica.
+
+
+\subsection{Objetivos}
+\label{sec:objetivos}
+
+El objetivo general del proyecto es:
+
+\begin{quote}
+    Producir un mapa funcional de cómo BERT-base \emph{fine-tuneado}
+    organiza internamente la información emocional, utilizando la
+    compresión SVD selectiva como instrumento experimental
+    ---\emph{bisturí} que mide la contribución funcional de cada
+    componente por la magnitud de lo que se rompe al eliminarlo--- y
+    triangulando los hallazgos con cinco técnicas de interpretabilidad
+    mecánica. Como aplicación derivada del mapa, se diseña una
+    estrategia de compresión informada por datos empíricos de
+    sensibilidad y se compara con las aproximaciones ciegas
+    establecidas en la literatura.
+\end{quote}
+
+Este objetivo se descompone en cinco objetivos específicos que estructuran la
+contribución y delimitan el alcance:
+
+\begin{enumerate}[nosep, label=\textbf{O\arabic*.}]
+    \item \textbf{Caracterizar la sensibilidad a la compresión SVD} por tipo de
+    componente (Q, K, V, Output, FFN Intermediate, FFN Output), por profundidad
+    de capa y por emoción, estableciendo un mapa cuantitativo del trade-off
+    compresión--rendimiento bajo compresión uniforme y adaptativa.
+
+    \item \textbf{Localizar y mapear la organización interna de la información
+    emocional} mediante cinco técnicas de interpretabilidad mecánica
+    complementarias: probing lineal para identificar la profundidad de
+    cristalización de cada emoción, \emph{logit lens} para distinguir información
+    presente de información alineada con la base del clasificador, activation
+    patching para establecer dependencias funcionales, ablación de cabezas de
+    atención para mapear la especialización atencional y análisis de selectividad
+    neuronal para caracterizar la codificación en las redes feed-forward.
+
+    \item \textbf{Establecer conexiones cuantitativas entre estructura interna y
+    vulnerabilidad a la compresión}, identificando qué propiedades del modelo
+    (profundidad de cristalización, intensidad de codificación neuronal,
+    distribución espectral) predicen la caída de rendimiento bajo SVD.
+
+    \item \textbf{Diseñar y evaluar una estrategia de compresión informada} que
+    traduzca los hallazgos de interpretabilidad en un algoritmo de asignación de
+    rangos, y demostrar su superioridad sobre las aproximaciones ciegas en la
+    frontera de Pareto.
+
+    \item \textbf{Evaluar la recuperación por fine-tuning} del modelo
+    comprimido, investigando si la compresión SVD seguida de un breve
+    re-entrenamiento puede actuar como regularización implícita que beneficie
+    a las emociones infrarrepresentadas.
+\end{enumerate}
+
+
+\subsection{Contribuciones}
+\label{sec:contribuciones-intro}
+
+Las contribuciones principales de este trabajo son las siguientes:
+
+\begin{enumerate}[label=\textbf{C\arabic*.}]
+
+    \item \textbf{Mapa de sensibilidad a la compresión} desagregado por tipo de
+    componente, profundidad de capa y emoción (O1). El mapa documenta una
+    asimetría radical entre componentes: las proyecciones Query y Key toleran
+    compresión a rango~128 con retención del 99\% del F1 macro, mientras que la
+    FFN Intermediate al mismo rango colapsa al 7\%. La diferencia de
+    sensibilidad alcanza un factor 14$\times$ en retención absoluta de F1 a
+    rango~128, que se amplifica hasta un factor 72$\times$ a rango~64
+    cuando se normaliza por el porcentaje de parámetros eliminados (Query
+    retiene 98{,}6\%, FFN Intermediate colapsa al 0\%). Hasta donde sabemos,
+    esta asimetría no había sido documentada cuantitativamente en la
+    literatura sobre SVD en Transformers.
+
+    \item \textbf{Triangulación de interpretabilidad mecánica} mediante cinco
+    técnicas independientes (probing, \emph{logit lens}, \emph{activation patching}, ablación
+    de cabezas y análisis neuronal) (O2). Los resultados convergen en una
+    arquitectura funcional de tres niveles ---señal léxica en capas tempranas,
+    cómputo de transición en capas medias, alineación geométrica con la base
+    del clasificador en capas tardías--- que explica de forma unificada
+    fenómenos previamente disjuntos: el patrón en U del \emph{logit lens}, la
+    suficiencia causal de la capa~11 en \emph{activation patching}, el gradiente de
+    criticidad atencional documentado por ablación, y la concentración del 84\%
+    de las neuronas significativas en las capas 8--11.
+
+    \item \textbf{Resolución de la paradoja información-dependencia.} El
+    probing demuestra que las capas tardías apenas aportan información nueva
+    (ganancia $<0{,}004$ en L10--L11), pero el \emph{activation patching} las
+    identifica como las únicas suficientes para restaurar el modelo desde un
+    colapso total. Mediante el \emph{logit lens} documentamos que esta aparente
+    contradicción refleja una distinción funcional precisa: las capas tardías
+    no \emph{crean} señal emocional ---la \emph{rotan} hacia la base sobre la
+    que opera la cabeza de clasificación. La distinción entre información
+    \emph{presente} (probing), información \emph{leíble} (\emph{logit lens}) y
+    componentes \emph{suficientes} (patching) constituye una clarificación
+    metodológica que va más allá del caso estudiado.
+
+    \item \textbf{Conexión cuantitativa entre interpretabilidad y compresión}
+    (O3). La profundidad de cristalización por probing predice la
+    vulnerabilidad a la compresión SVD a rango 128
+    (Spearman~$\rho \approx 0{,}48$), y la norma del vector de selectividad
+    neuronal es el mejor predictor individual de la caída de F1 bajo
+    compresión ($\rho = 0{,}64$, $p = 0{,}001$, $n=23$). La
+    geometría que la SVD optimiza es \emph{ortogonal} a la organización
+    funcional del modelo (correlación entre fracción de señal eliminada y
+    caída de F1: $\rho \approx 0$): la SVD no daña selectivamente las neuronas
+    emocionales, sino que las daña uniformemente, y la vulnerabilidad
+    diferencial proviene de la intensidad de codificación, no de la geometría
+    SVD.
+
+    \item \textbf{Algoritmo greedy de compresión informada por datos} (O4),
+    alimentado con datos empíricos de sensibilidad obtenidos en C1, que domina
+    la frontera de Pareto con 8 de los 9 puntos Pareto-óptimos del estudio. A
+    ratio de parámetros del 80\%, la estrategia greedy retiene el 87\% del F1
+    macro, mientras que la compresión uniforme al mismo ratio retiene solo el
+    43\%. El algoritmo descubre de forma independiente la jerarquía de
+    importancia identificada por interpretabilidad ---comprime primero Q y K,
+    nunca toca la FFN Intermediate de las capas tardías---, lo que constituye
+    una validación cruzada entre dos líneas metodológicamente independientes.
+
+    \item \textbf{Resultado negativo informativo: la heurística cualitativa
+    no extrae valor adicional.} Tres estrategias informadas basadas en reglas
+    heurísticas derivadas de los hallazgos de interpretabilidad
+    \emph{convergen exactamente} sobre la frontera de las baselines ciegas
+    (\texttt{informed\_aggressive} reproduce \texttt{uniform\_r256},
+    \texttt{informed\_moderate} reproduce \texttt{uniform\_r512}), o requieren
+    más parámetros que el modelo original sin alcanzar las retenciones más
+    altas (\texttt{informed\_light} a ratio 1{,}285). Este resultado delimita
+    el valor aplicado de la interpretabilidad mecánica para la compresión: el
+    conocimiento cualitativo identifica \emph{qué} medir, pero solo los datos
+    cuantitativos de sensibilidad permiten determinar \emph{cuánto}
+    comprimir. La narrativa completa (heurística no innova $\rightarrow$
+    pivot data-driven $\rightarrow$ dominancia Pareto) es, en sí misma, una
+    observación metodológica transferible.
+
+    \item \textbf{Evidencia preliminar de regularización por compresión}
+    (O5). Un modelo comprimido al 86\% de parámetros, tras tres épocas de
+    \emph{fine-tuning}, alcanza un F1 macro de 0{,}591 frente a 0{,}577 del baseline
+    sin comprimir. Las ganancias se concentran en emociones
+    infrarrepresentadas: \emph{embarrassment} pasa de F1 = 0{,}267 a F1 =
+    0{,}509 ($+90\%$ relativo). Reportamos este hallazgo como observación
+    consistente con la hipótesis de que la SVD, al eliminar direcciones de
+    baja energía, actúa como regularización estructural que reduce el
+    sobreajuste a patrones espurios. El alcance experimental (un modelo, una
+    tarea, sin grupo de control con epochs adicionales) impide afirmar
+    causalidad: en el Capítulo~\ref{sec:conclusiones} se discuten los
+    experimentos de control que verificarían la hipótesis.
+
+\end{enumerate}
+
+
+\subsection{Marco del proyecto en la FIB}
+\label{sec:marco-fib}
+
+Este proyecto se enmarca en el Grado en Ingeniería Informática de la Facultat
+d'Informàtica de Barcelona (FIB-UPC), dentro de la especialidad de Computación.
+El trabajo integra conocimientos de múltiples asignaturas del grado. La
+descomposición SVD y el análisis espectral se fundamentan en álgebra lineal y
+cálculo matricial (M1, M2), mientras que la estabilidad numérica de las
+aproximaciones de bajo rango conecta directamente con los contenidos de
+Computación Numérica (CN). El diseño y la evaluación del algoritmo greedy de
+compresión aplican técnicas de diseño algorítmico y análisis de complejidad (A,
+EDA). Los fundamentos de aprendizaje automático (IA) sustentan tanto el
+\emph{fine-tuning} de BERT como los clasificadores de probing, y la ejecución
+eficiente en GPU (PAR) ha sido necesaria para el entrenamiento y la evaluación
+sobre el dataset completo. Las metodologías de desarrollo de software (PROP)
+se reflejan en la organización modular del código experimental. Un intercambio
+en la Technical University of Denmark (DTU, Q1 2024--25) proporcionó formación
+complementaria de nivel máster en \textit{Machine Learning}, \textit{Deep
+Learning} y \textit{Graph Neural Networks}, incluyendo contacto con técnicas de
+interpretabilidad mecánica que han sido instrumentales en el diseño del
+Capítulo~\ref{sec:resultados-interpretabilidad}.
+
+El proyecto tiene carácter eminentemente experimental y de investigación: no
+se desarrolla un producto de software, sino que se lleva a cabo un estudio
+sistemático sobre cómo la compresión SVD afecta a los distintos componentes de
+un Transformer y qué revela esto sobre la organización interna de las
+representaciones emocionales. La metodología es comparable a la de la
+investigación empírica en NLP: hipótesis explícitas, experimentos controlados,
+métricas estándar (F1 macro y micro, retención, ratio de parámetros), análisis
+estadístico (correlaciones de Spearman con reporte de p-valores) y reporte
+honesto de resultados ---incluidos los nulos.
+
+
+\subsection{Alcance y limitaciones explícitas}
+\label{sec:alcance-limitaciones}
+
+Por transparencia metodológica, los resultados del trabajo deben interpretarse
+dentro de las siguientes restricciones, que se discuten en mayor detalle en el
+Capítulo~\ref{sec:conclusiones}:
+
+\begin{itemize}[nosep]
+    \item \textbf{Modelo único}: los experimentos se realizan sobre BERT-base
+    (110\,M parámetros). La generalización a BERT-large, RoBERTa, o
+    arquitecturas decoder-only (GPT-2, LLaMA) no se verifica empíricamente
+    en este trabajo.
+
+    \item \textbf{Tarea única}: clasificación multi-etiqueta de emociones
+    sobre GoEmotions. La extensión a NER, inferencia textual o tareas
+    generativas queda como trabajo futuro.
+
+    \item \textbf{Compresión post-hoc}: la SVD se aplica una vez fine-tuneado
+    el modelo, sin compresión durante el entrenamiento ni cuantización
+    posterior.
+
+    \item \textbf{Potencia estadística limitada}: las correlaciones se
+    calculan sobre $n = 23$ emociones, lo que permite detectar efectos
+    grandes con confianza pero no efectos moderados.
+\end{itemize}
+
+Estas limitaciones se asumen por diseño: el alcance del trabajo prioriza la
+profundidad analítica sobre un único modelo y tarea frente a estudios más
+superficiales sobre múltiples configuraciones.
+
+
+\subsection{Estructura de la memoria}
+\label{sec:estructura-memoria}
+
+La memoria se organiza en siete capítulos. El Capítulo~\ref{sec:estado-arte}
+revisa el estado del arte en compresión de Transformers e interpretabilidad
+mecánica, sitúa los fundamentos matemáticos de la SVD y posiciona el trabajo
+respecto a la literatura previa. El Capítulo~\ref{sec:metodologia-tfg} describe
+la metodología experimental: dataset, modelo, técnicas de compresión y
+herramientas de interpretabilidad.
+
+Los tres capítulos siguientes contienen los resultados, en orden de granularidad
+creciente. El Capítulo~\ref{sec:resultados-compresion} presenta los resultados
+de compresión SVD: análisis espectral, transición de fase bajo compresión
+uniforme, sensibilidad por componente y profundidad, y compresión adaptativa
+energética. El Capítulo~\ref{sec:resultados-interpretabilidad} expone los
+resultados de las cinco técnicas de interpretabilidad mecánica y argumenta su
+convergencia en una arquitectura funcional unificada. El
+Capítulo~\ref{sec:sintesis} cierra el bucle: utiliza los hallazgos de los
+capítulos anteriores para diseñar y evaluar la estrategia greedy de compresión
+informada, documenta el resultado negativo de la heurística previa y analiza la
+recuperación mediante \emph{fine-tuning}.
+
+El Capítulo~\ref{sec:conclusiones} sintetiza las contribuciones, discute las
+limitaciones y propone líneas de investigación futura. La gestión del proyecto
+(planificación temporal, presupuesto, sostenibilidad) se incluye como anexo
+final.

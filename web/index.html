@@ -755,6 +755,45 @@
     margin-left: auto; margin-right: auto;
   }
   section.outro .ch-num { display: inline-flex; }
+  section.outro .outro-block {
+    margin-top: 56px;
+    padding-top: 28px;
+    border-top: 0.5px solid var(--line);
+  }
+  section.outro .outro-block:first-child {
+    margin-top: 64px;
+    border-top: 0.5px solid var(--line);
+  }
+  section.outro .outro-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  section.outro .outro-subtitle {
+    font-family: var(--serif);
+    font-weight: 350;
+    font-size: 26px;
+    color: var(--ink);
+    line-height: 1.18;
+    margin: 0 0 20px 0;
+    font-variation-settings: "opsz" 60, "SOFT" 60;
+  }
+  section.outro .outro-subtitle em {
+    font-style: italic; color: var(--accent);
+  }
+  section.outro .outro-coda {
+    margin-top: 56px;
+    padding-top: 28px;
+    border-top: 0.5px solid var(--accent);
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--ink-2);
+    font-size: 18px;
+    line-height: 1.55;
+  }
 
   /* ─── REVEAL ────────────────────────────────────────────────────── */
   .reveal {
@@ -879,7 +918,7 @@
     <button id="toc-close" aria-label="Cerrar">×</button>
   </div>
   <div class="toc-body">
-    <div class="toc-part"><a href="#parte-1" class="toc-part-title"><span class="toc-num"><span lang="es">Parte 01</span><span lang="en">Part 01</span></span> <span lang="es">El sujeto</span><span lang="en">The subject</span></a><ul><li><a href="#arquitectura"><span class="toc-fig">01.1</span> <span lang="es">BERT entero, en 3D</span><span lang="en">All of BERT, in 3D</span></a></li><li><a href="#lex2sem"><span class="toc-fig">01.2</span> <span lang="es">De diccionario a clasificador</span><span lang="en">From dictionary to classifier</span></a></li></ul></div><div class="toc-part"><a href="#parte-2" class="toc-part-title"><span class="toc-num"><span lang="es">Parte 02</span><span lang="en">Part 02</span></span> <span lang="es">El cuerpo en pedazos</span><span lang="en">The body in pieces</span></a><ul><li><a href="#internal-compression"><span class="toc-fig">02.1</span> <span lang="es">El modelo se comprime a sí mismo</span><span lang="en">The model compresses itself</span></a></li><li><a href="#pareto"><span class="toc-fig">02.2</span> <span lang="es">22 estrategias, una transición de fase</span><span lang="en">22 strategies, one phase transition</span></a></li><li><a href="#spectral-landscape"><span class="toc-fig">02.3</span> <span lang="es">La asimetría espectral, hecha topografía</span><span lang="en">Spectral asymmetry as a landscape</span></a></li><li><a href="#decay"><span class="toc-fig">02.4</span> <span lang="es">La galaxia se deshace</span><span lang="en">The galaxy dissolves</span></a></li><li><a href="#ft-diff"><span class="toc-fig">02.5</span> <span lang="es">Qué cambió el fine-tuning</span><span lang="en">What the fine-tune actually changed</span></a></li></ul></div><div class="toc-part"><a href="#parte-3" class="toc-part-title"><span class="toc-num"><span lang="es">Parte 03</span><span lang="en">Part 03</span></span> <span lang="es">Dónde viven las emociones</span><span lang="en">Where the emotions live</span></a><ul><li><a href="#crystallization"><span class="toc-fig">03.1</span> <span lang="es">Cristalización por capas</span><span lang="en">Layer-wise crystallisation</span></a></li><li><a href="#galaxy"><span class="toc-fig">03.2</span> <span lang="es">Galaxy formation</span><span lang="en">Galaxy formation</span></a></li><li><a href="#iterative"><span class="toc-fig">03.3</span> <span lang="es">La curva en U</span><span lang="en">The U curve</span></a></li><li><a href="#lens-vs-probe"><span class="toc-fig">03.4</span> <span lang="es">Lo que sabe vs lo que sabe leer</span><span lang="en">What it knows vs what it can read</span></a></li><li><a href="#fingerprint"><span class="toc-fig">03.5</span> <span lang="es">Decision fingerprint</span><span lang="en">Decision fingerprint</span></a></li></ul></div><div class="toc-part"><a href="#parte-4" class="toc-part-title"><span class="toc-num"><span lang="es">Parte 04</span><span lang="en">Part 04</span></span> <span lang="es">144 cabezas</span><span lang="en">144 heads</span></a><ul><li><a href="#heads"><span class="toc-fig">04.1</span> <span lang="es">Las 144 cabezas</span><span lang="en">The 144 heads</span></a></li><li><a href="#atlas"><span class="toc-fig">04.2</span> <span lang="es">Attention atlas</span><span lang="en">Attention atlas</span></a></li><li><a href="#constellations"><span class="toc-fig">04.3</span> <span lang="es">Las 23 emociones como direcciones</span><span lang="en">The 23 emotions as directions</span></a></li><li><a href="#circuit"><span class="toc-fig">04.4</span> <span lang="es">El circuito compartido</span><span lang="en">The shared circuit</span></a></li></ul></div><div class="toc-part"><a href="#parte-5" class="toc-part-title"><span class="toc-num"><span lang="es">Parte 05</span><span lang="en">Part 05</span></span> <span lang="es">Causalidad</span><span lang="en">Causality</span></a><ul><li><a href="#lesion"><span class="toc-fig">05.1</span> <span lang="es">Lesion theater</span><span lang="en">Lesion theatre</span></a></li></ul></div><div class="toc-part"><a href="#parte-6" class="toc-part-title"><span class="toc-num"><span lang="es">Parte 06</span><span lang="en">Part 06</span></span> <span lang="es">Síntesis</span><span lang="en">Synthesis</span></a><ul><li><a href="#clusters"><span class="toc-fig">06.1</span> <span lang="es">Seis clusters que aparecen solos</span><span lang="en">Six clusters emerging on their own</span></a></li><li><a href="#landscape"><span class="toc-fig">06.2</span> <span lang="es">El paisaje emocional</span><span lang="en">The emotional landscape</span></a></li><li><a href="#trajectory"><span class="toc-fig">06.3</span> <span lang="es">Una frase, cuatro vistas</span><span lang="en">One sentence, four views</span></a></li><li><a href="#greedy"><span class="toc-fig">06.4</span> <span lang="es">Greedy en acción</span><span lang="en">Greedy in action</span></a></li></ul></div>
+    <div class="toc-part"><a href="#parte-1" class="toc-part-title"><span class="toc-num"><span lang="es">Parte 01</span><span lang="en">Part 01</span></span> <span lang="es">El sujeto y las preguntas</span><span lang="en">The subject and the questions</span></a><ul><li><a href="#arquitectura"><span class="toc-fig">01.1</span> <span lang="es">BERT entero, en 3D</span><span lang="en">All of BERT, in 3D</span></a></li><li><a href="#lex2sem"><span class="toc-fig">01.2</span> <span lang="es">De diccionario a clasificador</span><span lang="en">From dictionary to classifier</span></a></li></ul></div><div class="toc-part"><a href="#parte-2" class="toc-part-title"><span class="toc-num"><span lang="es">Parte 02</span><span lang="en">Part 02</span></span> <span lang="es">El cuerpo en pedazos</span><span lang="en">The body in pieces</span></a><ul><li><a href="#internal-compression"><span class="toc-fig">02.1</span> <span lang="es">El modelo se comprime a sí mismo</span><span lang="en">The model compresses itself</span></a></li><li><a href="#pareto"><span class="toc-fig">02.2</span> <span lang="es">22 estrategias, una transición de fase</span><span lang="en">22 strategies, one phase transition</span></a></li><li><a href="#component-sensitivity"><span class="toc-fig">02.3</span> <span lang="es">14× de diferencia entre Q y FFN</span><span lang="en">14× gap between Q and FFN</span></a></li><li><a href="#spectral-landscape"><span class="toc-fig">02.4</span> <span lang="es">La asimetría espectral, hecha topografía</span><span lang="en">Spectral asymmetry as a landscape</span></a></li><li><a href="#decay"><span class="toc-fig">02.5</span> <span lang="es">La galaxia se deshace</span><span lang="en">The galaxy dissolves</span></a></li><li><a href="#ft-diff"><span class="toc-fig">02.6</span> <span lang="es">Qué cambió el fine-tuning</span><span lang="en">What the fine-tune actually changed</span></a></li></ul></div><div class="toc-part"><a href="#parte-3" class="toc-part-title"><span class="toc-num"><span lang="es">Parte 03</span><span lang="en">Part 03</span></span> <span lang="es">Dónde viven las emociones</span><span lang="en">Where the emotions live</span></a><ul><li><a href="#crystallization"><span class="toc-fig">03.1</span> <span lang="es">Cristalización por capas</span><span lang="en">Layer-wise crystallisation</span></a></li><li><a href="#info-gain"><span class="toc-fig">03.2</span> <span lang="es">L0 absorbe el 61 %</span><span lang="en">L0 absorbs 61 %</span></a></li><li><a href="#galaxy"><span class="toc-fig">03.3</span> <span lang="es">Galaxy formation</span><span lang="en">Galaxy formation</span></a></li><li><a href="#iterative"><span class="toc-fig">03.4</span> <span lang="es">La curva en U</span><span lang="en">The U curve</span></a></li><li><a href="#lens-vs-probe"><span class="toc-fig">03.5</span> <span lang="es">Lo que sabe vs lo que sabe leer</span><span lang="en">What it knows vs what it can read</span></a></li><li><a href="#fingerprint"><span class="toc-fig">03.6</span> <span lang="es">Decision fingerprint</span><span lang="en">Decision fingerprint</span></a></li></ul></div><div class="toc-part"><a href="#parte-4" class="toc-part-title"><span class="toc-num"><span lang="es">Parte 04</span><span lang="en">Part 04</span></span> <span lang="es">144 cabezas</span><span lang="en">144 heads</span></a><ul><li><a href="#heads"><span class="toc-fig">04.1</span> <span lang="es">Las 144 cabezas</span><span lang="en">The 144 heads</span></a></li><li><a href="#atlas"><span class="toc-fig">04.2</span> <span lang="es">Attention atlas</span><span lang="en">Attention atlas</span></a></li><li><a href="#constellations"><span class="toc-fig">04.3</span> <span lang="es">Las 23 emociones como direcciones</span><span lang="en">The 23 emotions as directions</span></a></li><li><a href="#circuit"><span class="toc-fig">04.4</span> <span lang="es">El circuito compartido</span><span lang="en">The shared circuit</span></a></li></ul></div><div class="toc-part"><a href="#parte-5" class="toc-part-title"><span class="toc-num"><span lang="es">Parte 05</span><span lang="en">Part 05</span></span> <span lang="es">Causalidad</span><span lang="en">Causality</span></a><ul><li><a href="#lesion"><span class="toc-fig">05.1</span> <span lang="es">Lesion theater</span><span lang="en">Lesion theatre</span></a></li></ul></div><div class="toc-part"><a href="#parte-6" class="toc-part-title"><span class="toc-num"><span lang="es">Parte 06</span><span lang="en">Part 06</span></span> <span lang="es">El mapa emocional</span><span lang="en">The emotional map</span></a><ul><li><a href="#neurons"><span class="toc-fig">06.1</span> <span lang="es">Dónde viven las neuronas emocionales</span><span lang="en">Where the emotional neurons live</span></a></li><li><a href="#clusters"><span class="toc-fig">06.2</span> <span lang="es">Seis clusters que aparecen solos</span><span lang="en">Six clusters emerging on their own</span></a></li><li><a href="#landscape"><span class="toc-fig">06.3</span> <span lang="es">El paisaje emocional</span><span lang="en">The emotional landscape</span></a></li><li><a href="#trajectory"><span class="toc-fig">06.4</span> <span lang="es">Una frase, cuatro vistas</span><span lang="en">One sentence, four views</span></a></li></ul></div><div class="toc-part"><a href="#parte-7" class="toc-part-title"><span class="toc-num"><span lang="es">Parte 07</span><span lang="en">Part 07</span></span> <span lang="es">Compresión informada</span><span lang="en">Informed compression</span></a><ul><li><a href="#heuristic-negative"><span class="toc-fig">07.1</span> <span lang="es">La heurística colapsa sobre lo ciego</span><span lang="en">Heuristic collapses onto blind</span></a></li><li><a href="#greedy"><span class="toc-fig">07.2</span> <span lang="es">Greedy en acción</span><span lang="en">Greedy in action</span></a></li><li><a href="#recovery"><span class="toc-fig">07.3</span> <span lang="es">El comprimido vuelve</span><span lang="en">The compressed model comes back</span></a></li></ul></div>
   </div>
 </aside>
 <div id="toc-overlay"></div>
@@ -924,7 +963,7 @@
         <span lang="es" class="label">emociones, multi-label</span><span lang="en" class="label">emotions, multi-label</span>
       </div>
       <div class="stat">
-        <span class="num">21</span>
+        <span class="num">26</span>
         <span lang="es" class="label">visualizaciones</span><span lang="en" class="label">visualisations</span>
       </div>
     </div>
@@ -948,10 +987,11 @@
     </div>
     <div class="part-content">
       <div lang="es" class="part-meta reveal">Parte 01</div><div lang="en" class="part-meta reveal">Part 01</div>
-      <h2 lang="es" class="part-title reveal">El sujeto</h2><h2 lang="en" class="part-title reveal">The subject</h2>
+      <h2 lang="es" class="part-title reveal">El sujeto y las preguntas</h2><h2 lang="en" class="part-title reveal">The subject and the questions</h2>
       <div class="part-intro reveal" style="--delay: 200ms">
-    <p lang="es">BERT-base. 12 capas. 144 cabezas de atención. 36 864 neuronas en los bloques FFN. 109,5 millones de parámetros.</p><p lang="en">BERT-base. 12 layers. 144 attention heads. 36,864 neurons across the FFN blocks. 109.5 million parameters.</p>
-    <p lang="es">Encima, un fine-tune sobre GoEmotions: 23 emociones, etiquetado multi-label. Cada frase puede llevar varias emociones a la vez.</p><p lang="en">On top of it, a fine-tune on GoEmotions: 23 emotions with multi-label tagging. A single sentence can carry several emotions at once.</p>
+    <p lang="es">BERT-base. 12 capas. 144 cabezas de atención. 36 864 neuronas en los bloques FFN. 109,5 millones de parámetros. Encima, un fine-tune sobre GoEmotions: 23 emociones, etiquetado multi-label. F1 macro de 0,577 sobre el conjunto de test — el baseline contra el que se mide todo.</p><p lang="en">BERT-base. 12 layers. 144 attention heads. 36,864 neurons in the FFN blocks. 109.5 million parameters. On top of it, a fine-tune on GoEmotions: 23 emotions, multi-label tagging. F1 macro of 0.577 on the test set — the baseline everything is measured against.</p>
+    <p lang="es">El proyecto se articula en torno a tres preguntas. <strong>Descriptiva</strong>: ¿cómo afecta la compresión SVD selectiva al rendimiento y a las representaciones internas? <strong>Explicativa</strong>: ¿qué revela la interpretabilidad mecánica sobre cómo está organizada la información emocional dentro del modelo? <strong>Prescriptiva</strong>: ¿puede ese conocimiento traducirse en estrategias de compresión que dominen a las aproximaciones ciegas?</p><p lang="en">The project hinges on three questions. <strong>Descriptive</strong>: how does selective SVD compression affect performance and internal representations? <strong>Explanatory</strong>: what does mechanistic interpretability reveal about how emotional information is organised inside the model? <strong>Prescriptive</strong>: can that understanding translate into compression strategies that beat blind ones?</p>
+    <p lang="es">La compresión funciona aquí como un <em>bisturí experimental</em>: cada configuración comprimida es una intervención controlada que mide la importancia funcional del componente afectado por la magnitud de lo que se rompe. Eliminar selectivamente partes del modelo y observar qué sobrevive produce un mapa empírico de cómo está organizada por dentro la información.</p><p lang="en">Compression here works as an <em>experimental scalpel</em>: every compressed configuration is a controlled intervention that measures the functional importance of the affected component by the magnitude of what breaks. Selectively removing parts of the model and watching what survives produces an empirical map of how the information is internally organised.</p>
     <p lang="es">Antes de operar nada, primero hay que conocer al sujeto.</p><p lang="en">Before cutting anything open, you have to meet the subject.</p>
       </div>
     </div>
@@ -1090,9 +1130,39 @@
 </section>
 
 
+<section class="chapter" id="component-sensitivity">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 02.3 · Asimetría</div><div lang="en" class="ch-num reveal">§ 02.3 · Asymmetry</div>
+    <h2 lang="es" class="ch-title reveal">14× de diferencia entre Q y FFN</h2><h2 lang="en" class="ch-title reveal">14× gap between Q and FFN</h2>
+    <p lang="es" class="ch-sub reveal">Aislando qué tipo de componente aguanta y cuál se rompe.</p><p lang="en" class="ch-sub reveal">Isolating which component type survives and which breaks.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Para aislar el efecto de cada tipo de componente comprimimos selectivamente las 12 matrices de UN tipo a un rango fijo, manteniendo las otras 60 intactas. Repetido para los seis tipos × tres rangos.</p><p lang="en" class="reveal lead">To isolate each component type, we selectively compress the 12 matrices of ONE type to a fixed rank while keeping the other 60 untouched. Repeated for six types × three ranks.</p>
+    <p lang="es" class="reveal">A rango 128 las diferencias son brutales. Q retiene el 99,4 % del F1, K el 98,4 %. La FFN Intermediate baja al 6,9 %. Una diferencia de 14× en retención absoluta. Normalizada por porcentaje de parámetros eliminados, alcanza 72×.</p><p lang="en" class="reveal">At rank 128 the differences are brutal. Q keeps 99.4 % of F1, K 98.4 %. FFN Intermediate falls to 6.9 %. A 14× asymmetry in absolute retention — 72× once normalised by parameters eliminated.</p>
+    <p lang="es" class="reveal">Tres regímenes emergen. Inmunes (Q, K): degradación lineal, espectro concentrado, baja dimensionalidad efectiva. Acantilado (V, Attn-O): aguantan rango 256 pero colapsan a rango 64. Frágiles (FFN): ya muy dañadas a rango 256, espectro plano, cada dimensión cuenta.</p><p lang="en" class="reveal">Three regimes emerge. Immune (Q, K): linear degradation, concentrated spectrum, low effective dimensionality. Cliff (V, Attn-O): survive rank 256 but collapse at 64. Fragile (FFN): already wrecked at rank 256, flat spectrum, every dimension matters.</p>
+  </div>
+
+  <blockquote lang="es" class="pull reveal">La estructura espectral predice con precisión el comportamiento bajo compresión. Tratar a Q igual que a FFN es subóptimo en un factor de hasta 72×.</blockquote><blockquote lang="en" class="pull reveal">The spectral structure predicts the compression behaviour with precision. Treating Q the same as FFN is suboptimal by a factor of up to 72×.</blockquote>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 624px">
+      <iframe
+        data-src-es="figures/component_sensitivity.html"
+        data-src-en="figures/component_sensitivity.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Datos: notebook 3, component_sensitivity.csv. F1 retención al comprimir uniformemente sólo las 12 matrices de un tipo.</div><div lang="en" class="caption">Data: notebook 3, component_sensitivity.csv. F1 retention from uniformly compressing only the 12 matrices of one type.</div>
+      <div class="id">Fig. <strong>02.3</strong></div>
+    </div>
+  </div>
+</section>
+
+
 <section class="chapter" id="spectral-landscape">
   <div class="ch-head">
-    <div lang="es" class="ch-num reveal">§ 02.3 · 3D</div><div lang="en" class="ch-num reveal">§ 02.3 · 3D</div>
+    <div lang="es" class="ch-num reveal">§ 02.4 · 3D</div><div lang="en" class="ch-num reveal">§ 02.4 · 3D</div>
     <h2 lang="es" class="ch-title reveal">La asimetría espectral, hecha topografía</h2><h2 lang="en" class="ch-title reveal">Spectral asymmetry as a landscape</h2>
     <p lang="es" class="ch-sub reveal">Las 72 matrices del modelo apiladas como filas de un terreno.</p><p lang="en" class="ch-sub reveal">All 72 weight matrices stacked as rows of a relief map.</p>
   </div>
@@ -1112,7 +1182,7 @@
     </div>
     <div class="figure-meta">
       <div lang="es" class="caption">SVD computada sobre el checkpoint 23emo-final. 72 matrices = 12 capas × 6 componentes (Q, K, V, Attn-O, FFN-i, FFN-o).</div><div lang="en" class="caption">SVD computed on the 23emo-final checkpoint. 72 matrices = 12 layers × 6 components (Q, K, V, Attn-O, FFN-i, FFN-o).</div>
-      <div class="id">Fig. <strong>02.3</strong></div>
+      <div class="id">Fig. <strong>02.4</strong></div>
     </div>
   </div>
 </section>
@@ -1120,7 +1190,7 @@
 
 <section class="chapter" id="decay">
   <div class="ch-head">
-    <div lang="es" class="ch-num reveal">§ 02.4 · Animación</div><div lang="en" class="ch-num reveal">§ 02.4 · Animation</div>
+    <div lang="es" class="ch-num reveal">§ 02.5 · Animación</div><div lang="en" class="ch-num reveal">§ 02.5 · Animation</div>
     <h2 lang="es" class="ch-title reveal">La galaxia se deshace</h2><h2 lang="en" class="ch-title reveal">The galaxy dissolves</h2>
     <p lang="es" class="ch-sub reveal">Misma proyección que galaxy formation, ahora con SVD activa.</p><p lang="en" class="ch-sub reveal">Same projection as galaxy formation, now with SVD turned on.</p>
   </div>
@@ -1140,7 +1210,7 @@
     </div>
     <div class="figure-meta">
       <div lang="es" class="caption">588 frases del test set, L12, LDA-3D fija. SVD aplicada uniformemente. Slider o Play.</div><div lang="en" class="caption">588 test-set sentences, L12, fixed LDA-3D. SVD applied uniformly. Use the slider or Play.</div>
-      <div class="id">Fig. <strong>02.4</strong></div>
+      <div class="id">Fig. <strong>02.5</strong></div>
     </div>
   </div>
 </section>
@@ -1148,7 +1218,7 @@
 
 <section class="chapter" id="ft-diff">
   <div class="ch-head">
-    <div lang="es" class="ch-num reveal">§ 02.5 · Pre vs post</div><div lang="en" class="ch-num reveal">§ 02.5 · Pre vs post</div>
+    <div lang="es" class="ch-num reveal">§ 02.6 · Pre vs post</div><div lang="en" class="ch-num reveal">§ 02.6 · Pre vs post</div>
     <h2 lang="es" class="ch-title reveal">Qué cambió el fine-tuning</h2><h2 lang="en" class="ch-title reveal">What the fine-tune actually changed</h2>
     <p lang="es" class="ch-sub reveal">Diff Frobenius entre bert-base-uncased y 23emo-final.</p><p lang="en" class="ch-sub reveal">Frobenius diff between bert-base-uncased and 23emo-final.</p>
   </div>
@@ -1168,7 +1238,7 @@
     </div>
     <div class="figure-meta">
       <div lang="es" class="caption">Norma Frobenius del cambio relativo, 72 matrices del encoder. bert-base-uncased vs 23emo-final.</div><div lang="en" class="caption">Frobenius norm of relative change, 72 encoder matrices. bert-base-uncased vs 23emo-final.</div>
-      <div class="id">Fig. <strong>02.5</strong></div>
+      <div class="id">Fig. <strong>02.6</strong></div>
     </div>
   </div>
 </section>
@@ -1220,9 +1290,39 @@
 </section>
 
 
+<section class="chapter" id="info-gain">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 03.2 · Ganancia</div><div lang="en" class="ch-num reveal">§ 03.2 · Gain</div>
+    <h2 lang="es" class="ch-title reveal">L0 absorbe el <em>61 %</em></h2><h2 lang="en" class="ch-title reveal">L0 absorbs <em>61 %</em></h2>
+    <p lang="es" class="ch-sub reveal">Cuánto F1 añade cada capa respecto a la anterior.</p><p lang="en" class="ch-sub reveal">How much F1 each layer adds over the previous one.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">La curva de probing acumulada del panel anterior sube de forma engañosamente suave. Si en cambio miras la DERIVADA — cuánto añade cada capa respecto a la anterior — lo que ves es un salto enorme al principio y casi nada después.</p><p lang="en" class="reveal lead">The cumulative probing curve in the previous panel rises deceptively smoothly. If you look at the DERIVATIVE instead — how much each layer adds over the previous one — you see a giant jump at the start and almost nothing after.</p>
+    <p lang="es" class="reveal">Del embedding (F1 = 0) a L0, la media salta a 0.349. Eso es un 61 % de la separabilidad final del modelo (F1 medio en L11 = 0.569). En una sola capa.</p><p lang="en" class="reveal">From the embedding (F1 = 0) to L0, mean F1 jumps to 0.349. That's 61 % of the model's final linear separability (mean F1 at L11 = 0.569). In a single layer.</p>
+    <p lang="es" class="reveal">Lo que sigue es desarrollo, no creación. Las capas L1–L7 añaden ganancias modestas (+0.010 a +0.048 cada una). En L8 hay un pequeño rebote — desambiguación contextual de emociones tardías como joy, desire, approval. Después, L10 y L11 añaden prácticamente nada (<0.005).</p><p lang="en" class="reveal">What follows is refinement, not creation. Layers L1–L7 add modest gains (+0.010 to +0.048 each). At L8 there's a small bump — contextual disambiguation of late emotions like joy, desire, approval. After that, L10 and L11 add almost nothing (<0.005).</p>
+  </div>
+
+  <blockquote lang="es" class="pull reveal">El probing dice que las capas tardías no aportan información nueva. El activation patching dice que son las únicas suficientes para revivir el modelo. La paradoja se resuelve abajo: lo que hacen no es CREAR señal — la ROTAN hacia la base del clasificador.</blockquote><blockquote lang="en" class="pull reveal">Probing says late layers add no new information. Activation patching says they're the only ones sufficient to revive the model. The paradox resolves below: what they do isn't CREATE signal — they ROTATE it onto the classifier's basis.</blockquote>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 624px">
+      <iframe
+        data-src-es="figures/info_gain.html"
+        data-src-en="figures/info_gain.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Δ F1 macro por capa. Media sobre 23 emociones. Datos: probe_results.csv (notebook 4).</div><div lang="en" class="caption">Δ F1 macro per layer. Mean over 23 emotions. Data: probe_results.csv (notebook 4).</div>
+      <div class="id">Fig. <strong>03.2</strong></div>
+    </div>
+  </div>
+</section>
+
+
 <section class="chapter hero-figure" id="galaxy">
   <div class="ch-head">
-    <div lang="es" class="ch-num reveal">§ 03.2 · Geometría</div><div lang="en" class="ch-num reveal">§ 03.2 · Geometry</div>
+    <div lang="es" class="ch-num reveal">§ 03.3 · Geometría</div><div lang="en" class="ch-num reveal">§ 03.3 · Geometry</div>
     <h2 lang="es" class="ch-title reveal">Galaxy formation</h2><h2 lang="en" class="ch-title reveal">Galaxy formation</h2>
     <p lang="es" class="ch-sub reveal">23 emociones cristalizando en el espacio LDA, capa por capa.</p><p lang="en" class="ch-sub reveal">23 emotions crystallising in LDA space, layer by layer.</p>
   </div>
@@ -1243,7 +1343,7 @@
     </div>
     <div class="figure-meta">
       <div lang="es" class="caption">2300 frases del test set. Pooler aplicado, LDA-3D fija ajustada en L12. Mismas coordenadas para todas las capas.</div><div lang="en" class="caption">2,300 test-set sentences. Pooler applied, fixed LDA-3D fitted at L12. Same coordinates across every layer.</div>
-      <div class="id">Fig. <strong>03.2</strong></div>
+      <div class="id">Fig. <strong>03.3</strong></div>
     </div>
   </div>
 </section>
@@ -1251,7 +1351,7 @@
 
 <section class="chapter" id="iterative">
   <div class="ch-head">
-    <div lang="es" class="ch-num reveal">§ 03.3 · Logit lens</div><div lang="en" class="ch-num reveal">§ 03.3 · Logit lens</div>
+    <div lang="es" class="ch-num reveal">§ 03.4 · Logit lens</div><div lang="en" class="ch-num reveal">§ 03.4 · Logit lens</div>
     <h2 lang="es" class="ch-title reveal">La curva en U</h2><h2 lang="en" class="ch-title reveal">The U curve</h2>
     <p lang="es" class="ch-sub reveal">Aplicar el classifier real a cada capa, no sólo a la última.</p><p lang="en" class="ch-sub reveal">Applying the real classifier to every layer, not just the last.</p>
   </div>
@@ -1271,7 +1371,7 @@
     </div>
     <div class="figure-meta">
       <div lang="es" class="caption">Sigmoid promedio del pooler+classifier aplicado por capa. Top-1, gold, suma de las 23. 2300 frases.</div><div lang="en" class="caption">Mean sigmoid of pooler+classifier applied per layer. Top-1, gold, sum of all 23. 2,300 sentences.</div>
-      <div class="id">Fig. <strong>03.3</strong></div>
+      <div class="id">Fig. <strong>03.4</strong></div>
     </div>
   </div>
 </section>
@@ -1279,7 +1379,7 @@
 
 <section class="chapter" id="lens-vs-probe">
   <div class="ch-head">
-    <div lang="es" class="ch-num reveal">§ 03.4 · Comparación</div><div lang="en" class="ch-num reveal">§ 03.4 · Comparison</div>
+    <div lang="es" class="ch-num reveal">§ 03.5 · Comparación</div><div lang="en" class="ch-num reveal">§ 03.5 · Comparison</div>
     <h2 lang="es" class="ch-title reveal">Lo que sabe vs lo que <em>sabe leer</em></h2><h2 lang="en" class="ch-title reveal">What it knows vs what it can <em>read</em></h2>
     <p lang="es" class="ch-sub reveal">Probing y logit lens contestan preguntas distintas. La diferencia es informativa.</p><p lang="en" class="ch-sub reveal">Probing and logit lens answer different questions. The gap between them is informative.</p>
   </div>
@@ -1301,7 +1401,7 @@
     </div>
     <div class="figure-meta">
       <div lang="es" class="caption">Probe F1 macro de notebook 4 contra logit lens (pooler+classifier reales aplicados al [CLS] de cada capa) sobre 2300 frases del test set. Bandas de fase compartidas con la curva U.</div><div lang="en" class="caption">Probe F1 macro from notebook 4 vs logit lens (real pooler+classifier applied to [CLS] at each layer) over 2,300 test-set sentences. Phase bands shared with the U curve.</div>
-      <div class="id">Fig. <strong>03.4</strong></div>
+      <div class="id">Fig. <strong>03.5</strong></div>
     </div>
   </div>
 </section>
@@ -1309,7 +1409,7 @@
 
 <section class="chapter" id="fingerprint">
   <div class="ch-head">
-    <div lang="es" class="ch-num reveal">§ 03.5 · Multi-label</div><div lang="en" class="ch-num reveal">§ 03.5 · Multi-label</div>
+    <div lang="es" class="ch-num reveal">§ 03.6 · Multi-label</div><div lang="en" class="ch-num reveal">§ 03.6 · Multi-label</div>
     <h2 lang="es" class="ch-title reveal">Decision fingerprint</h2><h2 lang="en" class="ch-title reveal">Decision fingerprint</h2>
     <p lang="es" class="ch-sub reveal">Las métricas agregadas esconden la firma multi-label de cada frase.</p><p lang="en" class="ch-sub reveal">Aggregate metrics hide the multi-label signature of each sentence.</p>
   </div>
@@ -1329,7 +1429,7 @@
     </div>
     <div class="figure-meta">
       <div lang="es" class="caption">Sigmoid de las 23 emociones por capa, vector polar. Aplicado al pooler+classifier real.</div><div lang="en" class="caption">Sigmoid of all 23 emotions per layer, polar vector. Applied with the real pooler+classifier.</div>
-      <div class="id">Fig. <strong>03.5</strong></div>
+      <div class="id">Fig. <strong>03.6</strong></div>
     </div>
   </div>
 </section>
@@ -1362,7 +1462,7 @@
   <div class="ch-body">
     <p lang="es" class="reveal lead">Cada cabeza es una celda en una matriz 12 × 12. Color = categoría según el ablation study. La capa 11 (fila inferior) no contiene ni una cabeza prescindible. Sus 12 son críticas.</p><p lang="en" class="reveal lead">Each head is a cell in a 12 × 12 matrix. Color = category from the ablation study. Layer 11 (bottom row) has zero dispensable heads. All 12 are critical.</p>
     <p lang="es" class="reveal">Los puntos negros marcan las cabezas que cada emoción necesita específicamente, según la Tabla 19. L11-H6 aparece dos veces — la comparten sadness y realization.</p><p lang="en" class="reveal">The black dots mark the heads each emotion needs specifically, from Table 19. L11-H6 appears twice — shared between sadness and realization.</p>
-    <p lang="es" class="reveal">El 77 % de las cabezas en capas 8–11 son críticas. En capas 0–4 es sólo el 25 %. Hay un gradiente que no aparece en arquitecturas no fine-tuneadas.</p><p lang="en" class="reveal">77 % of heads in layers 8–11 are critical. In layers 0–4 it's only 25 %. A gradient that doesn't show up in non-fine-tuned architectures.</p>
+    <p lang="es" class="reveal">El 77 % de las cabezas en capas 8–11 son críticas. En capas 0–4 es sólo el 27 %. La capa 11 entera (12 cabezas) no contiene NINGUNA cabeza prescindible. Y hay 21 cabezas interferentes — su ablación MEJORA el F1.</p><p lang="en" class="reveal">77 % of heads in layers 8–11 are critical. In layers 0–4 it's only 27 %. Layer 11 as a whole (12 heads) has ZERO dispensable heads. And there are 21 interfering heads — ablating them IMPROVES F1.</p>
   </div>
 
   <div class="figure reveal">
@@ -1491,8 +1591,8 @@
 
   <div class="ch-body">
     <p lang="es" class="reveal lead">Empezamos con un modelo a F1 = 0. Todas las barras a cero. Cada etapa restaura los pesos originales de UNA capa más. 12 etapas en total.</p><p lang="en" class="reveal lead">Start with a model at F1 = 0. Every bar at zero. Each stage restores the original weights of one more layer. 12 stages in total.</p>
-    <p lang="es" class="reveal">Las primeras 8 etapas no mueven nada. L8 enciende un destello. L9 empuja arriba a las emociones léxicas. L10 recupera la mitad. L11 hace explotar todas las barras al baseline simultáneamente.</p><p lang="en" class="reveal">The first 8 stages move nothing. L8 sets off a flicker. L9 lifts the lexical emotions. L10 recovers half. L11 blows every bar back to baseline simultaneously.</p>
-    <p lang="es" class="reveal">La capacidad emocional del modelo no está distribuida. Vive concentrada en las capas finales.</p><p lang="en" class="reveal">The model's emotional capacity isn't distributed. It lives concentrated in the final layers.</p>
+    <p lang="es" class="reveal">Las primeras 8 etapas no mueven nada. L8 enciende un destello (0,1 % de restauración). L9 empuja arriba a las emociones léxicas (4,1 %). L10 recupera el 24,1 %. L11 hace explotar todas las barras al baseline simultáneamente: <strong>100 % de restauración con una sola capa</strong>.</p><p lang="en" class="reveal">The first 8 stages move nothing. L8 sets off a flicker (0.1 % restoration). L9 lifts the lexical emotions (4.1 %). L10 recovers 24.1 %. L11 blows every bar back to baseline simultaneously: <strong>100 % restoration with a single layer</strong>.</p>
+    <p lang="es" class="reveal">Y hay más. Restaurar SOLO la FFN de L11 (no la atención) ya recupera el 100 %. La atención de L11 sola, sólo el 63,3 %. La capacidad emocional del modelo no está distribuida. Vive concentrada en un sub-componente específico de la última capa.</p><p lang="en" class="reveal">And it goes further. Restoring ONLY the FFN of L11 (not attention) already gets 100 %. L11 attention alone, only 63.3 %. The model's emotional capacity isn't distributed. It lives concentrated in one specific sub-component of the last layer.</p>
   </div>
 
   <div class="figure reveal">
@@ -1517,10 +1617,41 @@
     </div>
     <div class="part-content">
       <div lang="es" class="part-meta reveal">Parte 06</div><div lang="en" class="part-meta reveal">Part 06</div>
-      <h2 lang="es" class="part-title reveal">Síntesis</h2><h2 lang="en" class="part-title reveal">Synthesis</h2>
+      <h2 lang="es" class="part-title reveal">El mapa emocional</h2><h2 lang="en" class="part-title reveal">The emotional map</h2>
       <div class="part-intro reveal" style="--delay: 200ms">
-    <p lang="es">Una taxonomía emocional emergente, una compresión informada por interpretabilidad, y una vista que junta todo.</p><p lang="en">An emergent emotional taxonomy, a compression informed by interpretability, and a view that brings it all together.</p>
+    <p lang="es">Cinco técnicas de interpretabilidad mecánica han documentado lo mismo desde ángulos distintos: la información emocional vive concentrada al final del modelo. Probing, logit lens, activation patching, ablación de cabezas y selectividad neuronal convergen en una arquitectura funcional de tres niveles.</p><p lang="en">Five mechanistic interpretability techniques have documented the same thing from different angles: emotional information lives concentrated at the end of the model. Probing, logit lens, activation patching, head ablation and neural selectivity converge on a three-level functional architecture.</p>
+    <p lang="es">Aquí se pone todo junto: dónde viven las neuronas emocionales, qué taxonomía emerge sin pedírselo al modelo, y cómo se ve una sola frase atravesando todas las capas a la vez.</p><p lang="en">This is where everything fits together: where the emotional neurons live, what taxonomy emerges without asking the model for it, and what a single sentence looks like as it crosses all the layers at once.</p>
       </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="neurons">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 06.1 · Neuronas</div><div lang="en" class="ch-num reveal">§ 06.1 · Neurons</div>
+    <h2 lang="es" class="ch-title reveal">Dónde viven las <em>neuronas emocionales</em></h2><h2 lang="en" class="ch-title reveal">Where the <em>emotional neurons</em> live</h2>
+    <p lang="es" class="ch-sub reveal">Selectividad por neurona: 84 % de las significativas en L8–L11.</p><p lang="en" class="ch-sub reveal">Per-neuron selectivity: 84 % of significant ones in L8–L11.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Para cada una de las 36 864 neuronas intermedias del modelo (12 capas × 3 072) calculamos un score tipo Cohen's d: ¿cuánto se diferencia su activación cuando una emoción está presente respecto a cuando no? Llamamos significativas a las que tienen |d| > 2,0.</p><p lang="en" class="reveal lead">For each of the 36,864 intermediate neurons in the model (12 layers × 3,072) we compute a Cohen's-d–style score: how different is its activation when an emotion is present versus absent? We call significant those with |d| > 2.0.</p>
+    <p lang="es" class="reveal">Hay 3 642 en total. La distribución por profundidad es extrema: 11 en capas 0–3 (0,3 %), 570 en capas 4–7 (16 %), <strong>3 061 en capas 8–11 (84 %)</strong>. L11 sola contiene 1 127 — más que toda la mitad inferior del modelo combinada.</p><p lang="en" class="reveal">There are 3,642 in total. The depth distribution is extreme: 11 in layers 0–3 (0.3 %), 570 in layers 4–7 (16 %), <strong>3,061 in layers 8–11 (84 %)</strong>. Layer 11 alone contains 1,127 — more than the entire bottom half of the model combined.</p>
+    <p lang="es" class="reveal">Por emoción, el desequilibrio también es brutal. Gratitude tiene 818 neuronas dedicadas, max selectivity 6,88. Remorse 442. Love 399. En el extremo opuesto, annoyance, disappointment y realization tienen CERO neuronas significativas. Su representación distribuida explica por qué son las más vulnerables a CUALQUIER perturbación del modelo.</p><p lang="en" class="reveal">By emotion the imbalance is also brutal. Gratitude has 818 dedicated neurons, max selectivity 6.88. Remorse 442. Love 399. At the other extreme, annoyance, disappointment and realization have ZERO significant neurons. Their distributed representation explains why they're the most fragile under ANY model perturbation.</p>
+  </div>
+
+  <blockquote lang="es" class="pull reveal">La norma del vector de selectividad es el mejor predictor de la caída de F1 bajo SVD (Spearman ρ = 0,64, p = 0,001). Las emociones "escritas en negrita" en los pesos son las que más sufren cualquier compresión.</blockquote><blockquote lang="en" class="pull reveal">The selectivity-vector norm is the best predictor of F1 drop under SVD (Spearman ρ = 0.64, p = 0.001). The emotions written "in bold" inside the weights are the ones that suffer most under any compression.</blockquote>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 664px">
+      <iframe
+        data-src-es="figures/neurons.html"
+        data-src-en="figures/neurons.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Datos: notebook 7. neuron_significant_counts.csv y neuron_catalog.csv. Conteos reales sobre el conjunto de test del checkpoint 23emo-final.</div><div lang="en" class="caption">Data: notebook 7. neuron_significant_counts.csv and neuron_catalog.csv. Real counts on the test set of the 23emo-final checkpoint.</div>
+      <div class="id">Fig. <strong>06.1</strong></div>
     </div>
   </div>
 </section>
@@ -1528,7 +1659,7 @@
 
 <section class="chapter" id="clusters">
   <div class="ch-head">
-    <div lang="es" class="ch-num reveal">§ 06.1 · Taxonomía</div><div lang="en" class="ch-num reveal">§ 06.1 · Taxonomy</div>
+    <div lang="es" class="ch-num reveal">§ 06.2 · Taxonomía</div><div lang="en" class="ch-num reveal">§ 06.2 · Taxonomy</div>
     <h2 lang="es" class="ch-title reveal">Seis clusters que aparecen solos</h2><h2 lang="en" class="ch-title reveal">Six clusters emerging on their own</h2>
     <p lang="es" class="ch-sub reveal">El modelo redescubre la psicología sin que se la impongan.</p><p lang="en" class="ch-sub reveal">The model rediscovers psychology without being told to.</p>
   </div>
@@ -1548,7 +1679,7 @@
     </div>
     <div class="figure-meta">
       <div lang="es" class="caption">Sunburst con 6 clusters, 23 emociones. Áreas proporcionales a frecuencia en train. Bibliografía: Russell 1980 (circumplex).</div><div lang="en" class="caption">Sunburst with 6 clusters, 23 emotions. Areas proportional to train-set frequency. Reference: Russell 1980 (circumplex).</div>
-      <div class="id">Fig. <strong>06.1</strong></div>
+      <div class="id">Fig. <strong>06.2</strong></div>
     </div>
   </div>
 </section>
@@ -1556,7 +1687,7 @@
 
 <section class="chapter" id="landscape">
   <div class="ch-head">
-    <div lang="es" class="ch-num reveal">§ 06.2 · Mapa</div><div lang="en" class="ch-num reveal">§ 06.2 · Map</div>
+    <div lang="es" class="ch-num reveal">§ 06.3 · Mapa</div><div lang="en" class="ch-num reveal">§ 06.3 · Map</div>
     <h2 lang="es" class="ch-title reveal">El paisaje emocional</h2><h2 lang="en" class="ch-title reveal">The emotional landscape</h2>
     <p lang="es" class="ch-sub reveal">Cada emoción en (cristalización × intensidad).</p><p lang="en" class="ch-sub reveal">Each emotion plotted in (crystallisation × intensity).</p>
   </div>
@@ -1577,7 +1708,7 @@
     </div>
     <div class="figure-meta">
       <div lang="es" class="caption">23 emociones sobre el plano (cristalización × norma de selectividad). Datos: crystallization_layers.csv y neuron_catalog.csv.</div><div lang="en" class="caption">23 emotions on the (crystallisation × selectivity-norm) plane. Data: crystallization_layers.csv and neuron_catalog.csv.</div>
-      <div class="id">Fig. <strong>06.2</strong></div>
+      <div class="id">Fig. <strong>06.3</strong></div>
     </div>
   </div>
 </section>
@@ -1585,7 +1716,7 @@
 
 <section class="chapter hero-figure" id="trajectory">
   <div class="ch-head">
-    <div lang="es" class="ch-num reveal">§ 06.3 · Síntesis</div><div lang="en" class="ch-num reveal">§ 06.3 · Synthesis</div>
+    <div lang="es" class="ch-num reveal">§ 06.4 · Síntesis</div><div lang="en" class="ch-num reveal">§ 06.4 · Synthesis</div>
     <h2 lang="es" class="ch-title reveal">Una frase, cuatro vistas</h2><h2 lang="en" class="ch-title reveal">One sentence, four views</h2>
     <p lang="es" class="ch-sub reveal">El experimento que se pide al inicio: ver BERT pensar.</p><p lang="en" class="ch-sub reveal">The experiment you ask for at the start: watching BERT think.</p>
   </div>
@@ -1604,7 +1735,54 @@
     </div>
     <div class="figure-meta">
       <div lang="es" class="caption">Cuatro paneles síncronos. Datos reales del modelo 23emo-final aplicado en vivo a la frase elegida.</div><div lang="en" class="caption">Four synchronised panels. Real data from the 23emo-final model applied live to the selected sentence.</div>
-      <div class="id">Fig. <strong>06.3</strong></div>
+      <div class="id">Fig. <strong>06.4</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="part" id="parte-7">
+  <div class="part-grid">
+    <div class="part-numeral reveal" aria-hidden="true">
+      <span lang="es">07</span><span lang="en">07</span>
+    </div>
+    <div class="part-content">
+      <div lang="es" class="part-meta reveal">Parte 07</div><div lang="en" class="part-meta reveal">Part 07</div>
+      <h2 lang="es" class="part-title reveal">Compresión informada</h2><h2 lang="en" class="part-title reveal">Informed compression</h2>
+      <div class="part-intro reveal" style="--delay: 200ms">
+    <p lang="es">La pregunta prescriptiva del proyecto: ¿se puede usar lo que ahora sabemos del modelo para comprimirlo mejor?</p><p lang="en">The project's prescriptive question: can we use what we now know about the model to compress it better?</p>
+    <p lang="es">Antes de saltar al algoritmo final hay que contar el intento que NO funcionó. Tres heurísticas escritas a mano a partir de los hallazgos de interpretabilidad. Resultado: convergen exactamente sobre los baselines ciegos. Saber QUÉ medir no basta — hay que medir CUÁNTO.</p><p lang="en">Before jumping to the final algorithm we have to tell the attempt that did NOT work. Three hand-written heuristics built from the interpretability findings. Result: they collapse onto blind baselines. Knowing WHAT to measure isn't enough — you have to measure HOW MUCH.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="heuristic-negative">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 07.1 · Resultado negativo</div><div lang="en" class="ch-num reveal">§ 07.1 · Negative result</div>
+    <h2 lang="es" class="ch-title reveal">La heurística <em>colapsa</em> sobre lo ciego</h2><h2 lang="en" class="ch-title reveal">Heuristic <em>collapses</em> onto blind</h2>
+    <p lang="es" class="ch-sub reveal">Tres reglas informadas, exactamente sobre uniform_r256 y r512.</p><p lang="en" class="ch-sub reveal">Three informed rules, exactly on top of uniform_r256 and r512.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Las tres heurísticas se escribieron antes que el greedy. La idea era directa: si las capas tardías son críticas, protégerlas; si Q y K son inmunes, comprímelos primero. Tres niveles de agresividad. Resultado experimental:</p><p lang="en" class="reveal lead">The three heuristics were written before the greedy one. The idea was direct: if late layers are critical, protect them; if Q and K are immune, compress them first. Three aggressiveness levels. Experimental result:</p>
+    <p lang="es" class="reveal"><strong>informed_aggressive</strong> ≡ uniform_r256 (mismo ratio 0,612, mismo F1 0,025). <strong>informed_moderate</strong> ≡ uniform_r512 (mismo ratio 1,000, mismo F1 0,464). <strong>informed_light</strong> requiere ratio 1,285 — MÁS parámetros que el modelo original.</p><p lang="en" class="reveal"><strong>informed_aggressive</strong> ≡ uniform_r256 (same ratio 0.612, same F1 0.025). <strong>informed_moderate</strong> ≡ uniform_r512 (same ratio 1.000, same F1 0.464). <strong>informed_light</strong> requires ratio 1.285 — MORE parameters than the original model.</p>
+    <p lang="es" class="reveal">Ninguna está sobre la frontera de Pareto. Saber cualitativamente qué es importante no convierte ese conocimiento en una asignación óptima de rangos. La interpretabilidad cualitativa identifica las variables; los datos empíricos de sensibilidad — y solo ellos — determinan los valores numéricos.</p><p lang="en" class="reveal">None lies on the Pareto frontier. Knowing qualitatively what's important doesn't turn that knowledge into an optimal rank assignment. Qualitative interpretability identifies the variables; empirical sensitivity data — and only those — fix the numeric values.</p>
+  </div>
+
+  <blockquote lang="es" class="pull reveal">Es un resultado negativo informativo. Habría sido fácil publicarlo como éxito si las heurísticas hubiesen funcionado. La narrativa completa — heurística no innova → pivot data-driven → dominancia Pareto — es, en sí misma, una observación metodológica transferible.</blockquote><blockquote lang="en" class="pull reveal">An informative negative result. It would have been easy to spin a success story if the heuristics had worked. The full narrative — heuristics don't innovate → pivot data-driven → Pareto dominance — is itself a transferable methodological observation.</blockquote>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 684px">
+      <iframe
+        data-src-es="figures/heuristic_negative.html"
+        data-src-en="figures/heuristic_negative.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Datos: notebook 9, compression_comparison.csv. 21 estrategias evaluadas: 6 uniformes, 4 adaptativas, 3 heurísticas, 8 greedy.</div><div lang="en" class="caption">Data: notebook 9, compression_comparison.csv. 21 evaluated strategies: 6 uniform, 4 adaptive, 3 heuristic, 8 greedy.</div>
+      <div class="id">Fig. <strong>07.1</strong></div>
     </div>
   </div>
 </section>
@@ -1612,7 +1790,7 @@
 
 <section class="chapter" id="greedy">
   <div class="ch-head">
-    <div lang="es" class="ch-num reveal">§ 06.4 · Algoritmo</div><div lang="en" class="ch-num reveal">§ 06.4 · Algorithm</div>
+    <div lang="es" class="ch-num reveal">§ 07.2 · Algoritmo</div><div lang="en" class="ch-num reveal">§ 07.2 · Algorithm</div>
     <h2 lang="es" class="ch-title reveal">Greedy en acción</h2><h2 lang="en" class="ch-title reveal">Greedy in action</h2>
     <p lang="es" class="ch-sub reveal">Cómo el algoritmo construye la compresión paso a paso.</p><p lang="en" class="ch-sub reveal">How the algorithm builds the compression step by step.</p>
   </div>
@@ -1632,21 +1810,75 @@
     </div>
     <div class="figure-meta">
       <div lang="es" class="caption">Replay del algoritmo greedy_50, _60, …, _95. Datos: greedy_*_ranks.csv del notebook 9.</div><div lang="en" class="caption">Replay of the greedy_50, _60, …, _95 algorithm. Data: greedy_*_ranks.csv from notebook 9.</div>
-      <div class="id">Fig. <strong>06.4</strong></div>
+      <div class="id">Fig. <strong>07.2</strong></div>
+    </div>
+  </div>
+</section>
+
+
+<section class="chapter" id="recovery">
+  <div class="ch-head">
+    <div lang="es" class="ch-num reveal">§ 07.3 · Recuperación</div><div lang="en" class="ch-num reveal">§ 07.3 · Recovery</div>
+    <h2 lang="es" class="ch-title reveal">El comprimido <em>vuelve</em></h2><h2 lang="en" class="ch-title reveal">The compressed model <em>comes back</em></h2>
+    <p lang="es" class="ch-sub reveal">Greedy_90 + 3 épocas de fine-tuning supera al baseline.</p><p lang="en" class="ch-sub reveal">Greedy_90 + 3 epochs of fine-tuning beat the baseline.</p>
+  </div>
+
+  <div class="ch-body">
+    <p lang="es" class="reveal lead">Punto de partida: greedy_90, 86,4 % de los parámetros del baseline. F1 macro 0.539 — habíamos perdido 6,7 % del rendimiento. Lo razonable sería resignarse a esa pérdida como precio de la compresión.</p><p lang="en" class="reveal lead">Starting point: greedy_90, 86.4 % of baseline parameters. F1 macro 0.539 — we'd lost 6.7 % of performance. The expected outcome would be accepting that drop as the price of compression.</p>
+    <p lang="es" class="reveal">Tres épocas de fine-tuning después: F1 macro 0.591. Por encima del baseline original (0.577) con un 13,6 % menos de parámetros. La compresión no es un coste — actúa como regularización implícita.</p><p lang="en" class="reveal">Three epochs of fine-tuning later: F1 macro 0.591. Above the original baseline (0.577) with 13.6 % fewer parameters. Compression isn't a cost — it acts as implicit regularisation.</p>
+    <p lang="es" class="reveal">La ganancia se concentra donde más hace falta. Embarrassment pasa de F1 = 0.267 a 0.509 — un 90 % relativo más, en una emoción con sólo 303 ejemplos de entrenamiento. Desire +16 %, excitement +9,5 %, realization +10 %. La SVD parece haber eliminado direcciones ruidosas en las que el baseline había memorizado patrones espurios para emociones infrarrepresentadas.</p><p lang="en" class="reveal">The gain concentrates where it's needed most. Embarrassment goes from F1 = 0.267 to 0.509 — a 90 % relative jump, on an emotion with only 303 training examples. Desire +16 %, excitement +9.5 %, realization +10 %. SVD seems to have eliminated noisy directions where the baseline had memorised spurious patterns for underrepresented emotions.</p>
+  </div>
+
+  <blockquote lang="es" class="pull reveal">Es un resultado preliminar — un modelo, una tarea, sin grupo de control con epochs adicionales. Pero la dirección es la opuesta a lo que se asume sobre compresión.</blockquote><blockquote lang="en" class="pull reveal">It's a preliminary result — one model, one task, no control group with extra epochs. But the direction is the opposite of what's typically assumed about compression.</blockquote>
+
+  <div class="figure reveal">
+    <div class="figure-wrap" style="height: 664px">
+      <iframe
+        data-src-es="figures/finetuning_recovery.html"
+        data-src-en="figures/finetuning_recovery.en.html"
+        loading="lazy" scrolling="no"></iframe>
+    </div>
+    <div class="figure-meta">
+      <div lang="es" class="caption">Datos: notebook 9, finetuning_recovery.csv. F1 baseline / comprimido (greedy_90) / fine-tuneado por emoción.</div><div lang="en" class="caption">Data: notebook 9, finetuning_recovery.csv. F1 baseline / compressed (greedy_90) / fine-tuned per emotion.</div>
+      <div class="id">Fig. <strong>07.3</strong></div>
     </div>
   </div>
 </section>
 
 <section class="outro" id="cierre">
   <div lang="es" class="ch-num reveal">Cierre</div><div lang="en" class="ch-num reveal">Closing</div>
-  <h2 lang="es" class="ch-title reveal">Cómo está hecho</h2><h2 lang="en" class="ch-title reveal">How it's built</h2>
-  <p lang="es" class="ch-sub reveal">Stack, datos y créditos.</p><p lang="en" class="ch-sub reveal">Stack, data, credits.</p>
+  <h2 lang="es" class="ch-title reveal">Lo que <em>emergió</em></h2><h2 lang="en" class="ch-title reveal">What <em>emerged</em></h2>
+  <p lang="es" class="ch-sub reveal">Recapitulación honesta: lo que se ha encontrado, lo que no se ha podido demostrar, y por dónde seguir.</p><p lang="en" class="ch-sub reveal">An honest recap: what was found, what couldn't be demonstrated, and where to go next.</p>
 
   <div class="ch-body">
-    <p lang="es" class="reveal">Datos numéricos. Las visualizaciones se alimentan directamente de los CSVs de los notebooks 2 al 9. Resultados reales del fine-tune sobre BERT-base-uncased y 23 emociones de GoEmotions. 61 tablas exportadas: probing por capa, ablación de 144 cabezas, especialización neuronal, activation patching, frontera de Pareto completa con 22 estrategias evaluadas.</p><p lang="en" class="reveal">Numbers. The visualisations read directly from the CSVs of notebooks 2–9. Real results from the fine-tune of bert-base-uncased on the 23 GoEmotions classes. 61 exported tables: layer-wise probing, 144-head ablation, neural specialisation, activation patching, full Pareto frontier with 22 evaluated strategies.</p>
-    <p lang="es" class="reveal">Activaciones y geometría. Galaxy formation, sentence trajectory, compression decay y spectral flowers se computan ejecutando el checkpoint <code>23emo-final</code> (109,5 M parámetros, 23 emociones) sobre frases del test set. Pooler y classifier reales aplicados en cada paso. LDA fija ajustada en L12 para coordenadas consistentes capa a capa.</p><p lang="en" class="reveal">Activations and geometry. Galaxy formation, sentence trajectory, compression decay and spectral flowers are computed by running the <code>23emo-final</code> checkpoint (109.5 M parameters, 23 emotions) on test-set sentences. The real pooler and classifier are applied at every step. Fixed LDA fitted at L12 for consistent layer-by-layer coordinates.</p>
-    <p lang="es" class="reveal">Visualización. 21 piezas: 14 estáticas en Plotly, 6 interactivas con HTML+JS custom, 1 grafo en D3.js puro. Cada figura es un HTML autocontenido. La página que las une es static HTML+CSS+JS. Sin frameworks, sin servidor, sin backend.</p><p lang="en" class="reveal">Visualisation. 21 pieces: 14 static Plotly figures, 6 custom HTML+JS, 1 pure D3.js graph. Each figure is a self-contained HTML. The page that ties them together is static HTML+CSS+JS. No frameworks, no server, no backend.</p>
-    <p lang="es" class="reveal">Memoria. Guido Biosca Lasa. Director: Lluís Padró Cirera. FIB-UPC, 2026. <a href="sobre.html">Más sobre el proyecto</a>.</p><p lang="en" class="reveal">Thesis. Guido Biosca Lasa. Advisor: Lluís Padró Cirera. FIB-UPC, 2026. <a href="sobre.html">More about the project</a>.</p>
+    
+  <div class="outro-block">
+    <div lang="es" class="outro-label reveal">01 · Contribuciones</div><div lang="en" class="outro-label reveal">01 · Contributions</div>
+    <h3 lang="es" class="outro-subtitle reveal">Tres hallazgos sustantivos</h3><h3 lang="en" class="outro-subtitle reveal">Three substantive findings</h3>
+    <p lang="es" class="reveal"><strong>Arquitectura funcional de tres niveles.</strong> Las capas tempranas (Emb–L3) hacen señal léxica cruda — L0 absorbe el 61 % de la separabilidad final en un solo salto. Las medias (L4–L7) computan la transición en una geometría interna donde el F1 sigue subiendo pero el clasificador no sabe leer (la brecha probing-lens). Las tardías (L8–L11) cristalizan: rotan la representación hacia la base del classifier. Restaurar SOLO la FFN de L11 (un tercio de los parámetros de esa capa) recupera el 100 % del F1 desde un colapso total — un sub-componente concreto, no toda la capa.</p><p lang="en" class="reveal"><strong>A three-level functional architecture.</strong> Early layers (Emb–L3) do raw lexical work — L0 alone absorbs 61 % of final linear separability in one jump. Middle layers (L4–L7) compute the transition in an internal geometry where F1 keeps rising but the classifier can't read it (the probing-lens gap). Late layers (L8–L11) crystallise: they rotate the representation onto the classifier's basis. Restoring ONLY the FFN of L11 (a third of that layer's parameters) recovers 100 % of F1 from total collapse — a specific sub-component, not the whole layer.</p>
+    <p lang="es" class="reveal"><strong>Asimetría radical bajo compresión.</strong> Q a rango 128 conserva el 99,4 % del rendimiento. La FFN Intermediate al mismo rango colapsa a 6,9 %. Una diferencia de 14× en retención absoluta, 72× normalizada por parámetros eliminados. La compresión uniforme presenta una transición de fase entre rango 384 (43 % retención) y 256 (4 %). Por debajo de rango 128, muerte clínica: F1 = 0. Hasta donde sabemos, este factor cuantificado de 14×–72× no había sido documentado en la literatura previa de SVD sobre Transformers.</p><p lang="en" class="reveal"><strong>Radical asymmetry under compression.</strong> Q at rank 128 keeps 99.4 % of performance. FFN Intermediate at the same rank collapses to 6.9 %. 14× in absolute retention, 72× when normalised by parameters eliminated. Uniform compression shows a phase transition between rank 384 (43 % retention) and 256 (4 %). Below rank 128, clinical death: F1 = 0. As far as we know, this 14×–72× quantified factor hadn't been documented in the prior literature on SVD over Transformers.</p>
+    <p lang="es" class="reveal"><strong>Greedy data-driven domina Pareto.</strong> 8 de los 9 puntos óptimos del estudio son del greedy. A 80 % de parámetros retiene el 87 % del F1 frente al 43 % de la compresión uniforme. Reproduce las jerarquías de interpretabilidad sin acceder a ellas — comprime Q y K primero, jamás toca la FFN Intermediate de las capas tardías. Y la FFN sobre el modelo comprimido + 3 épocas de fine-tuning supera al baseline original con un 13,6 % menos de parámetros, con ganancia +90 % relativo en embarrassment (infrarrepresentada con 303 ejemplos).</p><p lang="en" class="reveal"><strong>Greedy data-driven dominates Pareto.</strong> 8 of 9 Pareto-optimal points in the study come from greedy. At 80 % parameters it retains 87 % of F1, against 43 % for uniform compression. It reproduces the interpretability hierarchies without seeing them — compresses Q and K first, never touches the FFN Intermediate of late layers. And the compressed model + 3 fine-tuning epochs beats the original baseline with 13.6 % fewer parameters, with a +90 % relative gain on embarrassment (underrepresented with 303 examples).</p>
+  </div>
+
+  <div class="outro-block">
+    <div lang="es" class="outro-label reveal">02 · Limitaciones</div><div lang="en" class="outro-label reveal">02 · Limitations</div>
+    <h3 lang="es" class="outro-subtitle reveal">Lo que <em>no</em> se ha podido demostrar</h3><h3 lang="en" class="outro-subtitle reveal">What <em>couldn't</em> be demonstrated</h3>
+    <p lang="es" class="reveal"><strong>Un modelo, una tarea.</strong> Todo este trabajo se hace sobre BERT-base y GoEmotions. La arquitectura encoder-only podría favorecer la concentración tardía. La generalización a BERT-large, RoBERTa, GPT-2 o LLaMA está propuesta como prioridad número uno de trabajo futuro pero NO se verifica aquí.</p><p lang="en" class="reveal"><strong>One model, one task.</strong> All this work is done on BERT-base and GoEmotions. The encoder-only architecture could favour late-layer concentration. Generalisation to BERT-large, RoBERTa, GPT-2 or LLaMA is proposed as the top future-work priority but is NOT verified here.</p>
+    <p lang="es" class="reveal"><strong>Compresión post-hoc, no durante el entrenamiento.</strong> La SVD se aplica una vez el modelo está fine-tuneado. Otros enfoques — pruning estructurado, cuantización, destilación — interactúan de forma distinta y no se evalúan en combinación.</p><p lang="en" class="reveal"><strong>Post-hoc compression, not during training.</strong> SVD is applied once the model is fine-tuned. Other approaches — structured pruning, quantisation, distillation — interact differently and are not evaluated in combination.</p>
+    <p lang="es" class="reveal"><strong>Potencia estadística limitada.</strong> Las correlaciones se calculan sobre n = 23 emociones, lo que permite detectar efectos grandes con confianza (ρ > 0,556) pero no efectos moderados. Y la regularización por compresión observada (+90 % en embarrassment) carece de grupo de control con epochs adicionales sobre el baseline sin comprimir, así que se reporta como observación consistente con la hipótesis, no como causalidad establecida.</p><p lang="en" class="reveal"><strong>Limited statistical power.</strong> Correlations are computed over n = 23 emotions, which lets us detect large effects with confidence (ρ > 0.556) but not moderate ones. And the regularisation-via-compression effect observed (+90 % on embarrassment) lacks a control group with extra epochs on the uncompressed baseline, so it's reported as an observation consistent with the hypothesis, not as established causation.</p>
+    <p lang="es" class="reveal"><strong>Distorsión espectral, no ruido neutral.</strong> El activation patching parte de una corrupción estructurada (SVD a rango 64), no de ruido gaussiano como en el causal tracing original de Meng et al. Las conclusiones extraídas tienen naturaleza funcional —qué componentes son SUFICIENTES para reactivar el modelo desde el colapso— más que estrictamente causal en el sentido de Pearl.</p><p lang="en" class="reveal"><strong>Spectral distortion, not neutral noise.</strong> Activation patching starts from a structured corruption (SVD to rank 64), not Gaussian noise as in Meng et al.'s original causal tracing. The conclusions extracted are functional — which components are SUFFICIENT to reactivate the model from collapse — rather than strictly causal in Pearl's sense.</p>
+  </div>
+
+  <div class="outro-block">
+    <div lang="es" class="outro-label reveal">03 · Trabajo futuro</div><div lang="en" class="outro-label reveal">03 · Future work</div>
+    <h3 lang="es" class="outro-subtitle reveal">Predicciones <em>falsables</em></h3><h3 lang="en" class="outro-subtitle reveal"><em>Falsifiable</em> predictions</h3>
+    <p lang="es" class="reveal"><strong>Generalización a otros modelos y tareas.</strong> La hipótesis falsable: el ratio de compresibilidad espectral k₉₅(Q)/k₉₅(FFN) en BERT-large debería caer en el rango [0,55, 0,75] (en BERT-base es 0,64). En modelos decoder-only la restauración por activation patching debería distribuirse a lo largo de varias capas tardías en vez de concentrarse extremadamente en L11.</p><p lang="en" class="reveal"><strong>Generalisation to other models and tasks.</strong> The falsifiable hypothesis: the spectral compressibility ratio k₉₅(Q)/k₉₅(FFN) in BERT-large should fall in [0.55, 0.75] (BERT-base: 0.64). In decoder-only models, activation-patching restoration should distribute across several late layers instead of concentrating extremely on L11.</p>
+    <p lang="es" class="reveal"><strong>Verificación causal de la regularización por compresión.</strong> Tres condiciones experimentales: (i) baseline + 3 epochs adicionales, (ii) baseline + compresión greedy + 3 epochs (lo actual), (iii) baseline + 3 epochs con dropout/weight decay aumentados. La predicción: (ii) > (i) y (iii) en F1 macro y especialmente en emociones infrarrepresentadas.</p><p lang="en" class="reveal"><strong>Causal verification of the regularisation effect.</strong> Three experimental conditions: (i) baseline + 3 extra epochs, (ii) baseline + greedy compression + 3 epochs (the current setting), (iii) baseline + 3 epochs with increased dropout/weight decay. The prediction: (ii) > (i) and (iii) in F1 macro, and especially on underrepresented emotions.</p>
+    <p lang="es" class="reveal"><strong>Compresión por cabeza individual.</strong> Las 38 cabezas prescindibles + 21 interferentes identificadas son candidatas directas a eliminación. Combinar pruning de cabezas + greedy SVD + cuantización post-hoc + fine-tuning recovery podría componer reducción multiplicativa o sub-multiplicativa sin pérdida de F1.</p><p lang="en" class="reveal"><strong>Per-head compression granularity.</strong> The 38 dispensable + 21 interfering heads identified are direct elimination candidates. Combining head pruning + greedy SVD + post-hoc quantisation + fine-tuning recovery could compose multiplicative or sub-multiplicative reduction without F1 loss.</p>
+    <p lang="es" class="reveal"><strong>Tuned lens y dinámica durante el entrenamiento.</strong> Aprender una transformación T_ℓ : ℝ^d → ℝ^d por capa que minimice la divergencia KL contra L11 y verificar si el patrón en U se mantiene tras la calibración. Y monitorizar cristalización + especialización neuronal DURANTE el fine-tuning para entender en qué momento de la optimización emerge cada propiedad estructural.</p><p lang="en" class="reveal"><strong>Tuned lens and training dynamics.</strong> Learn a per-layer transformation T_ℓ : ℝ^d → ℝ^d minimising KL divergence against L11 and verify whether the U pattern persists after calibration. And monitor crystallisation + neural specialisation DURING fine-tuning to understand at what point in optimisation each structural property emerges.</p>
+  </div>
+
+    <p lang="es" class="reveal outro-coda">BERT no fue diseñado para emociones. La arquitectura funcional documentada aquí —cristalización progresiva, dominio de la FFN tardía, patrón en U del logit lens, 6 clusters psicológicamente coherentes— no se optimizó explícitamente durante el entrenamiento. Emergió. La interpretabilidad mecánica documenta lo que la optimización por gradiente decidió, no lo que sus diseñadores prescribieron.<br><br><a href="sobre.html">Cómo está hecho · Stack y créditos</a></p><p lang="en" class="reveal outro-coda">BERT wasn't designed for emotions. The functional architecture documented here — progressive crystallisation, late-FFN dominance, the logit-lens U pattern, 6 psychologically coherent clusters — wasn't explicitly optimised during training. It emerged. Mechanistic interpretability documents what gradient descent decided, not what the designers prescribed.<br><br><a href="sobre.html">How it's built · Stack and credits</a></p>
   </div>
 </section>
 

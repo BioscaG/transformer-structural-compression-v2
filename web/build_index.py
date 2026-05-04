@@ -177,10 +177,27 @@ def render_outro() -> str:
     label_html = bi(OUTRO["label"], tag="div", classes="ch-num reveal")
     title_html = bi(OUTRO["title"], tag="h2",  classes="ch-title reveal")
     sub_html   = bi(OUTRO["sub"],   tag="p",   classes="ch-sub reveal")
-    p1 = bi(OUTRO["p1"], tag="p", classes="reveal")
-    p2 = bi(OUTRO["p2"], tag="p", classes="reveal")
-    p3 = bi(OUTRO["p3"], tag="p", classes="reveal")
-    p4 = bi(OUTRO["p4"], tag="p", classes="reveal")
+
+    blocks_html = ""
+    for block in OUTRO.get("blocks", []):
+        block_label = bi(block["label"], tag="div",
+                         classes="outro-label reveal")
+        block_title = bi(block["title"], tag="h3",
+                         classes="outro-subtitle reveal")
+        paragraphs_html = "\n    ".join(
+            bi(p, tag="p", classes="reveal") for p in block["paragraphs"]
+        )
+        blocks_html += f"""
+  <div class="outro-block">
+    {block_label}
+    {block_title}
+    {paragraphs_html}
+  </div>
+"""
+    coda_html = ""
+    if "coda" in OUTRO:
+        coda_html = bi(OUTRO["coda"], tag="p", classes="reveal outro-coda")
+
     return f"""
 <section class="outro" id="cierre">
   {label_html}
@@ -188,10 +205,8 @@ def render_outro() -> str:
   {sub_html}
 
   <div class="ch-body">
-    {p1}
-    {p2}
-    {p3}
-    {p4}
+    {blocks_html}
+    {coda_html}
   </div>
 </section>
 """
@@ -1058,6 +1073,45 @@ def render_styles() -> str:
     margin-left: auto; margin-right: auto;
   }
   section.outro .ch-num { display: inline-flex; }
+  section.outro .outro-block {
+    margin-top: 56px;
+    padding-top: 28px;
+    border-top: 0.5px solid var(--line);
+  }
+  section.outro .outro-block:first-child {
+    margin-top: 64px;
+    border-top: 0.5px solid var(--line);
+  }
+  section.outro .outro-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  section.outro .outro-subtitle {
+    font-family: var(--serif);
+    font-weight: 350;
+    font-size: 26px;
+    color: var(--ink);
+    line-height: 1.18;
+    margin: 0 0 20px 0;
+    font-variation-settings: "opsz" 60, "SOFT" 60;
+  }
+  section.outro .outro-subtitle em {
+    font-style: italic; color: var(--accent);
+  }
+  section.outro .outro-coda {
+    margin-top: 56px;
+    padding-top: 28px;
+    border-top: 0.5px solid var(--accent);
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--ink-2);
+    font-size: 18px;
+    line-height: 1.55;
+  }
 
   /* ─── REVEAL ────────────────────────────────────────────────────── */
   .reveal {

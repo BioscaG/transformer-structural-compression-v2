@@ -22,20 +22,58 @@ SECTIONS: list[dict] = [
         "kind": "part",
         "id": "parte-1",
         "num": T("Parte 01", "Part 01"),
-        "title": T("El sujeto", "The subject"),
+        "title": T("El sujeto y las preguntas",
+                   "The subject and the questions"),
         "intro": [
             T("BERT-base. 12 capas. 144 cabezas de atención. 36 864 "
-              "neuronas en los bloques FFN. 109,5 millones de parámetros.",
-              "BERT-base. 12 layers. 144 attention heads. 36,864 neurons "
-              "across the FFN blocks. 109.5 million parameters."),
-            T("Encima, un fine-tune sobre GoEmotions: 23 emociones, "
-              "etiquetado multi-label. Cada frase puede llevar varias "
-              "emociones a la vez.",
-              "On top of it, a fine-tune on GoEmotions: 23 emotions with "
-              "multi-label tagging. A single sentence can carry several "
-              "emotions at once."),
-            T("Antes de operar nada, primero hay que conocer al sujeto.",
-              "Before cutting anything open, you have to meet the subject."),
+              "neuronas en los bloques FFN. 109,5 millones de "
+              "parámetros. Encima, un fine-tune sobre GoEmotions: "
+              "23 emociones, etiquetado multi-label. F1 macro de "
+              "0,577 sobre el conjunto de test — el baseline contra "
+              "el que se mide todo.",
+              "BERT-base. 12 layers. 144 attention heads. 36,864 "
+              "neurons in the FFN blocks. 109.5 million parameters. "
+              "On top of it, a fine-tune on GoEmotions: 23 emotions, "
+              "multi-label tagging. F1 macro of 0.577 on the test "
+              "set — the baseline everything is measured against."),
+            T("El proyecto se articula en torno a tres preguntas. "
+              "<strong>Descriptiva</strong>: ¿cómo afecta la compresión "
+              "SVD selectiva al rendimiento y a las representaciones "
+              "internas? <strong>Explicativa</strong>: ¿qué revela la "
+              "interpretabilidad mecánica sobre cómo está organizada "
+              "la información emocional dentro del modelo? "
+              "<strong>Prescriptiva</strong>: ¿puede ese conocimiento "
+              "traducirse en estrategias de compresión que dominen a "
+              "las aproximaciones ciegas?",
+              "The project hinges on three questions. "
+              "<strong>Descriptive</strong>: how does selective SVD "
+              "compression affect performance and internal "
+              "representations? <strong>Explanatory</strong>: what "
+              "does mechanistic interpretability reveal about how "
+              "emotional information is organised inside the model? "
+              "<strong>Prescriptive</strong>: can that understanding "
+              "translate into compression strategies that beat "
+              "blind ones?"),
+            T("La compresión funciona aquí como un <em>bisturí "
+              "experimental</em>: cada configuración comprimida es una "
+              "intervención controlada que mide la importancia "
+              "funcional del componente afectado por la magnitud de "
+              "lo que se rompe. Eliminar selectivamente partes del "
+              "modelo y observar qué sobrevive produce un mapa "
+              "empírico de cómo está organizada por dentro la "
+              "información.",
+              "Compression here works as an <em>experimental "
+              "scalpel</em>: every compressed configuration is a "
+              "controlled intervention that measures the functional "
+              "importance of the affected component by the magnitude "
+              "of what breaks. Selectively removing parts of the "
+              "model and watching what survives produces an "
+              "empirical map of how the information is internally "
+              "organised."),
+            T("Antes de operar nada, primero hay que conocer al "
+              "sujeto.",
+              "Before cutting anything open, you have to meet the "
+              "subject."),
         ],
     },
     {
@@ -256,8 +294,61 @@ SECTIONS: list[dict] = [
     },
     {
         "kind": "figure",
+        "id": "component-sensitivity",
+        "chapter": T("§ 02.3 · Asimetría", "§ 02.3 · Asymmetry"),
+        "title": T("14× de diferencia entre Q y FFN",
+                   "14× gap between Q and FFN"),
+        "subtitle": T(
+            "Aislando qué tipo de componente aguanta y cuál se rompe.",
+            "Isolating which component type survives and which breaks."),
+        "body": [
+            T("Para aislar el efecto de cada tipo de componente "
+              "comprimimos selectivamente las 12 matrices de UN tipo a "
+              "un rango fijo, manteniendo las otras 60 intactas. Repetido "
+              "para los seis tipos × tres rangos.",
+              "To isolate each component type, we selectively compress "
+              "the 12 matrices of ONE type to a fixed rank while keeping "
+              "the other 60 untouched. Repeated for six types × three "
+              "ranks."),
+            T("A rango 128 las diferencias son brutales. Q retiene el "
+              "99,4 % del F1, K el 98,4 %. La FFN Intermediate baja al "
+              "6,9 %. Una diferencia de 14× en retención absoluta. "
+              "Normalizada por porcentaje de parámetros eliminados, "
+              "alcanza 72×.",
+              "At rank 128 the differences are brutal. Q keeps 99.4 % of "
+              "F1, K 98.4 %. FFN Intermediate falls to 6.9 %. A 14× "
+              "asymmetry in absolute retention — 72× once normalised by "
+              "parameters eliminated."),
+            T("Tres regímenes emergen. Inmunes (Q, K): degradación lineal, "
+              "espectro concentrado, baja dimensionalidad efectiva. "
+              "Acantilado (V, Attn-O): aguantan rango 256 pero colapsan a "
+              "rango 64. Frágiles (FFN): ya muy dañadas a rango 256, "
+              "espectro plano, cada dimensión cuenta.",
+              "Three regimes emerge. Immune (Q, K): linear degradation, "
+              "concentrated spectrum, low effective dimensionality. Cliff "
+              "(V, Attn-O): survive rank 256 but collapse at 64. Fragile "
+              "(FFN): already wrecked at rank 256, flat spectrum, every "
+              "dimension matters."),
+        ],
+        "pull": T(
+            "La estructura espectral predice con precisión el "
+            "comportamiento bajo compresión. Tratar a Q igual que a FFN "
+            "es subóptimo en un factor de hasta 72×.",
+            "The spectral structure predicts the compression behaviour "
+            "with precision. Treating Q the same as FFN is suboptimal by "
+            "a factor of up to 72×."),
+        "figure": "component_sensitivity",
+        "caption": T(
+            "Datos: notebook 3, component_sensitivity.csv. F1 retención "
+            "al comprimir uniformemente sólo las 12 matrices de un tipo.",
+            "Data: notebook 3, component_sensitivity.csv. F1 retention "
+            "from uniformly compressing only the 12 matrices of one type."),
+        "fig_id": "02.3",
+    },
+    {
+        "kind": "figure",
         "id": "spectral-landscape",
-        "chapter": T("§ 02.3 · 3D", "§ 02.3 · 3D"),
+        "chapter": T("§ 02.4 · 3D", "§ 02.4 · 3D"),
         "title": T("La asimetría espectral, hecha topografía",
                    "Spectral asymmetry as a landscape"),
         "subtitle": T(
@@ -290,12 +381,12 @@ SECTIONS: list[dict] = [
             "= 12 capas × 6 componentes (Q, K, V, Attn-O, FFN-i, FFN-o).",
             "SVD computed on the 23emo-final checkpoint. 72 matrices = "
             "12 layers × 6 components (Q, K, V, Attn-O, FFN-i, FFN-o)."),
-        "fig_id": "02.3",
+        "fig_id": "02.4",
     },
     {
         "kind": "figure",
         "id": "decay",
-        "chapter": T("§ 02.4 · Animación", "§ 02.4 · Animation"),
+        "chapter": T("§ 02.5 · Animación", "§ 02.5 · Animation"),
         "title": T("La galaxia se deshace", "The galaxy dissolves"),
         "subtitle": T(
             "Misma proyección que galaxy formation, ahora con SVD activa.",
@@ -329,12 +420,12 @@ SECTIONS: list[dict] = [
             "uniformemente. Slider o Play.",
             "588 test-set sentences, L12, fixed LDA-3D. SVD applied "
             "uniformly. Use the slider or Play."),
-        "fig_id": "02.4",
+        "fig_id": "02.5",
     },
     {
         "kind": "figure",
         "id": "ft-diff",
-        "chapter": T("§ 02.5 · Pre vs post", "§ 02.5 · Pre vs post"),
+        "chapter": T("§ 02.6 · Pre vs post", "§ 02.6 · Pre vs post"),
         "title": T("Qué cambió el fine-tuning",
                    "What the fine-tune actually changed"),
         "subtitle": T(
@@ -368,7 +459,7 @@ SECTIONS: list[dict] = [
             "encoder. bert-base-uncased vs 23emo-final.",
             "Frobenius norm of relative change, 72 encoder matrices. "
             "bert-base-uncased vs 23emo-final."),
-        "fig_id": "02.5",
+        "fig_id": "02.6",
     },
 
     # ── PART 3: localizando emociones ───────────────────────────────────
@@ -437,8 +528,63 @@ SECTIONS: list[dict] = [
     },
     {
         "kind": "figure",
+        "id": "info-gain",
+        "chapter": T("§ 03.2 · Ganancia", "§ 03.2 · Gain"),
+        "title": T("L0 absorbe el <em>61 %</em>",
+                   "L0 absorbs <em>61 %</em>"),
+        "subtitle": T(
+            "Cuánto F1 añade cada capa respecto a la anterior.",
+            "How much F1 each layer adds over the previous one."),
+        "body": [
+            T("La curva de probing acumulada del panel anterior sube de "
+              "forma engañosamente suave. Si en cambio miras la "
+              "DERIVADA — cuánto añade cada capa respecto a la anterior — "
+              "lo que ves es un salto enorme al principio y casi nada "
+              "después.",
+              "The cumulative probing curve in the previous panel rises "
+              "deceptively smoothly. If you look at the DERIVATIVE "
+              "instead — how much each layer adds over the previous "
+              "one — you see a giant jump at the start and almost "
+              "nothing after."),
+            T("Del embedding (F1 = 0) a L0, la media salta a 0.349. Eso "
+              "es un 61 % de la separabilidad final del modelo "
+              "(F1 medio en L11 = 0.569). En una sola capa.",
+              "From the embedding (F1 = 0) to L0, mean F1 jumps to "
+              "0.349. That's 61 % of the model's final linear "
+              "separability (mean F1 at L11 = 0.569). In a single layer."),
+            T("Lo que sigue es desarrollo, no creación. Las capas L1–L7 "
+              "añaden ganancias modestas (+0.010 a +0.048 cada una). En "
+              "L8 hay un pequeño rebote — desambiguación contextual de "
+              "emociones tardías como joy, desire, approval. Después, "
+              "L10 y L11 añaden prácticamente nada (<0.005).",
+              "What follows is refinement, not creation. Layers L1–L7 "
+              "add modest gains (+0.010 to +0.048 each). At L8 there's "
+              "a small bump — contextual disambiguation of late "
+              "emotions like joy, desire, approval. After that, L10 and "
+              "L11 add almost nothing (<0.005)."),
+        ],
+        "pull": T(
+            "El probing dice que las capas tardías no aportan información "
+            "nueva. El activation patching dice que son las únicas "
+            "suficientes para revivir el modelo. La paradoja se resuelve "
+            "abajo: lo que hacen no es CREAR señal — la ROTAN hacia la "
+            "base del clasificador.",
+            "Probing says late layers add no new information. Activation "
+            "patching says they're the only ones sufficient to revive "
+            "the model. The paradox resolves below: what they do isn't "
+            "CREATE signal — they ROTATE it onto the classifier's basis."),
+        "figure": "info_gain",
+        "caption": T(
+            "Δ F1 macro por capa. Media sobre 23 emociones. Datos: "
+            "probe_results.csv (notebook 4).",
+            "Δ F1 macro per layer. Mean over 23 emotions. Data: "
+            "probe_results.csv (notebook 4)."),
+        "fig_id": "03.2",
+    },
+    {
+        "kind": "figure",
         "id": "galaxy",
-        "chapter": T("§ 03.2 · Geometría", "§ 03.2 · Geometry"),
+        "chapter": T("§ 03.3 · Geometría", "§ 03.3 · Geometry"),
         "title": T("Galaxy formation", "Galaxy formation"),
         "subtitle": T(
             "23 emociones cristalizando en el espacio LDA, capa por capa.",
@@ -476,12 +622,12 @@ SECTIONS: list[dict] = [
             "ajustada en L12. Mismas coordenadas para todas las capas.",
             "2,300 test-set sentences. Pooler applied, fixed LDA-3D "
             "fitted at L12. Same coordinates across every layer."),
-        "fig_id": "03.2",
+        "fig_id": "03.3",
     },
     {
         "kind": "figure",
         "id": "iterative",
-        "chapter": T("§ 03.3 · Logit lens", "§ 03.3 · Logit lens"),
+        "chapter": T("§ 03.4 · Logit lens", "§ 03.4 · Logit lens"),
         "title": T("La curva en U", "The U curve"),
         "subtitle": T(
             "Aplicar el classifier real a cada capa, no sólo a la última.",
@@ -520,12 +666,12 @@ SECTIONS: list[dict] = [
             "Top-1, gold, suma de las 23. 2300 frases.",
             "Mean sigmoid of pooler+classifier applied per layer. "
             "Top-1, gold, sum of all 23. 2,300 sentences."),
-        "fig_id": "03.3",
+        "fig_id": "03.4",
     },
     {
         "kind": "figure",
         "id": "lens-vs-probe",
-        "chapter": T("§ 03.4 · Comparación", "§ 03.4 · Comparison"),
+        "chapter": T("§ 03.5 · Comparación", "§ 03.5 · Comparison"),
         "title": T("Lo que sabe vs lo que <em>sabe leer</em>",
                    "What it knows vs what it can <em>read</em>"),
         "subtitle": T(
@@ -586,12 +732,12 @@ SECTIONS: list[dict] = [
             "pooler+classifier applied to [CLS] at each layer) over "
             "2,300 test-set sentences. Phase bands shared with the U "
             "curve."),
-        "fig_id": "03.4",
+        "fig_id": "03.5",
     },
     {
         "kind": "figure",
         "id": "fingerprint",
-        "chapter": T("§ 03.5 · Multi-label", "§ 03.5 · Multi-label"),
+        "chapter": T("§ 03.6 · Multi-label", "§ 03.6 · Multi-label"),
         "title": T("Decision fingerprint", "Decision fingerprint"),
         "subtitle": T(
             "Las métricas agregadas esconden la firma multi-label de cada frase.",
@@ -629,7 +775,7 @@ SECTIONS: list[dict] = [
             "Aplicado al pooler+classifier real.",
             "Sigmoid of all 23 emotions per layer, polar vector. "
             "Applied with the real pooler+classifier."),
-        "fig_id": "03.5",
+        "fig_id": "03.6",
     },
 
     # ── PART 4: atención ────────────────────────────────────────────────
@@ -673,11 +819,13 @@ SECTIONS: list[dict] = [
               "specifically, from Table 19. L11-H6 appears twice — "
               "shared between sadness and realization."),
             T("El 77 % de las cabezas en capas 8–11 son críticas. En "
-              "capas 0–4 es sólo el 25 %. Hay un gradiente que no "
-              "aparece en arquitecturas no fine-tuneadas.",
+              "capas 0–4 es sólo el 27 %. La capa 11 entera (12 cabezas) "
+              "no contiene NINGUNA cabeza prescindible. Y hay 21 cabezas "
+              "interferentes — su ablación MEJORA el F1.",
               "77 % of heads in layers 8–11 are critical. In layers 0–4 "
-              "it's only 25 %. A gradient that doesn't show up in "
-              "non-fine-tuned architectures."),
+              "it's only 27 %. Layer 11 as a whole (12 heads) has ZERO "
+              "dispensable heads. And there are 21 interfering heads — "
+              "ablating them IMPROVES F1."),
         ],
         "figure": "heads_matrix",
         "caption": T(
@@ -837,16 +985,26 @@ SECTIONS: list[dict] = [
               "stage restores the original weights of one more layer. "
               "12 stages in total."),
             T("Las primeras 8 etapas no mueven nada. L8 enciende un "
-              "destello. L9 empuja arriba a las emociones léxicas. L10 "
-              "recupera la mitad. L11 hace explotar todas las barras al "
-              "baseline simultáneamente.",
-              "The first 8 stages move nothing. L8 sets off a flicker. "
-              "L9 lifts the lexical emotions. L10 recovers half. L11 "
-              "blows every bar back to baseline simultaneously."),
-            T("La capacidad emocional del modelo no está distribuida. "
-              "Vive concentrada en las capas finales.",
-              "The model's emotional capacity isn't distributed. It "
-              "lives concentrated in the final layers."),
+              "destello (0,1 % de restauración). L9 empuja arriba a las "
+              "emociones léxicas (4,1 %). L10 recupera el 24,1 %. L11 "
+              "hace explotar todas las barras al baseline "
+              "simultáneamente: <strong>100 % de restauración con una "
+              "sola capa</strong>.",
+              "The first 8 stages move nothing. L8 sets off a flicker "
+              "(0.1 % restoration). L9 lifts the lexical emotions "
+              "(4.1 %). L10 recovers 24.1 %. L11 blows every bar back to "
+              "baseline simultaneously: <strong>100 % restoration with a "
+              "single layer</strong>."),
+            T("Y hay más. Restaurar SOLO la FFN de L11 (no la atención) "
+              "ya recupera el 100 %. La atención de L11 sola, sólo el "
+              "63,3 %. La capacidad emocional del modelo no está "
+              "distribuida. Vive concentrada en un sub-componente "
+              "específico de la última capa.",
+              "And it goes further. Restoring ONLY the FFN of L11 (not "
+              "attention) already gets 100 %. L11 attention alone, only "
+              "63.3 %. The model's emotional capacity isn't distributed. "
+              "It lives concentrated in one specific sub-component of "
+              "the last layer."),
         ],
         "figure": "lesion_theater",
         "caption": T(
@@ -857,25 +1015,103 @@ SECTIONS: list[dict] = [
         "fig_id": "05.1",
     },
 
-    # ── PART 6: síntesis ─────────────────────────────────────────────────
+    # ── PART 6: el mapa emocional ────────────────────────────────────────
     {
         "kind": "part",
         "id": "parte-6",
         "num": T("Parte 06", "Part 06"),
-        "title": T("Síntesis", "Synthesis"),
+        "title": T("El mapa emocional", "The emotional map"),
         "intro": [
-            T("Una taxonomía emocional emergente, una compresión "
-              "informada por interpretabilidad, y una vista que "
-              "junta todo.",
-              "An emergent emotional taxonomy, a compression informed "
-              "by interpretability, and a view that brings it all "
-              "together."),
+            T("Cinco técnicas de interpretabilidad mecánica han "
+              "documentado lo mismo desde ángulos distintos: la "
+              "información emocional vive concentrada al final del "
+              "modelo. Probing, logit lens, activation patching, "
+              "ablación de cabezas y selectividad neuronal convergen "
+              "en una arquitectura funcional de tres niveles.",
+              "Five mechanistic interpretability techniques have "
+              "documented the same thing from different angles: "
+              "emotional information lives concentrated at the end of "
+              "the model. Probing, logit lens, activation patching, "
+              "head ablation and neural selectivity converge on a "
+              "three-level functional architecture."),
+            T("Aquí se pone todo junto: dónde viven las neuronas "
+              "emocionales, qué taxonomía emerge sin pedírselo al "
+              "modelo, y cómo se ve una sola frase atravesando todas "
+              "las capas a la vez.",
+              "This is where everything fits together: where the "
+              "emotional neurons live, what taxonomy emerges without "
+              "asking the model for it, and what a single sentence "
+              "looks like as it crosses all the layers at once."),
         ],
     },
     {
         "kind": "figure",
+        "id": "neurons",
+        "chapter": T("§ 06.1 · Neuronas", "§ 06.1 · Neurons"),
+        "title": T("Dónde viven las <em>neuronas emocionales</em>",
+                   "Where the <em>emotional neurons</em> live"),
+        "subtitle": T(
+            "Selectividad por neurona: 84 % de las significativas en L8–L11.",
+            "Per-neuron selectivity: 84 % of significant ones in L8–L11."),
+        "body": [
+            T("Para cada una de las 36 864 neuronas intermedias del "
+              "modelo (12 capas × 3 072) calculamos un score tipo "
+              "Cohen's d: ¿cuánto se diferencia su activación cuando "
+              "una emoción está presente respecto a cuando no? "
+              "Llamamos significativas a las que tienen |d| > 2,0.",
+              "For each of the 36,864 intermediate neurons in the "
+              "model (12 layers × 3,072) we compute a Cohen's-d–style "
+              "score: how different is its activation when an "
+              "emotion is present versus absent? We call significant "
+              "those with |d| > 2.0."),
+            T("Hay 3 642 en total. La distribución por profundidad es "
+              "extrema: 11 en capas 0–3 (0,3 %), 570 en capas 4–7 "
+              "(16 %), <strong>3 061 en capas 8–11 (84 %)</strong>. "
+              "L11 sola contiene 1 127 — más que toda la mitad "
+              "inferior del modelo combinada.",
+              "There are 3,642 in total. The depth distribution is "
+              "extreme: 11 in layers 0–3 (0.3 %), 570 in layers 4–7 "
+              "(16 %), <strong>3,061 in layers 8–11 (84 %)</strong>. "
+              "Layer 11 alone contains 1,127 — more than the entire "
+              "bottom half of the model combined."),
+            T("Por emoción, el desequilibrio también es brutal. "
+              "Gratitude tiene 818 neuronas dedicadas, max selectivity "
+              "6,88. Remorse 442. Love 399. En el extremo opuesto, "
+              "annoyance, disappointment y realization tienen CERO "
+              "neuronas significativas. Su representación distribuida "
+              "explica por qué son las más vulnerables a CUALQUIER "
+              "perturbación del modelo.",
+              "By emotion the imbalance is also brutal. Gratitude has "
+              "818 dedicated neurons, max selectivity 6.88. Remorse "
+              "442. Love 399. At the other extreme, annoyance, "
+              "disappointment and realization have ZERO significant "
+              "neurons. Their distributed representation explains why "
+              "they're the most fragile under ANY model "
+              "perturbation."),
+        ],
+        "pull": T(
+            "La norma del vector de selectividad es el mejor predictor "
+            "de la caída de F1 bajo SVD (Spearman ρ = 0,64, "
+            "p = 0,001). Las emociones \"escritas en negrita\" en los "
+            "pesos son las que más sufren cualquier compresión.",
+            "The selectivity-vector norm is the best predictor of F1 "
+            "drop under SVD (Spearman ρ = 0.64, p = 0.001). The "
+            "emotions written \"in bold\" inside the weights are the "
+            "ones that suffer most under any compression."),
+        "figure": "neurons",
+        "caption": T(
+            "Datos: notebook 7. neuron_significant_counts.csv y "
+            "neuron_catalog.csv. Conteos reales sobre el conjunto de "
+            "test del checkpoint 23emo-final.",
+            "Data: notebook 7. neuron_significant_counts.csv and "
+            "neuron_catalog.csv. Real counts on the test set of the "
+            "23emo-final checkpoint."),
+        "fig_id": "06.1",
+    },
+    {
+        "kind": "figure",
         "id": "clusters",
-        "chapter": T("§ 06.1 · Taxonomía", "§ 06.1 · Taxonomy"),
+        "chapter": T("§ 06.2 · Taxonomía", "§ 06.2 · Taxonomy"),
         "title": T("Seis clusters que aparecen solos",
                    "Six clusters emerging on their own"),
         "subtitle": T(
@@ -917,12 +1153,12 @@ SECTIONS: list[dict] = [
             "Sunburst with 6 clusters, 23 emotions. Areas proportional "
             "to train-set frequency. Reference: Russell 1980 "
             "(circumplex)."),
-        "fig_id": "06.1",
+        "fig_id": "06.2",
     },
     {
         "kind": "figure",
         "id": "landscape",
-        "chapter": T("§ 06.2 · Mapa", "§ 06.2 · Map"),
+        "chapter": T("§ 06.3 · Mapa", "§ 06.3 · Map"),
         "title": T("El paisaje emocional", "The emotional landscape"),
         "subtitle": T(
             "Cada emoción en (cristalización × intensidad).",
@@ -956,12 +1192,12 @@ SECTIONS: list[dict] = [
             "23 emotions on the (crystallisation × selectivity-norm) "
             "plane. Data: crystallization_layers.csv and "
             "neuron_catalog.csv."),
-        "fig_id": "06.2",
+        "fig_id": "06.3",
     },
     {
         "kind": "figure",
         "id": "trajectory",
-        "chapter": T("§ 06.3 · Síntesis", "§ 06.3 · Synthesis"),
+        "chapter": T("§ 06.4 · Síntesis", "§ 06.4 · Synthesis"),
         "title": T("Una frase, cuatro vistas",
                    "One sentence, four views"),
         "subtitle": T(
@@ -993,12 +1229,103 @@ SECTIONS: list[dict] = [
             "23emo-final aplicado en vivo a la frase elegida.",
             "Four synchronised panels. Real data from the 23emo-final "
             "model applied live to the selected sentence."),
-        "fig_id": "06.3",
+        "fig_id": "06.4",
+    },
+
+    # ── PART 7: compresión informada ─────────────────────────────────────
+    {
+        "kind": "part",
+        "id": "parte-7",
+        "num": T("Parte 07", "Part 07"),
+        "title": T("Compresión informada", "Informed compression"),
+        "intro": [
+            T("La pregunta prescriptiva del proyecto: ¿se puede usar lo "
+              "que ahora sabemos del modelo para comprimirlo mejor?",
+              "The project's prescriptive question: can we use what we "
+              "now know about the model to compress it better?"),
+            T("Antes de saltar al algoritmo final hay que contar el "
+              "intento que NO funcionó. Tres heurísticas escritas a "
+              "mano a partir de los hallazgos de interpretabilidad. "
+              "Resultado: convergen exactamente sobre los baselines "
+              "ciegos. Saber QUÉ medir no basta — hay que medir CUÁNTO.",
+              "Before jumping to the final algorithm we have to tell "
+              "the attempt that did NOT work. Three hand-written "
+              "heuristics built from the interpretability findings. "
+              "Result: they collapse onto blind baselines. Knowing "
+              "WHAT to measure isn't enough — you have to measure HOW "
+              "MUCH."),
+        ],
+    },
+    {
+        "kind": "figure",
+        "id": "heuristic-negative",
+        "chapter": T("§ 07.1 · Resultado negativo",
+                     "§ 07.1 · Negative result"),
+        "title": T("La heurística <em>colapsa</em> sobre lo ciego",
+                   "Heuristic <em>collapses</em> onto blind"),
+        "subtitle": T(
+            "Tres reglas informadas, exactamente sobre uniform_r256 y r512.",
+            "Three informed rules, exactly on top of uniform_r256 and r512."),
+        "body": [
+            T("Las tres heurísticas se escribieron antes que el "
+              "greedy. La idea era directa: si las capas tardías son "
+              "críticas, protégerlas; si Q y K son inmunes, "
+              "comprímelos primero. Tres niveles de agresividad. "
+              "Resultado experimental:",
+              "The three heuristics were written before the greedy "
+              "one. The idea was direct: if late layers are critical, "
+              "protect them; if Q and K are immune, compress them "
+              "first. Three aggressiveness levels. Experimental "
+              "result:"),
+            T("<strong>informed_aggressive</strong> ≡ uniform_r256 "
+              "(mismo ratio 0,612, mismo F1 0,025). "
+              "<strong>informed_moderate</strong> ≡ uniform_r512 "
+              "(mismo ratio 1,000, mismo F1 0,464). "
+              "<strong>informed_light</strong> requiere ratio 1,285 — "
+              "MÁS parámetros que el modelo original.",
+              "<strong>informed_aggressive</strong> ≡ uniform_r256 "
+              "(same ratio 0.612, same F1 0.025). "
+              "<strong>informed_moderate</strong> ≡ uniform_r512 "
+              "(same ratio 1.000, same F1 0.464). "
+              "<strong>informed_light</strong> requires ratio 1.285 — "
+              "MORE parameters than the original model."),
+            T("Ninguna está sobre la frontera de Pareto. Saber "
+              "cualitativamente qué es importante no convierte ese "
+              "conocimiento en una asignación óptima de rangos. La "
+              "interpretabilidad cualitativa identifica las variables; "
+              "los datos empíricos de sensibilidad — y solo ellos — "
+              "determinan los valores numéricos.",
+              "None lies on the Pareto frontier. Knowing qualitatively "
+              "what's important doesn't turn that knowledge into an "
+              "optimal rank assignment. Qualitative interpretability "
+              "identifies the variables; empirical sensitivity data — "
+              "and only those — fix the numeric values."),
+        ],
+        "pull": T(
+            "Es un resultado negativo informativo. Habría sido fácil "
+            "publicarlo como éxito si las heurísticas hubiesen "
+            "funcionado. La narrativa completa — heurística no innova → "
+            "pivot data-driven → dominancia Pareto — es, en sí misma, "
+            "una observación metodológica transferible.",
+            "An informative negative result. It would have been easy "
+            "to spin a success story if the heuristics had worked. "
+            "The full narrative — heuristics don't innovate → pivot "
+            "data-driven → Pareto dominance — is itself a "
+            "transferable methodological observation."),
+        "figure": "heuristic_negative",
+        "caption": T(
+            "Datos: notebook 9, compression_comparison.csv. 21 "
+            "estrategias evaluadas: 6 uniformes, 4 adaptativas, 3 "
+            "heurísticas, 8 greedy.",
+            "Data: notebook 9, compression_comparison.csv. 21 "
+            "evaluated strategies: 6 uniform, 4 adaptive, 3 "
+            "heuristic, 8 greedy."),
+        "fig_id": "07.1",
     },
     {
         "kind": "figure",
         "id": "greedy",
-        "chapter": T("§ 06.4 · Algoritmo", "§ 06.4 · Algorithm"),
+        "chapter": T("§ 07.2 · Algoritmo", "§ 07.2 · Algorithm"),
         "title": T("Greedy en acción", "Greedy in action"),
         "subtitle": T(
             "Cómo el algoritmo construye la compresión paso a paso.",
@@ -1038,7 +1365,64 @@ SECTIONS: list[dict] = [
             "greedy_*_ranks.csv del notebook 9.",
             "Replay of the greedy_50, _60, …, _95 algorithm. Data: "
             "greedy_*_ranks.csv from notebook 9."),
-        "fig_id": "06.4",
+        "fig_id": "07.2",
+    },
+    {
+        "kind": "figure",
+        "id": "recovery",
+        "chapter": T("§ 07.3 · Recuperación", "§ 07.3 · Recovery"),
+        "title": T("El comprimido <em>vuelve</em>",
+                   "The compressed model <em>comes back</em>"),
+        "subtitle": T(
+            "Greedy_90 + 3 épocas de fine-tuning supera al baseline.",
+            "Greedy_90 + 3 epochs of fine-tuning beat the baseline."),
+        "body": [
+            T("Punto de partida: greedy_90, 86,4 % de los parámetros del "
+              "baseline. F1 macro 0.539 — habíamos perdido 6,7 % del "
+              "rendimiento. Lo razonable sería resignarse a esa pérdida "
+              "como precio de la compresión.",
+              "Starting point: greedy_90, 86.4 % of baseline parameters. "
+              "F1 macro 0.539 — we'd lost 6.7 % of performance. The "
+              "expected outcome would be accepting that drop as the "
+              "price of compression."),
+            T("Tres épocas de fine-tuning después: F1 macro 0.591. Por "
+              "encima del baseline original (0.577) con un 13,6 % menos "
+              "de parámetros. La compresión no es un coste — actúa como "
+              "regularización implícita.",
+              "Three epochs of fine-tuning later: F1 macro 0.591. Above "
+              "the original baseline (0.577) with 13.6 % fewer "
+              "parameters. Compression isn't a cost — it acts as "
+              "implicit regularisation."),
+            T("La ganancia se concentra donde más hace falta. "
+              "Embarrassment pasa de F1 = 0.267 a 0.509 — un 90 % "
+              "relativo más, en una emoción con sólo 303 ejemplos de "
+              "entrenamiento. Desire +16 %, excitement +9,5 %, "
+              "realization +10 %. La SVD parece haber eliminado "
+              "direcciones ruidosas en las que el baseline había "
+              "memorizado patrones espurios para emociones "
+              "infrarrepresentadas.",
+              "The gain concentrates where it's needed most. "
+              "Embarrassment goes from F1 = 0.267 to 0.509 — a 90 % "
+              "relative jump, on an emotion with only 303 training "
+              "examples. Desire +16 %, excitement +9.5 %, realization "
+              "+10 %. SVD seems to have eliminated noisy directions "
+              "where the baseline had memorised spurious patterns for "
+              "underrepresented emotions."),
+        ],
+        "pull": T(
+            "Es un resultado preliminar — un modelo, una tarea, sin "
+            "grupo de control con epochs adicionales. Pero la dirección "
+            "es la opuesta a lo que se asume sobre compresión.",
+            "It's a preliminary result — one model, one task, no "
+            "control group with extra epochs. But the direction is the "
+            "opposite of what's typically assumed about compression."),
+        "figure": "finetuning_recovery",
+        "caption": T(
+            "Datos: notebook 9, finetuning_recovery.csv. F1 baseline / "
+            "comprimido (greedy_90) / fine-tuneado por emoción.",
+            "Data: notebook 9, finetuning_recovery.csv. F1 baseline / "
+            "compressed (greedy_90) / fine-tuned per emotion."),
+        "fig_id": "07.3",
     },
 ]
 
@@ -1048,7 +1432,7 @@ HERO_STATS = [
     ("12 × 144",  T("capas × cabezas", "layers × heads")),
     ("36 864",    T("neuronas FFN", "FFN neurons")),
     ("23",        T("emociones, multi-label", "emotions, multi-label")),
-    ("21",        T("visualizaciones", "visualisations")),
+    ("26",        T("visualizaciones", "visualisations")),
 ]
 
 
@@ -1080,49 +1464,236 @@ HERO = {
 # ── Outro / footer / nav text ─────────────────────────────────────────────
 OUTRO = {
     "label":    T("Cierre", "Closing"),
-    "title":    T("Cómo está hecho", "How it's built"),
-    "sub":      T("Stack, datos y créditos.",
-                  "Stack, data, credits."),
-    "p1": T(
-        "Datos numéricos. Las visualizaciones se alimentan directamente "
-        "de los CSVs de los notebooks 2 al 9. Resultados reales del "
-        "fine-tune sobre BERT-base-uncased y 23 emociones de GoEmotions. "
-        "61 tablas exportadas: probing por capa, ablación de 144 "
-        "cabezas, especialización neuronal, activation patching, "
-        "frontera de Pareto completa con 22 estrategias evaluadas.",
-        "Numbers. The visualisations read directly from the CSVs of "
-        "notebooks 2–9. Real results from the fine-tune of "
-        "bert-base-uncased on the 23 GoEmotions classes. 61 exported "
-        "tables: layer-wise probing, 144-head ablation, neural "
-        "specialisation, activation patching, full Pareto frontier with "
-        "22 evaluated strategies."),
-    "p2": T(
-        "Activaciones y geometría. Galaxy formation, sentence "
-        "trajectory, compression decay y spectral flowers se computan "
-        "ejecutando el checkpoint <code>23emo-final</code> (109,5 M "
-        "parámetros, 23 emociones) sobre frases del test set. Pooler y "
-        "classifier reales aplicados en cada paso. LDA fija ajustada en "
-        "L12 para coordenadas consistentes capa a capa.",
-        "Activations and geometry. Galaxy formation, sentence "
-        "trajectory, compression decay and spectral flowers are "
-        "computed by running the <code>23emo-final</code> checkpoint "
-        "(109.5 M parameters, 23 emotions) on test-set sentences. The "
-        "real pooler and classifier are applied at every step. Fixed "
-        "LDA fitted at L12 for consistent layer-by-layer coordinates."),
-    "p3": T(
-        "Visualización. 21 piezas: 14 estáticas en Plotly, 6 "
-        "interactivas con HTML+JS custom, 1 grafo en D3.js puro. Cada "
-        "figura es un HTML autocontenido. La página que las une es "
-        "static HTML+CSS+JS. Sin frameworks, sin servidor, sin backend.",
-        "Visualisation. 21 pieces: 14 static Plotly figures, 6 custom "
-        "HTML+JS, 1 pure D3.js graph. Each figure is a self-contained "
-        "HTML. The page that ties them together is static HTML+CSS+JS. "
-        "No frameworks, no server, no backend."),
-    "p4": T(
-        "Memoria. Guido Biosca Lasa. Director: Lluís Padró Cirera. "
-        "FIB-UPC, 2026. <a href=\"sobre.html\">Más sobre el proyecto</a>.",
-        "Thesis. Guido Biosca Lasa. Advisor: Lluís Padró Cirera. "
-        "FIB-UPC, 2026. <a href=\"sobre.html\">More about the project</a>."),
+    "title":    T("Lo que <em>emergió</em>", "What <em>emerged</em>"),
+    "sub":      T(
+        "Recapitulación honesta: lo que se ha encontrado, lo que no se ha "
+        "podido demostrar, y por dónde seguir.",
+        "An honest recap: what was found, what couldn't be demonstrated, "
+        "and where to go next."),
+    "blocks": [
+        # ── Contribuciones ─────────────────────────────────────────────
+        {
+            "label": T("01 · Contribuciones",
+                       "01 · Contributions"),
+            "title": T("Tres hallazgos sustantivos",
+                       "Three substantive findings"),
+            "paragraphs": [
+                T("<strong>Arquitectura funcional de tres niveles.</strong> "
+                  "Las capas tempranas (Emb–L3) hacen señal léxica cruda — "
+                  "L0 absorbe el 61 % de la separabilidad final en un solo "
+                  "salto. Las medias (L4–L7) computan la transición en una "
+                  "geometría interna donde el F1 sigue subiendo pero el "
+                  "clasificador no sabe leer (la brecha probing-lens). Las "
+                  "tardías (L8–L11) cristalizan: rotan la representación "
+                  "hacia la base del classifier. Restaurar SOLO la FFN de "
+                  "L11 (un tercio de los parámetros de esa capa) recupera "
+                  "el 100 % del F1 desde un colapso total — un sub-"
+                  "componente concreto, no toda la capa.",
+                  "<strong>A three-level functional architecture.</strong> "
+                  "Early layers (Emb–L3) do raw lexical work — L0 alone "
+                  "absorbs 61 % of final linear separability in one jump. "
+                  "Middle layers (L4–L7) compute the transition in an "
+                  "internal geometry where F1 keeps rising but the "
+                  "classifier can't read it (the probing-lens gap). Late "
+                  "layers (L8–L11) crystallise: they rotate the "
+                  "representation onto the classifier's basis. Restoring "
+                  "ONLY the FFN of L11 (a third of that layer's "
+                  "parameters) recovers 100 % of F1 from total collapse — "
+                  "a specific sub-component, not the whole layer."),
+                T("<strong>Asimetría radical bajo compresión.</strong> Q "
+                  "a rango 128 conserva el 99,4 % del rendimiento. La FFN "
+                  "Intermediate al mismo rango colapsa a 6,9 %. Una "
+                  "diferencia de 14× en retención absoluta, 72× "
+                  "normalizada por parámetros eliminados. La compresión "
+                  "uniforme presenta una transición de fase entre rango "
+                  "384 (43 % retención) y 256 (4 %). Por debajo de rango "
+                  "128, muerte clínica: F1 = 0. Hasta donde sabemos, este "
+                  "factor cuantificado de 14×–72× no había sido "
+                  "documentado en la literatura previa de SVD sobre "
+                  "Transformers.",
+                  "<strong>Radical asymmetry under compression.</strong> "
+                  "Q at rank 128 keeps 99.4 % of performance. FFN "
+                  "Intermediate at the same rank collapses to 6.9 %. 14× "
+                  "in absolute retention, 72× when normalised by "
+                  "parameters eliminated. Uniform compression shows a "
+                  "phase transition between rank 384 (43 % retention) and "
+                  "256 (4 %). Below rank 128, clinical death: F1 = 0. As "
+                  "far as we know, this 14×–72× quantified factor hadn't "
+                  "been documented in the prior literature on SVD over "
+                  "Transformers."),
+                T("<strong>Greedy data-driven domina Pareto.</strong> 8 "
+                  "de los 9 puntos óptimos del estudio son del greedy. A "
+                  "80 % de parámetros retiene el 87 % del F1 frente al "
+                  "43 % de la compresión uniforme. Reproduce las "
+                  "jerarquías de interpretabilidad sin acceder a ellas — "
+                  "comprime Q y K primero, jamás toca la FFN Intermediate "
+                  "de las capas tardías. Y la FFN sobre el modelo "
+                  "comprimido + 3 épocas de fine-tuning supera al "
+                  "baseline original con un 13,6 % menos de parámetros, "
+                  "con ganancia +90 % relativo en embarrassment "
+                  "(infrarrepresentada con 303 ejemplos).",
+                  "<strong>Greedy data-driven dominates Pareto.</strong> "
+                  "8 of 9 Pareto-optimal points in the study come from "
+                  "greedy. At 80 % parameters it retains 87 % of F1, "
+                  "against 43 % for uniform compression. It reproduces "
+                  "the interpretability hierarchies without seeing them — "
+                  "compresses Q and K first, never touches the FFN "
+                  "Intermediate of late layers. And the compressed model "
+                  "+ 3 fine-tuning epochs beats the original baseline "
+                  "with 13.6 % fewer parameters, with a +90 % relative "
+                  "gain on embarrassment (underrepresented with 303 "
+                  "examples)."),
+            ],
+        },
+        # ── Limitaciones ────────────────────────────────────────────────
+        {
+            "label": T("02 · Limitaciones",
+                       "02 · Limitations"),
+            "title": T("Lo que <em>no</em> se ha podido demostrar",
+                       "What <em>couldn't</em> be demonstrated"),
+            "paragraphs": [
+                T("<strong>Un modelo, una tarea.</strong> Todo este "
+                  "trabajo se hace sobre BERT-base y GoEmotions. La "
+                  "arquitectura encoder-only podría favorecer la "
+                  "concentración tardía. La generalización a BERT-large, "
+                  "RoBERTa, GPT-2 o LLaMA está propuesta como prioridad "
+                  "número uno de trabajo futuro pero NO se verifica aquí.",
+                  "<strong>One model, one task.</strong> All this work "
+                  "is done on BERT-base and GoEmotions. The encoder-only "
+                  "architecture could favour late-layer concentration. "
+                  "Generalisation to BERT-large, RoBERTa, GPT-2 or LLaMA "
+                  "is proposed as the top future-work priority but is "
+                  "NOT verified here."),
+                T("<strong>Compresión post-hoc, no durante el "
+                  "entrenamiento.</strong> La SVD se aplica una vez el "
+                  "modelo está fine-tuneado. Otros enfoques — pruning "
+                  "estructurado, cuantización, destilación — interactúan "
+                  "de forma distinta y no se evalúan en combinación.",
+                  "<strong>Post-hoc compression, not during training."
+                  "</strong> SVD is applied once the model is "
+                  "fine-tuned. Other approaches — structured pruning, "
+                  "quantisation, distillation — interact differently and "
+                  "are not evaluated in combination."),
+                T("<strong>Potencia estadística limitada.</strong> Las "
+                  "correlaciones se calculan sobre n = 23 emociones, lo "
+                  "que permite detectar efectos grandes con confianza "
+                  "(ρ > 0,556) pero no efectos moderados. Y la "
+                  "regularización por compresión observada (+90 % en "
+                  "embarrassment) carece de grupo de control con epochs "
+                  "adicionales sobre el baseline sin comprimir, así que "
+                  "se reporta como observación consistente con la "
+                  "hipótesis, no como causalidad establecida.",
+                  "<strong>Limited statistical power.</strong> "
+                  "Correlations are computed over n = 23 emotions, which "
+                  "lets us detect large effects with confidence "
+                  "(ρ > 0.556) but not moderate ones. And the "
+                  "regularisation-via-compression effect observed (+90 % "
+                  "on embarrassment) lacks a control group with extra "
+                  "epochs on the uncompressed baseline, so it's reported "
+                  "as an observation consistent with the hypothesis, not "
+                  "as established causation."),
+                T("<strong>Distorsión espectral, no ruido neutral.</strong> "
+                  "El activation patching parte de una corrupción "
+                  "estructurada (SVD a rango 64), no de ruido gaussiano "
+                  "como en el causal tracing original de Meng et al. Las "
+                  "conclusiones extraídas tienen naturaleza funcional "
+                  "—qué componentes son SUFICIENTES para reactivar el "
+                  "modelo desde el colapso— más que estrictamente causal "
+                  "en el sentido de Pearl.",
+                  "<strong>Spectral distortion, not neutral noise."
+                  "</strong> Activation patching starts from a "
+                  "structured corruption (SVD to rank 64), not Gaussian "
+                  "noise as in Meng et al.'s original causal tracing. "
+                  "The conclusions extracted are functional — which "
+                  "components are SUFFICIENT to reactivate the model "
+                  "from collapse — rather than strictly causal in "
+                  "Pearl's sense."),
+            ],
+        },
+        # ── Trabajo futuro ──────────────────────────────────────────────
+        {
+            "label": T("03 · Trabajo futuro",
+                       "03 · Future work"),
+            "title": T("Predicciones <em>falsables</em>",
+                       "<em>Falsifiable</em> predictions"),
+            "paragraphs": [
+                T("<strong>Generalización a otros modelos y tareas.</strong> "
+                  "La hipótesis falsable: el ratio de compresibilidad "
+                  "espectral k₉₅(Q)/k₉₅(FFN) en BERT-large debería caer "
+                  "en el rango [0,55, 0,75] (en BERT-base es 0,64). En "
+                  "modelos decoder-only la restauración por activation "
+                  "patching debería distribuirse a lo largo de varias "
+                  "capas tardías en vez de concentrarse extremadamente "
+                  "en L11.",
+                  "<strong>Generalisation to other models and tasks."
+                  "</strong> The falsifiable hypothesis: the spectral "
+                  "compressibility ratio k₉₅(Q)/k₉₅(FFN) in BERT-large "
+                  "should fall in [0.55, 0.75] (BERT-base: 0.64). In "
+                  "decoder-only models, activation-patching restoration "
+                  "should distribute across several late layers instead "
+                  "of concentrating extremely on L11."),
+                T("<strong>Verificación causal de la regularización por "
+                  "compresión.</strong> Tres condiciones experimentales: "
+                  "(i) baseline + 3 epochs adicionales, (ii) baseline + "
+                  "compresión greedy + 3 epochs (lo actual), (iii) "
+                  "baseline + 3 epochs con dropout/weight decay "
+                  "aumentados. La predicción: (ii) > (i) y (iii) en "
+                  "F1 macro y especialmente en emociones "
+                  "infrarrepresentadas.",
+                  "<strong>Causal verification of the regularisation "
+                  "effect.</strong> Three experimental conditions: (i) "
+                  "baseline + 3 extra epochs, (ii) baseline + greedy "
+                  "compression + 3 epochs (the current setting), (iii) "
+                  "baseline + 3 epochs with increased dropout/weight "
+                  "decay. The prediction: (ii) > (i) and (iii) in F1 "
+                  "macro, and especially on underrepresented emotions."),
+                T("<strong>Compresión por cabeza individual.</strong> "
+                  "Las 38 cabezas prescindibles + 21 interferentes "
+                  "identificadas son candidatas directas a eliminación. "
+                  "Combinar pruning de cabezas + greedy SVD + "
+                  "cuantización post-hoc + fine-tuning recovery podría "
+                  "componer reducción multiplicativa o sub-multiplicativa "
+                  "sin pérdida de F1.",
+                  "<strong>Per-head compression granularity.</strong> The "
+                  "38 dispensable + 21 interfering heads identified are "
+                  "direct elimination candidates. Combining head pruning "
+                  "+ greedy SVD + post-hoc quantisation + fine-tuning "
+                  "recovery could compose multiplicative or "
+                  "sub-multiplicative reduction without F1 loss."),
+                T("<strong>Tuned lens y dinámica durante el "
+                  "entrenamiento.</strong> Aprender una transformación "
+                  "T_ℓ : ℝ^d → ℝ^d por capa que minimice la divergencia "
+                  "KL contra L11 y verificar si el patrón en U se "
+                  "mantiene tras la calibración. Y monitorizar "
+                  "cristalización + especialización neuronal DURANTE el "
+                  "fine-tuning para entender en qué momento de la "
+                  "optimización emerge cada propiedad estructural.",
+                  "<strong>Tuned lens and training dynamics.</strong> "
+                  "Learn a per-layer transformation T_ℓ : ℝ^d → ℝ^d "
+                  "minimising KL divergence against L11 and verify "
+                  "whether the U pattern persists after calibration. "
+                  "And monitor crystallisation + neural specialisation "
+                  "DURING fine-tuning to understand at what point in "
+                  "optimisation each structural property emerges."),
+            ],
+        },
+    ],
+    "coda": T(
+        "BERT no fue diseñado para emociones. La arquitectura funcional "
+        "documentada aquí —cristalización progresiva, dominio de la FFN "
+        "tardía, patrón en U del logit lens, 6 clusters psicológicamente "
+        "coherentes— no se optimizó explícitamente durante el "
+        "entrenamiento. Emergió. La interpretabilidad mecánica documenta "
+        "lo que la optimización por gradiente decidió, no lo que sus "
+        "diseñadores prescribieron.<br><br>"
+        "<a href=\"sobre.html\">Cómo está hecho · Stack y créditos</a>",
+        "BERT wasn't designed for emotions. The functional architecture "
+        "documented here — progressive crystallisation, late-FFN "
+        "dominance, the logit-lens U pattern, 6 psychologically coherent "
+        "clusters — wasn't explicitly optimised during training. It "
+        "emerged. Mechanistic interpretability documents what gradient "
+        "descent decided, not what the designers prescribed.<br><br>"
+        "<a href=\"sobre.html\">How it's built · Stack and credits</a>"),
 }
 
 
@@ -1179,4 +1750,9 @@ FIG_HEIGHTS = {
     "emotional_landscape":   720,
     "sentence_trajectory":  1020,
     "greedy_replay":         820,
+    "component_sensitivity": 560,
+    "info_gain":             560,
+    "finetuning_recovery":   600,
+    "neurons":               600,
+    "heuristic_negative":    620,
 }
