@@ -19,15 +19,14 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from viz.plots import (component_sensitivity, crystallization, fingerprints,
                        finetuning_recovery, heads_matrix, heuristic_negative,
                        info_gain, lesion_theater, neurons, pareto_3d,
-                       sunburst)
+                       patching_components, sunburst)
 from viz.interactive import (bert_architecture, compression_decay,
                              finetuning_diff, galaxy_formation,
                              greedy_replay, internal_compression,
                              lens_vs_probe, lexical_to_semantic,
                              probe_constellations, spectral_landscape)
 # HTML+JS custom
-from viz.interactive import (attention_atlas, circuit_network,
-                             decision_fingerprint,
+from viz.interactive import (attention_atlas,
                              iterative_inference,
                              sentence_trajectory)
 
@@ -198,6 +197,7 @@ PLOTLY_FIGS = [
     ("finetuning_recovery",   finetuning_recovery.build_figure),
     ("neurons",               neurons.build_figure),
     ("heuristic_negative",    heuristic_negative.build_figure),
+    ("patching_components",   patching_components.build_figure),
 ]
 
 
@@ -212,8 +212,6 @@ def _make_html_builder(module, name):
 
 HTML_FIGS = [
     ("attention_atlas",       attention_atlas.build_html),
-    ("circuit_network",       circuit_network.build_html),
-    ("decision_fingerprint",  decision_fingerprint.build_html),
     ("iterative_inference",   iterative_inference.build_html),
     ("sentence_trajectory",   sentence_trajectory.build_html),
 ]

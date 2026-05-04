@@ -734,49 +734,6 @@ SECTIONS: list[dict] = [
             "curve."),
         "fig_id": "03.5",
     },
-    {
-        "kind": "figure",
-        "id": "fingerprint",
-        "chapter": T("§ 03.6 · Multi-label", "§ 03.6 · Multi-label"),
-        "title": T("Decision fingerprint", "Decision fingerprint"),
-        "subtitle": T(
-            "Las métricas agregadas esconden la firma multi-label de cada frase.",
-            "Aggregate metrics hide the multi-label signature of each sentence."),
-        "body": [
-            T("Multi-label significa que el modelo no produce una "
-              "emoción. Produce un vector de 23 sigmoides, varias "
-              "activas a la vez. Ese vector es la firma de la frase.",
-              "Multi-label means the model doesn't produce an emotion. "
-              "It produces a vector of 23 sigmoids, several of them "
-              "active at once. That vector is the sentence's signature."),
-            T("Aplico el classifier real al [CLS] de cada capa. Cada "
-              "pétalo del polar es una emoción. Su longitud es el "
-              "sigmoid. El pétalo con borde negro grueso es la emoción "
-              "gold.",
-              "I apply the real classifier to [CLS] at each layer. Each "
-              "petal of the polar is one emotion. Its length is the "
-              "sigmoid. The petal with the thick black border is the "
-              "gold emotion."),
-            T("Selecciona una frase y dale a Play. Vas viendo el "
-              "fingerprint emerger desde el ruido (Emb) hasta la "
-              "decisión cristalizada (L11). Cuando varios pétalos "
-              "crecen juntos, el modelo cree que coexisten varias "
-              "emociones — eso es lo que la BCE multi-label produce y "
-              "ningún heatmap promediado deja ver.",
-              "Pick a sentence and hit Play. You watch the fingerprint "
-              "emerge from noise (Emb) into a crystallised decision "
-              "(L11). When several petals grow together, the model "
-              "thinks multiple emotions coexist — that's what multi-"
-              "label BCE produces and no averaged heatmap can show you."),
-        ],
-        "figure": "decision_fingerprint",
-        "caption": T(
-            "Sigmoid de las 23 emociones por capa, vector polar. "
-            "Aplicado al pooler+classifier real.",
-            "Sigmoid of all 23 emotions per layer, polar vector. "
-            "Applied with the real pooler+classifier."),
-        "fig_id": "03.6",
-    },
 
     # ── PART 4: atención ────────────────────────────────────────────────
     {
@@ -917,40 +874,6 @@ SECTIONS: list[dict] = [
             "similarity heatmap in 768 dimensions, reordered by cluster."),
         "fig_id": "04.3",
     },
-    {
-        "kind": "figure",
-        "id": "circuit",
-        "chapter": T("§ 04.4 · Circuitos", "§ 04.4 · Circuits"),
-        "title": T("El circuito compartido", "The shared circuit"),
-        "subtitle": T(
-            "Cuando dos emociones reutilizan la misma maquinaria.",
-            "When two emotions reuse the same machinery."),
-        "body": [
-            T("Aquí el grafo se construye en D3.js. Sin Plotly. Cada "
-              "emoción a la izquierda. Cabezas críticas en el centro. "
-              "Clusters psicológicos a la derecha.",
-              "Here the graph is built in D3.js. No Plotly. Emotions on "
-              "the left. Critical heads in the middle. Psychological "
-              "clusters on the right."),
-            T("L11-H6 es el nodo rojo. Es la única cabeza compartida "
-              "por más de una emoción. La usan sadness y realization. "
-              "Probable circuito de \"expectativa frustrada\" que el "
-              "fine-tune reutiliza.",
-              "L11-H6 is the red node. The only head shared by more "
-              "than one emotion. Used by sadness and realization. "
-              "Likely a \"frustrated expectation\" circuit the "
-              "fine-tune is reusing."),
-            T("Click en cualquier nodo para ver su entorno.",
-              "Click any node to inspect its neighbourhood."),
-        ],
-        "figure": "circuit_network",
-        "caption": T(
-            "Grafo construido a partir de top_heads_per_emotion.csv. "
-            "Nodos en rojo: cabezas compartidas.",
-            "Graph built from top_heads_per_emotion.csv. Red nodes: "
-            "shared heads."),
-        "fig_id": "04.4",
-    },
 
     # ── PART 5: causalidad y neuronas ───────────────────────────────────
     {
@@ -1013,6 +936,65 @@ SECTIONS: list[dict] = [
             "Sequential layer-wise activation patching. F1 macro and "
             "per emotion. 12 stages plus initial state."),
         "fig_id": "05.1",
+    },
+    {
+        "kind": "figure",
+        "id": "patching-components",
+        "chapter": T("§ 05.2 · Por componente",
+                     "§ 05.2 · By component"),
+        "title": T("Solo la <em>FFN de L11</em> basta",
+                   "<em>L11 FFN</em> alone is enough"),
+        "subtitle": T(
+            "Patching no por capa entera sino por sub-componente.",
+            "Patching not by full layer but by sub-component."),
+        "body": [
+            T("La figura anterior restaura una capa entera (sus 6 "
+              "matrices). ¿Y si restauramos solo una mitad — solo el "
+              "bloque de atención, o solo el FFN? Es la versión más "
+              "fina del experimento.",
+              "The previous figure restores a whole layer (all 6 "
+              "matrices). What happens if we restore only half — just "
+              "the attention block, or just the FFN? The finer version "
+              "of the experiment."),
+            T("De L8 a L10 las dos columnas crecen lentamente y a la "
+              "par. Pero en L11 se separan: la atención sola devuelve "
+              "el 63 %, mientras que <strong>la FFN sola devuelve el "
+              "100 %</strong>. Un sub-componente — una tercera parte "
+              "de los parámetros de L11 — basta para revivir un modelo "
+              "completamente colapsado.",
+              "From L8 to L10 both columns grow slowly and in lockstep. "
+              "But in L11 they split: attention alone gets 63 %, "
+              "<strong>FFN alone gets 100 %</strong>. One "
+              "sub-component — a third of L11's parameters — is enough "
+              "to revive a totally collapsed model."),
+            T("Esto va contra la narrativa de \"Attention Is All You "
+              "Need\". Para clasificación emocional sobre este "
+              "fine-tune, lo crítico es la FFN tardía. La atención "
+              "ayuda; la FFN decide.",
+              "This goes against the \"Attention Is All You Need\" "
+              "narrative. For emotion classification on this "
+              "fine-tune, what's critical is the late FFN. Attention "
+              "helps; FFN decides."),
+        ],
+        "pull": T(
+            "La FFN de L11 ejecuta una rotación geométrica que lleva "
+            "la representación a la base sobre la que opera el "
+            "classifier. Por eso es suficiente — y por eso es la "
+            "única matriz del modelo que NUNCA conviene comprimir.",
+            "L11's FFN executes a geometric rotation that takes the "
+            "representation onto the basis where the classifier "
+            "operates. That's why it's sufficient — and why it's the "
+            "single matrix in the model that should NEVER be "
+            "compressed."),
+        "figure": "patching_components",
+        "caption": T(
+            "Datos: notebook 5, activation_patching_per_component.csv. "
+            "Restauración media sobre 23 emociones. Capas 0–7 omitidas "
+            "(restauran 0 % al ser patcheadas individualmente).",
+            "Data: notebook 5, activation_patching_per_component.csv. "
+            "Mean restoration over 23 emotions. Layers 0–7 omitted "
+            "(each restores 0 % when patched individually)."),
+        "fig_id": "05.2",
     },
 
     # ── PART 6: el mapa emocional ────────────────────────────────────────
@@ -1432,7 +1414,7 @@ HERO_STATS = [
     ("12 × 144",  T("capas × cabezas", "layers × heads")),
     ("36 864",    T("neuronas FFN", "FFN neurons")),
     ("23",        T("emociones, multi-label", "emotions, multi-label")),
-    ("26",        T("visualizaciones", "visualisations")),
+    ("25",        T("visualizaciones", "visualisations")),
 ]
 
 
@@ -1740,12 +1722,11 @@ FIG_HEIGHTS = {
     "crystallization":       780,
     "galaxy_formation":      880,
     "iterative_inference":   560,
-    "decision_fingerprint":  680,
     "heads_matrix":          740,
     "attention_atlas":      1320,
     "probe_constellations":  800,
-    "circuit_network":       820,
     "lesion_theater":        900,
+    "patching_components":   600,
     "sunburst":              680,
     "emotional_landscape":   720,
     "sentence_trajectory":  1020,
