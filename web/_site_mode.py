@@ -299,6 +299,10 @@ def write_site_figure(fig: go.Figure, out_path: pathlib.Path) -> pathlib.Path:
       .modebar-btn:hover path { fill: __ACCENT__ !important; }
       .gtitle { display: none !important; }
     </style>
+    <script>
+      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+    </script>
+    <script defer src="/_vercel/insights/script.js"></script>
     </head>
     <body>
     __FIG__
@@ -345,6 +349,18 @@ def inject_site_mode_into_html(src: pathlib.Path,
     html = re.sub(r"</head>",
                   BODY_RESET_CSS + "\n</head>",
                   html, count=1)
+
+    # Inject Vercel Analytics scripts
+    if "/_vercel/insights/script.js" not in html:
+        analytics_scripts = textwrap.dedent("""\
+        <script>
+          window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
+        </script>
+        <script defer src="/_vercel/insights/script.js"></script>
+        """)
+        html = re.sub(r"</head>",
+                      analytics_scripts + "</head>",
+                      html, count=1)
 
     # Inject postMessage script before </body>
     html = re.sub(r"</body>",
