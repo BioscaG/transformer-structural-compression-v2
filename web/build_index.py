@@ -174,6 +174,428 @@ def render_figure(s: dict) -> str:
 """
 
 
+def _diagram_bisturi() -> str:
+    """SVD as measurement instrument — three-stage horizontal flow."""
+    return """
+<div class="diagram diagram-bisturi">
+  <div class="bist-stage">
+    <div class="bist-stage-num"><span>01</span></div>
+    <div class="bist-stage-glyph bist-mat-full" aria-hidden="true">
+      <span class="lbl">W</span>
+      <span class="sub">m × n</span>
+    </div>
+    <div class="bist-stage-cap">
+      <strong lang="es">Matriz original</strong>
+      <strong lang="en">Original matrix</strong>
+      <span lang="es">Una de las 72 del encoder<br>de BERT.</span>
+      <span lang="en">One of BERT's 72 encoder<br>matrices.</span>
+    </div>
+  </div>
+  <div class="bist-arrow">
+    <span class="bist-arrow-lbl">SVD<sub><em>k</em></sub></span>
+    <span class="bist-arrow-line"></span>
+  </div>
+  <div class="bist-stage">
+    <div class="bist-stage-num"><span>02</span></div>
+    <div class="bist-stage-glyph bist-mat-svd" aria-hidden="true">
+      <span class="bist-block u">U<sub>k</sub></span>
+      <span class="bist-block s">Σ<sub>k</sub></span>
+      <span class="bist-block v">V<sub>k</sub><sup>T</sup></span>
+    </div>
+    <div class="bist-stage-cap">
+      <strong lang="es">Truncada al rango <em>k</em></strong>
+      <strong lang="en">Truncated to rank <em>k</em></strong>
+      <span lang="es">Pérdida controlada de información.<br>Eckart-Young, 1936.</span>
+      <span lang="en">Controlled information loss.<br>Eckart-Young, 1936.</span>
+    </div>
+  </div>
+  <div class="bist-arrow">
+    <span class="bist-arrow-lbl"><span lang="es">aplicar al modelo</span><span lang="en">apply to model</span></span>
+    <span class="bist-arrow-line"></span>
+  </div>
+  <div class="bist-stage">
+    <div class="bist-stage-num"><span>03</span></div>
+    <div class="bist-stage-glyph bist-delta" aria-hidden="true">
+      <span class="bist-delta-symbol">Δ F1</span>
+    </div>
+    <div class="bist-stage-cap">
+      <strong lang="es">Medida funcional</strong>
+      <strong lang="en">Functional measurement</strong>
+      <span lang="es">La caída de F1 cuantifica<br>la importancia de <em>W</em>.</span>
+      <span lang="en">The F1 drop quantifies the<br>importance of <em>W</em>.</span>
+    </div>
+  </div>
+  <div class="bist-thesis">
+    <span lang="es">Lo que se rompe al quitarlo <strong>mide</strong> lo que importaba.</span>
+    <span lang="en">What breaks when you remove it <strong>measures</strong> what mattered.</span>
+  </div>
+</div>
+"""
+
+
+def _diagram_tripartita() -> str:
+    """Three columns: Representation, Alignment, Access."""
+    cols = [
+        {
+            "num": "01",
+            "title_es": "Representación",
+            "title_en": "Representation",
+            "def_es": "¿Qué información está <em>presente</em> en esta capa, linealmente accesible?",
+            "def_en": "What information is <em>present</em> at this layer, linearly accessible?",
+            "method_es": "Probing lineal",
+            "method_en": "Linear probing",
+            "method_sub_es": "clasificador entrenado<br>sobre cada capa",
+            "method_sub_en": "fresh classifier trained<br>on each layer",
+            "curve": "monotone",
+            "result_es": "Sube monótonamente.<br>L0 → 61 %. L11 → 100 %.",
+            "result_en": "Rises monotonically.<br>L0 → 61 %. L11 → 100 %.",
+        },
+        {
+            "num": "02",
+            "title_es": "Alineación",
+            "title_en": "Alignment",
+            "def_es": "¿Está esa información <em>proyectada</em> sobre la base del clasificador?",
+            "def_en": "Is that information <em>projected</em> onto the classifier's basis?",
+            "method_es": "Logit lens",
+            "method_en": "Logit lens",
+            "method_sub_es": "cabeza de L11<br>aplicada en cada capa",
+            "method_sub_en": "L11 head applied<br>at every layer",
+            "curve": "u-shape",
+            "result_es": "Curva en U.<br>Capas medias no leíbles.",
+            "result_en": "U-shaped curve.<br>Middle layers unreadable.",
+        },
+        {
+            "num": "03",
+            "title_es": "Acceso",
+            "title_en": "Access",
+            "def_es": "¿Es este componente <em>suficiente</em> para que el clasificador opere?",
+            "def_en": "Is this component <em>sufficient</em> for the classifier to operate?",
+            "method_es": "Activation patching",
+            "method_en": "Activation patching",
+            "method_sub_es": "restaurar pesos desde<br>un modelo colapsado",
+            "method_sub_en": "restore weights from<br>a collapsed model",
+            "curve": "spike",
+            "result_es": "Sólo la FFN de L11:<br>100 % del F1.",
+            "result_en": "L11 FFN alone:<br>100 % of F1.",
+        },
+    ]
+    curves = {
+        # SVG path snippets for each curve type, 120×40 viewBox
+        "monotone": '<polyline points="6,34 24,28 42,22 60,16 78,12 96,8 114,6" '
+                    'fill="none" stroke="currentColor" stroke-width="1.6" '
+                    'stroke-linecap="round" />',
+        "u-shape":  '<polyline points="6,12 24,20 42,30 60,34 78,30 96,18 114,6" '
+                    'fill="none" stroke="currentColor" stroke-width="1.6" '
+                    'stroke-linecap="round" />',
+        "spike":    '<polyline points="6,34 36,34 60,34 84,34 100,34 108,6 114,6" '
+                    'fill="none" stroke="currentColor" stroke-width="1.6" '
+                    'stroke-linecap="round" />',
+    }
+    cells = []
+    for c in cols:
+        svg = (
+            f'<svg viewBox="0 0 120 40" class="tri-curve" '
+            f'aria-hidden="true">{curves[c["curve"]]}</svg>'
+        )
+        cells.append(f"""
+      <div class="tri-col">
+        <div class="tri-num"><span>{c['num']}</span></div>
+        <h3 class="tri-title">
+          <span lang="es">{c['title_es']}</span>
+          <span lang="en">{c['title_en']}</span>
+        </h3>
+        <p class="tri-def">
+          <span lang="es">{c['def_es']}</span>
+          <span lang="en">{c['def_en']}</span>
+        </p>
+        <div class="tri-divider"></div>
+        <div class="tri-method-lbl">
+          <span lang="es">Medido por</span><span lang="en">Measured by</span>
+        </div>
+        <div class="tri-method">
+          <span lang="es">{c['method_es']}</span>
+          <span lang="en">{c['method_en']}</span>
+        </div>
+        <p class="tri-method-sub">
+          <span lang="es">{c['method_sub_es']}</span>
+          <span lang="en">{c['method_sub_en']}</span>
+        </p>
+        {svg}
+        <p class="tri-result">
+          <span lang="es">{c['result_es']}</span>
+          <span lang="en">{c['result_en']}</span>
+        </p>
+      </div>
+""")
+    return f"""
+<div class="diagram diagram-tripartita">
+  <div class="tri-grid">
+{''.join(cells)}
+  </div>
+  <div class="tri-coda">
+    <span lang="es"><strong>Las tres mediciones son consistentes.</strong> Confundir representación con acceso, o alineación con presencia, produce las paradojas aparentes que el trabajo resuelve.</span>
+    <span lang="en"><strong>The three measurements are consistent.</strong> Conflating representation with access, or alignment with presence, produces the apparent paradoxes the thesis resolves.</span>
+  </div>
+</div>
+"""
+
+
+def _diagram_convergencia() -> str:
+    """5 techniques × 3 depth bands. Each cell shows the technique's reading."""
+    # Density code: 3 = high activity, 2 = medium, 1 = low, 0 = none
+    # rows: probing, logit-lens, patching, head-ablation, neurons
+    techniques = [
+        ("Probing", "Probing",
+         "F1 por capa", "F1 per layer",
+         [3, 1, 1],
+         "L0 absorbe 61 %", "L0 absorbs 61 %",
+         "+0,01 a +0,05", "+0.01 to +0.05",
+         "casi nulo", "near zero"),
+        ("Logit lens", "Logit lens",
+         "Σ sigmoides", "Σ sigmoids",
+         [2, 0, 3],
+         "5,4 difuso", "5.4 diffuse",
+         "0,2 colapso", "0.2 collapsed",
+         "1,3 focalizado", "1.3 focused"),
+        ("Activation patching", "Activation patching",
+         "% F1 restaurado", "% F1 restored",
+         [0, 0, 3],
+         "0 %", "0 %",
+         "0 %", "0 %",
+         "100 % en L11", "100 % at L11"),
+        ("Head ablation", "Head ablation",
+         "% cabezas críticas", "% critical heads",
+         [1, 2, 3],
+         "27 %", "27 %",
+         "53 %", "53 %",
+         "77 % (L11 = 100 %)", "77 % (L11 = 100 %)"),
+        ("Neuron selectivity", "Neuron selectivity",
+         "Neuronas |d| > 2", "Neurons |d| > 2",
+         [1, 2, 3],
+         "11 (0,3 %)", "11 (0.3 %)",
+         "570 (16 %)", "570 (16 %)",
+         "3 061 (84 %)", "3,061 (84 %)"),
+    ]
+    band_headers = [
+        ("Tempranas", "Early", "Emb · L0–L2", "Emb · L0–L2",
+         "Señal léxica bruta", "Raw lexical signal"),
+        ("Medias", "Middle", "L3–L7", "L3–L7",
+         "Cómputo de transición", "Transition computation"),
+        ("Tardías", "Late", "L8–L11", "L8–L11",
+         "Alineación con el clasificador", "Classifier alignment"),
+    ]
+    header_html = ""
+    for es, en, sub_es, sub_en, role_es, role_en in band_headers:
+        header_html += f"""
+      <div class="conv-band-head">
+        <div class="conv-band-name">
+          <span lang="es">{es}</span><span lang="en">{en}</span>
+        </div>
+        <div class="conv-band-sub">{sub_es}</div>
+        <div class="conv-band-role">
+          <span lang="es">{role_es}</span><span lang="en">{role_en}</span>
+        </div>
+      </div>"""
+
+    def dots(d):
+        if d == 3:
+            return '<span class="dots d3">● ● ●</span>'
+        if d == 2:
+            return '<span class="dots d2">● ● <span class="dim">●</span></span>'
+        if d == 1:
+            return '<span class="dots d1">● <span class="dim">● ●</span></span>'
+        return '<span class="dots d0"><span class="dim">● ● ●</span></span>'
+
+    rows_html = ""
+    for row in techniques:
+        (name_es, name_en, metric_es, metric_en, densities,
+         e_es, e_en, m_es, m_en, l_es, l_en) = row
+        cells_es = [e_es, m_es, l_es]
+        cells_en = [e_en, m_en, l_en]
+        cells_html = ""
+        for i, d in enumerate(densities):
+            cells_html += f"""
+        <div class="conv-cell d{d}">
+          {dots(d)}
+          <div class="conv-cell-val">
+            <span lang="es">{cells_es[i]}</span>
+            <span lang="en">{cells_en[i]}</span>
+          </div>
+        </div>"""
+        rows_html += f"""
+      <div class="conv-row">
+        <div class="conv-tech">
+          <div class="conv-tech-name">
+            <span lang="es">{name_es}</span><span lang="en">{name_en}</span>
+          </div>
+          <div class="conv-tech-metric">
+            <span lang="es">{metric_es}</span><span lang="en">{metric_en}</span>
+          </div>
+        </div>
+        {cells_html}
+      </div>"""
+
+    return f"""
+<div class="diagram diagram-convergencia">
+  <div class="conv-grid">
+    <div class="conv-corner">
+      <span lang="es">técnica  /  banda funcional</span>
+      <span lang="en">technique  /  functional band</span>
+    </div>
+{header_html}
+{rows_html}
+  </div>
+  <div class="conv-coda">
+    <span lang="es">Densidad de marca = magnitud del hallazgo. Cinco filas independientes, una columna dominante.</span>
+    <span lang="en">Mark density = magnitude of the finding. Five independent rows, one dominant column.</span>
+  </div>
+</div>
+"""
+
+
+def _diagram_predicciones() -> str:
+    """5 falsifiable predictions, as cards."""
+    preds = [
+        {
+            "tag_es": "Arquitectónica", "tag_en": "Architectural",
+            "title_es": "Asimetría espectral en BERT-large",
+            "title_en": "Spectral asymmetry in BERT-large",
+            "predict_es": "El cociente <em>k</em>₉₅(Q)/<em>k</em>₉₅(FFN) debe caer en [0,55 ; 0,75]. En BERT-base es 0,64.",
+            "predict_en": "The <em>k</em>₉₅(Q)/<em>k</em>₉₅(FFN) ratio should land in [0.55 ; 0.75]. BERT-base is 0.64.",
+            "falsify_es": "Un cociente cercano a 1 falsa la generalizabilidad.",
+            "falsify_en": "A ratio near 1 falsifies the generalisability.",
+        },
+        {
+            "tag_es": "Geométrica", "tag_en": "Geometric",
+            "title_es": "Decoder-only ≠ encoder-only en patching",
+            "title_en": "Decoder-only ≠ encoder-only in patching",
+            "predict_es": "En GPT-2/LLaMA, la restauración por patching debe repartirse entre varias capas tardías, no concentrarse en una.",
+            "predict_en": "In GPT-2/LLaMA, patching restoration should spread across several late layers, not concentrate in one.",
+            "falsify_es": "Si una capa sola recupera el 100 %, la explicación geométrica del [CLS] se cae.",
+            "falsify_en": "If a single layer recovers 100 %, the [CLS]-based geometric explanation falls.",
+        },
+        {
+            "tag_es": "Semántica", "tag_en": "Semantic",
+            "title_es": "Cristalización robusta a arquitectura",
+            "title_en": "Crystallisation robust to architecture",
+            "predict_es": "La distribución 9/8/6 emociones por banda y ρ = −0,67 con F1 máximo deben replicarse en RoBERTa-base.",
+            "predict_en": "The 9/8/6 emotion-per-band split and ρ = −0.67 with max F1 should replicate on RoBERTa-base.",
+            "falsify_es": "Si el orden cambia mucho, el corpus de pre-train decide, no la semántica.",
+            "falsify_en": "If the order changes much, pre-training corpus drives it, not semantics.",
+        },
+        {
+            "tag_es": "Estadística", "tag_en": "Statistical",
+            "title_es": "Regularización en clases raras",
+            "title_en": "Regularisation on rare classes",
+            "predict_es": "Compresión + fine-tuning debe favorecer clases infrarrepresentadas también en NER o Reuters-21578.",
+            "predict_en": "Compression + fine-tuning should help under-represented classes on NER or Reuters-21578 too.",
+            "falsify_es": "Ausencia del efecto refuta la regularización implícita por SVD.",
+            "falsify_en": "Absence of the effect refutes the implicit SVD regularisation.",
+        },
+        {
+            "tag_es": "Metodológica", "tag_en": "Methodological",
+            "title_es": "Heurística cualitativa = baseline ciego",
+            "title_en": "Qualitative heuristic = blind baseline",
+            "predict_es": "Cualquier regla cualitativa para asignar rangos convergerá sobre la frontera ciega, salvo que use datos cuantitativos.",
+            "predict_en": "Any qualitative rule for assigning ranks will collapse onto the blind frontier, unless it uses quantitative data.",
+            "falsify_es": "Una heurística que domine Pareto en otro dominio rompe la observación central.",
+            "falsify_en": "A heuristic dominating Pareto elsewhere breaks the central observation.",
+        },
+    ]
+    cards = ""
+    for i, p in enumerate(preds, 1):
+        cards += f"""
+    <article class="pred-card">
+      <div class="pred-num">{i:02d}</div>
+      <div class="pred-tag">
+        <span lang="es">{p['tag_es']}</span><span lang="en">{p['tag_en']}</span>
+      </div>
+      <h3 class="pred-title">
+        <span lang="es">{p['title_es']}</span>
+        <span lang="en">{p['title_en']}</span>
+      </h3>
+      <div class="pred-block pred-predict">
+        <span class="pred-block-lbl">
+          <span lang="es">Predicción</span><span lang="en">Prediction</span>
+        </span>
+        <span lang="es">{p['predict_es']}</span>
+        <span lang="en">{p['predict_en']}</span>
+      </div>
+      <div class="pred-block pred-falsify">
+        <span class="pred-block-lbl">
+          <span lang="es">Se rompe si</span><span lang="en">Falsified if</span>
+        </span>
+        <span lang="es">{p['falsify_es']}</span>
+        <span lang="en">{p['falsify_en']}</span>
+      </div>
+    </article>"""
+    return f"""
+<div class="diagram diagram-predicciones">
+  <div class="pred-grid">{cards}
+  </div>
+  <div class="pred-coda">
+    <span lang="es">Las cinco predicciones son ortogonales. La confirmación conjunta es un test estricto del framework; la refutación individual delimita qué parte del análisis pertenece a este caso.</span>
+    <span lang="en">The five predictions are orthogonal. Joint confirmation is a strict test of the framework; individual refutation marks off which part of the analysis belongs to this case.</span>
+  </div>
+</div>
+"""
+
+
+_DIAGRAMS = {
+    "bisturi":      _diagram_bisturi,
+    "tripartita":   _diagram_tripartita,
+    "convergencia": _diagram_convergencia,
+    "predicciones": _diagram_predicciones,
+}
+
+
+def render_concept(s: dict) -> str:
+    """Concept section: chapter-style frame with an inline diagram
+    instead of an iframe figure. Reuses .chapter so presentation mode
+    layout still works."""
+    body_html = "\n".join(
+        f'    {bi(p, tag="p", classes=("reveal lead" if i == 0 else "reveal"))}'
+        for i, p in enumerate(s["body"])
+    )
+    pull_html = ""
+    if s.get("pull"):
+        pull_html = (
+            f'\n  {bi(s["pull"], tag="blockquote", classes="pull reveal")}\n'
+        )
+
+    diagram_name = s["diagram"]
+    diagram_html = _DIAGRAMS[diagram_name]()
+
+    chapter_html  = bi(s["chapter"],  tag="div", classes="ch-num reveal")
+    title_html    = bi(s["title"],    tag="h2",  classes="ch-title reveal")
+    subtitle_html = bi(s["subtitle"], tag="p",   classes="ch-sub reveal")
+    caption_html  = bi(s["caption"],  tag="div", classes="caption")
+
+    return f"""
+<section class="chapter concept concept-{diagram_name}" id="{s['id']}">
+  <div class="ch-head">
+    {chapter_html}
+    {title_html}
+    {subtitle_html}
+  </div>
+
+  <div class="ch-body">
+{body_html}
+  </div>
+{pull_html}
+  <div class="figure reveal">
+    <div class="diagram-wrap">
+      {diagram_html}
+    </div>
+    <div class="figure-meta">
+      {caption_html}
+      <div class="id">Fig. <strong>{s['fig_id']}</strong></div>
+    </div>
+  </div>
+</section>
+"""
+
+
 def render_outro() -> str:
     label_html = bi(OUTRO["label"], tag="div", classes="ch-num reveal")
     title_html = bi(OUTRO["title"], tag="h2",  classes="ch-title reveal")
@@ -311,7 +733,7 @@ def render_nav() -> str:
         if s["kind"] == "part":
             current = {"part": s, "items": []}
             parts.append(current)
-        elif s["kind"] == "figure" and current is not None:
+        elif s["kind"] in ("figure", "concept") and current is not None:
             current["items"].append(s)
 
     def _strip_em(s: str) -> str:
@@ -379,8 +801,15 @@ def render_nav() -> str:
 </nav>
 
 <div id="present-overlay" aria-hidden="true">
-  <div class="present-progress"><span id="present-counter">1 / 1</span></div>
-  <div class="present-hint">← →   ESC to exit</div>
+  <div class="present-bar"><div class="present-bar-fill" id="present-bar-fill"></div></div>
+  <div class="present-meta">
+    <div class="present-section" id="present-section"></div>
+    <div class="present-progress"><span id="present-counter">1 / 1</span></div>
+  </div>
+  <div class="present-hint" id="present-hint">
+    <span lang="es">← → para navegar  ·  P o ESC para salir</span>
+    <span lang="en">← → to navigate  ·  P or ESC to exit</span>
+  </div>
 </div>
 
 <aside id="toc-panel" class="toc-panel">
@@ -614,19 +1043,54 @@ def render_styles() -> str:
     position: fixed; inset: 0; pointer-events: none; z-index: 80;
   }
   #present-overlay { display: none; }
-  .present-progress {
-    position: absolute; bottom: 24px; right: 32px;
-    font-family: var(--mono); font-size: 12px;
-    letter-spacing: 0.1em; color: var(--ink-3);
-    background: rgba(247,246,242,0.85); padding: 6px 12px;
+  .present-bar {
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px; background: rgba(20,20,19,0.06);
+    z-index: 81;
+  }
+  .present-bar-fill {
+    height: 100%; width: 0%;
+    background: var(--accent);
+    transition: width 0.45s var(--easing);
+  }
+  .present-meta {
+    position: absolute; bottom: 22px; right: 28px;
+    display: flex; align-items: center; gap: 18px;
+    background: rgba(247,246,242,0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 8px 14px;
     border: 0.5px solid var(--line); border-radius: 2px;
+    max-width: min(60vw, 640px);
+  }
+  .present-section {
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.06em; color: var(--ink-2);
+    text-transform: uppercase;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .present-section em {
+    color: var(--ink); font-style: normal; font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+  .present-progress {
+    font-family: var(--mono); font-size: 12px;
+    letter-spacing: 0.1em; color: var(--ink);
+    white-space: nowrap;
+    border-left: 0.5px solid var(--line);
+    padding-left: 16px;
   }
   .present-hint {
-    position: absolute; bottom: 24px; left: 32px;
+    position: absolute; bottom: 22px; left: 28px;
     font-family: var(--mono); font-size: 11px;
-    letter-spacing: 0.08em; color: var(--ink-3);
-    text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--ink-3);
+    background: rgba(247,246,242,0.88);
+    padding: 6px 12px;
+    border: 0.5px solid var(--line); border-radius: 2px;
+    transition: opacity 0.6s var(--easing);
   }
+  .present-hint.fade { opacity: 0; pointer-events: none; }
   nav.top button.present-btn {
     font-family: var(--mono); font-size: 11.5px;
     color: var(--ink); background: transparent;
@@ -1129,6 +1593,414 @@ def render_styles() -> str:
   }
   .figure-meta .id strong { color: var(--accent); font-weight: 500; }
 
+  /* ─── CONCEPT DIAGRAMS ─────────────────────────────────────────── */
+  section.chapter.concept .diagram-wrap {
+    position: relative;
+    background: var(--bg-2);
+    border-radius: 3px;
+    padding: 56px 48px;
+    border: 0.5px solid var(--line-2);
+    box-shadow:
+      0 1px 0 rgba(20,20,19,0.02),
+      0 12px 32px -16px rgba(20,20,19,0.10),
+      0 36px 80px -40px rgba(20,20,19,0.10);
+  }
+  .diagram { color: var(--ink); }
+
+  /* — Diagram 02.1 · Bisturí experimental — */
+  .diagram-bisturi {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 18px;
+    align-items: stretch;
+    row-gap: 24px;
+  }
+  .bist-stage {
+    display: flex; flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    text-align: center;
+  }
+  .bist-stage-num {
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.18em; color: var(--ink-3);
+    text-transform: uppercase;
+  }
+  .bist-stage-num span {
+    display: inline-block;
+    padding: 4px 10px;
+    border: 0.5px solid var(--line);
+    border-radius: 999px;
+  }
+  .bist-stage-glyph {
+    width: 140px; height: 120px;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #F0EFEA 0%, #E5E4DE 100%);
+    border-radius: 4px;
+    border: 0.5px solid var(--line);
+    position: relative;
+    box-shadow: inset 0 0 0 1px rgba(20,20,19,0.02);
+  }
+  .bist-mat-full .lbl {
+    font-family: var(--serif); font-size: 38px;
+    font-style: italic; color: var(--ink);
+    line-height: 1;
+  }
+  .bist-mat-full .sub {
+    position: absolute; bottom: 10px;
+    font-family: var(--mono); font-size: 10px;
+    color: var(--ink-3); letter-spacing: 0.08em;
+  }
+  .bist-mat-svd {
+    display: flex; gap: 6px; align-items: center; padding: 0 14px;
+  }
+  .bist-block {
+    flex: 1;
+    height: 78px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--serif); font-size: 18px; font-style: italic;
+    color: var(--accent);
+    background: rgba(31,78,108,0.05);
+    border: 0.5px solid rgba(31,78,108,0.25);
+    border-radius: 3px;
+  }
+  .bist-block.u { transform: scaleY(1.0); }
+  .bist-block.s { transform: scaleX(0.45); flex: 0 0 22px;
+                  background: rgba(31,78,108,0.12); }
+  .bist-block.v { transform: scaleY(0.55); }
+  .bist-delta {
+    background: linear-gradient(135deg, #FBF4ED 0%, #F4E8DA 100%);
+    border-color: rgba(155,90,40,0.30);
+  }
+  .bist-delta-symbol {
+    font-family: var(--serif); font-size: 30px;
+    color: #8B4F1F; font-style: italic;
+  }
+  .bist-stage-cap {
+    display: flex; flex-direction: column; gap: 6px;
+    max-width: 200px;
+  }
+  .bist-stage-cap strong {
+    font-family: var(--serif); font-size: 16px;
+    font-weight: 500; color: var(--ink); letter-spacing: -0.005em;
+  }
+  .bist-stage-cap em { font-style: italic; }
+  .bist-stage-cap > span {
+    font-family: var(--mono); font-size: 11px;
+    color: var(--ink-3); line-height: 1.55;
+  }
+  .bist-arrow {
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    gap: 6px; min-width: 80px;
+    padding-top: 36px;
+  }
+  .bist-arrow-lbl {
+    font-family: var(--mono); font-size: 10.5px;
+    color: var(--accent); letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .bist-arrow-lbl sub {
+    font-size: 9px; vertical-align: -0.2em; margin-left: 1px;
+  }
+  .bist-arrow-line {
+    width: 60px; height: 1px;
+    background: var(--ink-4);
+    position: relative;
+  }
+  .bist-arrow-line::after {
+    content: ""; position: absolute; right: -1px; top: -3px;
+    width: 0; height: 0;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 7px solid var(--ink-4);
+  }
+  .bist-thesis {
+    grid-column: 1 / -1;
+    margin-top: 16px;
+    padding-top: 22px;
+    border-top: 0.5px solid var(--line);
+    text-align: center;
+    font-family: var(--serif); font-size: 18px;
+    font-style: italic; color: var(--ink-2);
+    line-height: 1.5;
+  }
+  .bist-thesis strong {
+    font-weight: 500; color: var(--accent); font-style: normal;
+  }
+
+  /* — Diagram 05.1 · Tripartita — */
+  .diagram-tripartita { color: var(--ink); }
+  .tri-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 0;
+    align-items: stretch;
+  }
+  .tri-col {
+    padding: 10px 28px;
+    display: flex; flex-direction: column;
+    gap: 12px;
+    border-right: 0.5px solid var(--line);
+  }
+  .tri-col:last-child { border-right: none; }
+  .tri-num {
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.18em; color: var(--ink-3);
+    text-transform: uppercase;
+  }
+  .tri-num span {
+    display: inline-block;
+    padding: 4px 10px;
+    border: 0.5px solid var(--line);
+    border-radius: 999px;
+  }
+  .tri-title {
+    margin: 4px 0 0 0;
+    font-family: var(--serif); font-size: 26px;
+    font-weight: 400; letter-spacing: -0.012em;
+    color: var(--ink); line-height: 1.05;
+  }
+  .tri-def {
+    margin: 0;
+    font-family: var(--serif); font-size: 15px;
+    line-height: 1.5; color: var(--ink-2);
+  }
+  .tri-def em {
+    color: var(--accent); font-style: italic;
+  }
+  .tri-divider {
+    height: 1px; background: var(--line-2);
+    margin: 6px 0;
+  }
+  .tri-method-lbl {
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .tri-method {
+    font-family: var(--serif); font-size: 17px;
+    font-style: italic; color: var(--accent);
+    margin-top: -4px;
+  }
+  .tri-method-sub {
+    margin: 0;
+    font-family: var(--mono); font-size: 11px;
+    color: var(--ink-3); line-height: 1.55;
+  }
+  .tri-curve {
+    width: 100%; height: 44px;
+    color: var(--accent); margin-top: 4px;
+  }
+  .tri-result {
+    margin: 0;
+    font-family: var(--serif); font-size: 13.5px;
+    color: var(--ink-2); line-height: 1.5;
+    border-top: 0.5px solid var(--line-2);
+    padding-top: 10px;
+  }
+  .tri-coda {
+    margin-top: 28px;
+    padding: 18px 22px;
+    background: var(--bg-3);
+    border-left: 2px solid var(--accent);
+    font-family: var(--serif); font-size: 15px;
+    line-height: 1.55; color: var(--ink-2);
+  }
+  .tri-coda strong { color: var(--ink); font-weight: 500; }
+
+  /* — Diagram 06.4 · Convergencia — */
+  .diagram-convergencia { color: var(--ink); }
+  .conv-grid {
+    display: grid;
+    grid-template-columns: minmax(180px, 1.1fr) repeat(3, 2fr);
+    gap: 0;
+    border: 0.5px solid var(--line);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .conv-corner, .conv-band-head, .conv-tech, .conv-cell {
+    padding: 14px 16px;
+    border-right: 0.5px solid var(--line-2);
+    border-bottom: 0.5px solid var(--line-2);
+  }
+  .conv-grid > div:nth-child(4n) { border-right: none; }
+  .conv-row { display: contents; }
+  .conv-corner {
+    background: var(--bg-3);
+    display: flex; flex-direction: column; justify-content: center;
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.08em; color: var(--ink-3);
+    text-transform: uppercase;
+  }
+  .conv-band-head {
+    background: var(--bg-3);
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .conv-band-name {
+    font-family: var(--serif); font-size: 17px;
+    font-weight: 500; color: var(--ink);
+  }
+  .conv-band-sub {
+    font-family: var(--mono); font-size: 10.5px;
+    color: var(--ink-3); letter-spacing: 0.04em;
+  }
+  .conv-band-role {
+    font-family: var(--serif); font-size: 12.5px;
+    font-style: italic; color: var(--ink-2);
+  }
+  .conv-tech {
+    background: var(--bg-2);
+    display: flex; flex-direction: column;
+    gap: 3px; justify-content: center;
+  }
+  .conv-tech-name {
+    font-family: var(--serif); font-size: 15px;
+    font-weight: 500; color: var(--ink); letter-spacing: -0.005em;
+  }
+  .conv-tech-metric {
+    font-family: var(--mono); font-size: 10.5px;
+    color: var(--ink-3); letter-spacing: 0.04em;
+  }
+  .conv-cell {
+    background: var(--bg-2);
+    display: flex; flex-direction: column; gap: 6px;
+    justify-content: flex-start;
+  }
+  .conv-cell.d3 { background: rgba(31,78,108,0.06); }
+  .conv-cell.d2 { background: rgba(31,78,108,0.03); }
+  .conv-cell.d1 { background: var(--bg-2); }
+  .conv-cell.d0 { background: var(--bg-3); }
+  .dots {
+    font-size: 14px; letter-spacing: 0.04em;
+    color: var(--accent); line-height: 1;
+  }
+  .dots .dim { color: var(--ink-4); opacity: 0.4; }
+  .conv-cell-val {
+    font-family: var(--mono); font-size: 11.5px;
+    color: var(--ink-2); line-height: 1.5;
+  }
+  .conv-coda {
+    margin-top: 22px;
+    text-align: center;
+    font-family: var(--mono); font-size: 11px;
+    color: var(--ink-3); letter-spacing: 0.03em;
+  }
+
+  /* — Diagram 08.1 · Cinco predicciones — */
+  .diagram-predicciones { color: var(--ink); }
+  .pred-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 22px;
+  }
+  .pred-card {
+    position: relative;
+    padding: 24px 22px 22px 22px;
+    background: var(--bg-2);
+    border: 0.5px solid var(--line);
+    border-top: 2px solid var(--accent);
+    border-radius: 2px;
+    display: flex; flex-direction: column;
+    gap: 12px;
+  }
+  .pred-num {
+    position: absolute; top: 14px; right: 18px;
+    font-family: var(--serif); font-size: 32px;
+    font-weight: 300; color: var(--ink-4);
+    line-height: 1; letter-spacing: -0.02em;
+  }
+  .pred-tag {
+    font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent);
+  }
+  .pred-title {
+    margin: 0;
+    font-family: var(--serif); font-size: 18px;
+    font-weight: 500; letter-spacing: -0.012em;
+    line-height: 1.18; color: var(--ink);
+    max-width: 80%;
+  }
+  .pred-block {
+    display: flex; flex-direction: column;
+    gap: 4px;
+    font-family: var(--serif); font-size: 14px;
+    line-height: 1.5; color: var(--ink-2);
+  }
+  .pred-block-lbl {
+    font-family: var(--mono); font-size: 9.5px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--ink-3);
+  }
+  .pred-block em {
+    color: var(--accent); font-style: italic;
+  }
+  .pred-falsify {
+    padding-top: 10px;
+    border-top: 0.5px dashed var(--line);
+    font-style: italic; color: var(--ink-2);
+  }
+  .pred-falsify .pred-block-lbl { font-style: normal; }
+  .pred-coda {
+    margin-top: 26px;
+    padding: 16px 20px;
+    background: var(--bg-3);
+    border-left: 2px solid var(--ink-3);
+    font-family: var(--serif); font-size: 14px;
+    line-height: 1.55; color: var(--ink-2);
+  }
+
+  /* Concept blocks in presentation mode: fill the figure column with
+     the diagram instead of an iframe. Scroll if it overflows. */
+  body.present-mode section.chapter.concept .diagram-wrap {
+    grid-area: fig;
+    height: 100%;
+    width: 100%;
+    padding: 24px 32px;
+    overflow-y: auto;
+    align-self: stretch;
+    border-radius: 4px;
+  }
+  body.present-mode section.chapter.concept .diagram-bisturi {
+    grid-template-columns: 1fr auto 1fr auto 1fr;
+    gap: 14px;
+  }
+  body.present-mode section.chapter.concept .bist-stage-glyph {
+    width: 110px; height: 96px;
+  }
+  body.present-mode section.chapter.concept .pred-grid {
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+  }
+
+  /* Responsive collapse for the tripartita and convergencia diagrams */
+  @media (max-width: 880px) {
+    .diagram-bisturi {
+      grid-template-columns: 1fr;
+    }
+    .bist-arrow {
+      flex-direction: row; padding-top: 0;
+    }
+    .bist-arrow-line { width: 1px; height: 36px; }
+    .bist-arrow-line::after {
+      right: -3px; top: auto; bottom: -1px;
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 7px solid var(--ink-4);
+      border-bottom: none;
+    }
+    .tri-grid { grid-template-columns: 1fr; }
+    .tri-col {
+      border-right: none;
+      border-bottom: 0.5px solid var(--line);
+      padding: 24px 0;
+    }
+    .tri-col:last-child { border-bottom: none; }
+    .conv-grid { grid-template-columns: 1fr; }
+    .conv-grid > div { border-right: none; }
+  }
+
   /* ─── OUTRO ────────────────────────────────────────────────────── */
   section.outro {
     padding: 14vh var(--pad-x) 8vh var(--pad-x);
@@ -1516,6 +2388,10 @@ def render_scripts() -> str:
     const main = document.querySelector('main');
     const presentBtn = document.getElementById('present-btn');
     const counter = document.getElementById('present-counter');
+    const sectionLabel = document.getElementById('present-section');
+    const barFill = document.getElementById('present-bar-fill');
+    const hint = document.getElementById('present-hint');
+    let hintTimer = null;
 
     function getSlides() {
       return Array.from(document.querySelectorAll(
@@ -1525,14 +2401,81 @@ def render_scripts() -> str:
     let slides = getSlides();
     let idx = 0;
 
+    // For each chapter/concept slide, find which preceding part section
+    // it belongs to, so we can show "Parte 02 · La SVD como bisturí".
+    function buildSectionContext() {
+      const ctx = new Map();
+      let currentPartEs = '';
+      let currentPartEn = '';
+      let currentNumEs = '';
+      let currentNumEn = '';
+      for (const slide of slides) {
+        if (slide.classList.contains('hero')) {
+          ctx.set(slide, {es: '', en: ''});
+          continue;
+        }
+        if (slide.classList.contains('part')) {
+          const t = slide.querySelector('.part-title');
+          const n = slide.querySelector('.part-meta');
+          if (t) {
+            const es = t.querySelector('[lang="es"]');
+            const en = t.querySelector('[lang="en"]');
+            currentPartEs = es ? es.textContent : t.textContent;
+            currentPartEn = en ? en.textContent : t.textContent;
+          }
+          if (n) {
+            const es = n.querySelector('[lang="es"]');
+            const en = n.querySelector('[lang="en"]');
+            currentNumEs = es ? es.textContent : n.textContent;
+            currentNumEn = en ? en.textContent : n.textContent;
+          }
+          ctx.set(slide, {es: currentPartEs, en: currentPartEn,
+                          numEs: currentNumEs, numEn: currentNumEn});
+          continue;
+        }
+        // chapter / concept slide
+        ctx.set(slide, {es: currentPartEs, en: currentPartEn,
+                        numEs: currentNumEs, numEn: currentNumEn});
+      }
+      return ctx;
+    }
+    let sectionContext = buildSectionContext();
+
     function snapToCurrent() {
       slides = getSlides();
+      sectionContext = buildSectionContext();
       const target = slides[idx];
       if (target) target.scrollIntoView({ block: 'start' });
       updateCounter();
     }
     function updateCounter() {
       if (counter) counter.textContent = `${idx + 1} / ${slides.length}`;
+      if (barFill) {
+        const pct = slides.length > 1
+          ? (idx / (slides.length - 1)) * 100
+          : 100;
+        barFill.style.width = pct.toFixed(2) + '%';
+      }
+      if (sectionLabel) {
+        const target = slides[idx];
+        const meta = target ? sectionContext.get(target) : null;
+        const lang = document.documentElement.lang || 'es';
+        if (meta && meta.es) {
+          const num = lang === 'en' ? (meta.numEn || '') : (meta.numEs || '');
+          const ttl = lang === 'en' ? meta.en : meta.es;
+          sectionLabel.innerHTML = num
+            ? `${num.replace(/\s+/g, ' ')} · <em>${ttl}</em>`
+            : `<em>${ttl}</em>`;
+        } else {
+          sectionLabel.innerHTML = '';
+        }
+      }
+    }
+    function showHintBriefly() {
+      if (!hint) return;
+      hint.classList.remove('fade');
+      if (hintTimer) clearTimeout(hintTimer);
+      hintTimer = setTimeout(() => hint.classList.add('fade'), 4500);
     }
     function findCurrentIndex() {
       // Pick the slide whose top is closest to the viewport top
@@ -1589,10 +2532,12 @@ def render_scripts() -> str:
     function enter() {
       body.classList.add('present-mode');
       slides = getSlides();
+      sectionContext = buildSectionContext();
       idx = findCurrentIndex();
       // Preload immediate window inline so the first few slides feel instant
       slides.slice(Math.max(0, idx - 1), idx + 4).forEach(loadIframe);
       snapToCurrent();
+      showHintBriefly();
       const url = new URL(window.location);
       if (url.searchParams.get('present') !== '1') {
         url.searchParams.set('present', '1');
@@ -1669,20 +2614,19 @@ def render_scripts() -> str:
 
 
 def build() -> pathlib.Path:
-    sections_html = []
-    for s in SECTIONS:
-        if s["kind"] == "hero":
-            sections_html.append(render_hero())
-        elif s["kind"] == "part":
-            sections_html.append(render_part(s))
-        elif s["kind"] == "figure":
-            sections_html.append(render_figure(s))
+    def _render_section(s: dict) -> str:
+        kind = s["kind"]
+        if kind == "part":
+            return render_part(s)
+        if kind == "figure":
+            return render_figure(s)
+        if kind == "concept":
+            return render_concept(s)
+        return ""
 
     # SECTIONS doesn't include hero — we prepend it
     body = render_hero() + "\n".join(
-        render_part(s) if s["kind"] == "part" else
-        render_figure(s) if s["kind"] == "figure" else ""
-        for s in SECTIONS
+        _render_section(s) for s in SECTIONS
     ) + render_outro() + render_comments() + render_footer()
 
     fonts = (
