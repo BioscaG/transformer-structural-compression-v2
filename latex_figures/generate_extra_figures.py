@@ -45,6 +45,7 @@ import tfg_plot_style as sty
 CACHE_DIR        = PROJECT_ROOT / "viz" / "data" / "cache"
 MODEL_CHECKPOINT = PROJECT_ROOT / "results" / "checkpoints" / "23emo-final"
 NB04_DIR         = PROJECT_ROOT / "results" / "csvs" / "notebook4"
+NB09_DIR         = PROJECT_ROOT / "results" / "csvs" / "notebook9"
 FIGURES_DIR      = HERE / "figures"
 
 EMOTIONS_23 = [
@@ -177,6 +178,40 @@ def _load_token_trajectory_data():
         eff_rank=eff_rank, k95=k95,
         cum_energy=cum_energy, K_VIEW=K_VIEW,
     )
+
+
+def _load_pareto_all_strategies_data():
+    """NB09 compression_comparison.csv with all four strategies."""
+    print("[data] loading NB09 strategy comparison table...")
+    df = pd.read_csv(NB09_DIR / "compression_comparison.csv")
+
+    # Short display labels per row (used as point annotations).
+    def short_label(row):
+        s = row["strategy"]
+        if s.startswith("uniform_"):
+            return s.replace("uniform_", "")              # r32, r64, ...
+        if s.startswith("greedy_"):
+            return s.replace("greedy_", "")               # 50, 60, ...
+        if s.startswith("adaptive_"):
+            return s.replace("adaptive_", "")             # e80, e90, ...
+        if s.startswith("informed_"):
+            return s.replace("informed_", "")             # aggressive, moderate, light
+        return s
+
+    df["short_label"] = df.apply(short_label, axis=1)
+    return df
+
+
+def _pareto_front(xs, ys):
+    """Return indices of non-dominated points (min x, max y)."""
+    order = np.argsort(xs)
+    front = []
+    best_y = -np.inf
+    for i in order:
+        if ys[i] > best_y:
+            front.append(i)
+            best_y = ys[i]
+    return front
 
 
 # ─── Figure generators ────────────────────────────────────────────────────
@@ -763,6 +798,111 @@ def gen_galaxia_evolution(lang: str = "es", *, data=None) -> pathlib.Path:
     return _save(fig, "galaxia_evolution", chapter=5, lang=lang)
 
 
+def gen_pareto_all_strategies(lang: str = "es", *, data=None) -> pathlib.Path:
+    """Cap. 6: Frontera de Pareto comparando las 4 estrategias de compresión
+    (uniform / adaptive / informed / greedy). Mantiene el mismo estilo que la
+    figura cap4_pareto_frontier pero incorpora también greedy e informed."""
+    if data is None:
+        data = _load_pareto_all_strategies_data()
+    df = data
+
+    sty.apply(lang=lang)
+    fig, ax = plt.subplots(figsize=sty.FIG_FULL)
+
+    L = {
+        "es": dict(
+            xlabel=sty.L["param_ratio"],
+            ylabel=sty.L["f1_retention"],
+            baseline=sty.L["baseline_params"],
+            expansion=sty.L["expansion_zone"],
+            pareto="Frontera de Pareto",
+        ),
+        "en": dict(
+            xlabel=sty.L["param_ratio"],
+            ylabel=sty.L["f1_retention"],
+            baseline=sty.L["baseline_params"],
+            expansion=sty.L["expansion_zone"],
+            pareto="Pareto frontier",
+        ),
+    }[lang]
+
+    # Strategy series (drawn in a stable order for legend consistency).
+    strat_order = ["uniform", "adaptive", "informed", "greedy"]
+    for stype in strat_order:
+        sub = df[df["type"] == stype].sort_values("compression_ratio")
+        if sub.empty:
+            continue
+        color = sty.strategy_color(stype)
+        marker = sty.strategy_marker(stype)
+        label = sty.L.get(stype, stype.capitalize())
+
+        ax.plot(sub["compression_ratio"], sub["f1_retention"],
+                color=color, lw=1.0, alpha=0.35, zorder=3)
+        ax.scatter(sub["compression_ratio"], sub["f1_retention"],
+                   color=color, marker=marker, s=75, edgecolor="white",
+                   linewidth=0.8, zorder=5, label=label)
+
+    # Pareto frontier across all strategies (lower x, higher y dominates).
+    xs = df["compression_ratio"].to_numpy()
+    ys = df["f1_retention"].to_numpy()
+    front_idx = _pareto_front(xs, ys)
+    fx = xs[front_idx]
+    fy = ys[front_idx]
+    ax.plot(fx, fy, color=sty.INK_3, lw=1.1, ls="--", alpha=0.7,
+            zorder=4, label=L["pareto"])
+
+    # Per-point short annotations. Skip points that:
+    #   - sit on top of an identical-ratio sibling (r256≡aggressive, r512≡moderate),
+    #   - or fall in the collapse cluster where labels overlap.
+    skip_labels = {"r32", "r64", "r128", "50", "60", "aggressive", "r256", "r512"}
+    # Custom offsets to nudge labels off neighbouring points/legend.
+    custom_offset = {
+        "moderate": (-14, 4),   # push left so it doesn't clash with e95
+        "e95":      (10, 4),    # push right of moderate
+        "e99":      (0, -12),   # below the point
+        "light":    (-8, 4),    # avoid the vertical "Expansión" label on the right edge
+        "80":       (-6, 7),    # split from "85" (greedy points are nearly coincident)
+        "85":       (6, 7),
+        "70":       (-2, 7),    # tiny nudge so "70"/"75" stay separated
+    }
+    for _, row in df.iterrows():
+        x, y = row["compression_ratio"], row["f1_retention"]
+        lbl = row["short_label"]
+        if lbl in skip_labels:
+            continue
+        dx, dy = custom_offset.get(lbl, (0, 7))
+        ha = "right" if dx < 0 else ("left" if dx > 0 else "center")
+        va = "top" if dy < 0 else "bottom"
+        ax.annotate(lbl, (x, y),
+                    xytext=(dx, dy), textcoords="offset points",
+                    ha=ha, va=va, fontsize=sty.SMALL_SIZE,
+                    color=sty.INK_3, zorder=6)
+
+    # Reference lines: baseline params (x=1) and full retention (y=1).
+    ax.axhline(y=1.0, color=sty.INK_3, ls=":", lw=0.6, alpha=0.4)
+    ax.axvline(x=1.0, color=sty.INK_3, ls=":", lw=0.6, alpha=0.4)
+
+    xmax = float(df["compression_ratio"].max()) + 0.05
+    if xmax > 1.05:
+        ax.axvspan(1.0, xmax, alpha=0.04, color=sty.TERRA, zorder=0)
+        # Place "Expansión" rotated vertically along the inside of the right edge
+        # of the shaded zone — keeps it out of the data and away from "e99"/"light".
+        expansion_label = L["expansion"].replace("\n", " ")
+        ax.text(xmax - 0.015, 0.5, expansion_label,
+                fontsize=sty.SMALL_SIZE, color=sty.INK_3,
+                ha="right", va="center", style="italic", rotation=90)
+
+    ax.set_xlabel(L["xlabel"])
+    ax.set_ylabel(L["ylabel"])
+    ax.set_xlim(float(df["compression_ratio"].min()) - 0.04, xmax)
+    ax.set_ylim(-0.05, 1.1)
+    sty.format_pct(ax)
+    ax.legend(loc="lower right", ncol=2, fontsize=sty.LEGEND_SIZE)
+
+    fig.tight_layout()
+    return _save(fig, "pareto_all_strategies", chapter=6, lang=lang)
+
+
 # ─── Helpers ──────────────────────────────────────────────────────────────
 
 def _save(fig, name: str, chapter: int, lang: str) -> pathlib.Path:
@@ -780,12 +920,13 @@ def _save(fig, name: str, chapter: int, lang: str) -> pathlib.Path:
 # name → (generator, data_loader_key)
 # data_loader_key reuses data across figures that need the same source.
 GENERATORS = {
-    "iterative_u":          (gen_iterative_u,          "logit_lens"),
-    "lens_vs_probe":        (gen_lens_vs_probe,        "logit_lens"),
-    "internal_compression": (gen_internal_compression, "token_trajectory"),
-    "finetuning_diff":      (gen_finetuning_diff,      "ft_diff"),
-    "emotional_landscape":  (gen_emotional_landscape,  "landscape"),
-    "galaxia_evolution":    (gen_galaxia_evolution,    "galaxia"),
+    "iterative_u":           (gen_iterative_u,             "logit_lens"),
+    "lens_vs_probe":         (gen_lens_vs_probe,           "logit_lens"),
+    "internal_compression":  (gen_internal_compression,    "token_trajectory"),
+    "finetuning_diff":       (gen_finetuning_diff,         "ft_diff"),
+    "emotional_landscape":   (gen_emotional_landscape,     "landscape"),
+    "galaxia_evolution":     (gen_galaxia_evolution,       "galaxia"),
+    "pareto_all_strategies": (gen_pareto_all_strategies,   "pareto_all"),
 }
 
 DATA_LOADERS = {
@@ -794,6 +935,7 @@ DATA_LOADERS = {
     "ft_diff":          _load_finetuning_diff_data,
     "landscape":        _load_emotional_landscape_data,
     "galaxia":          _load_galaxia_data,
+    "pareto_all":       _load_pareto_all_strategies_data,
 }
 
 

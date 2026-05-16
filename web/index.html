@@ -450,6 +450,7 @@
     font-family: var(--mono); font-size: 10.5px;
     color: var(--ink-3); flex-shrink: 0; padding-top: 1px;
   }
+  .toc-fig.toc-read { color: var(--accent-l); }
   #toc-overlay {
     position: fixed; inset: 0;
     background: rgba(20,20,19,0.18);
@@ -794,104 +795,101 @@
 
   /* — Diagram 02.1 · Bisturí experimental — */
   .diagram-bisturi {
+    display: flex; flex-direction: column;
+    gap: 40px;
+    width: 100%;
+  }
+  .bist-flow {
     display: grid;
     grid-template-columns: 1fr auto 1fr auto 1fr;
-    gap: 18px;
-    align-items: stretch;
-    row-gap: 24px;
+    align-items: start;
+    gap: 8px;
   }
   .bist-stage {
     display: flex; flex-direction: column;
-    align-items: center;
-    gap: 16px;
+    align-items: center; gap: 18px;
     text-align: center;
+  }
+  .bist-stage-top {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
   }
   .bist-stage-num {
     font-family: var(--mono); font-size: 11px;
-    letter-spacing: 0.18em; color: var(--ink-3);
-    text-transform: uppercase;
+    letter-spacing: 0.16em; color: var(--ink-3);
+    padding: 3px 10px;
+    border: 0.5px solid var(--line); border-radius: 999px;
   }
-  .bist-stage-num span {
-    display: inline-block;
-    padding: 4px 10px;
-    border: 0.5px solid var(--line);
-    border-radius: 999px;
+  .bist-stage-name {
+    font-family: var(--serif); font-size: 18px;
+    font-weight: 500; color: var(--ink); letter-spacing: -0.01em;
   }
-  .bist-stage-glyph {
-    width: 140px; height: 120px;
+  .bist-stage-name em { font-style: italic; }
+  /* Matrix-looking tiles: faint cell grid via repeating gradients */
+  .bist-glyph {
+    width: 100%; max-width: 200px;
+    height: 150px;
     display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, #F0EFEA 0%, #E5E4DE 100%);
-    border-radius: 4px;
-    border: 0.5px solid var(--line);
-    position: relative;
-    box-shadow: inset 0 0 0 1px rgba(20,20,19,0.02);
+    gap: 10px;
   }
-  .bist-mat-full .lbl {
-    font-family: var(--serif); font-size: 38px;
-    font-style: italic; color: var(--ink);
-    line-height: 1;
-  }
-  .bist-mat-full .sub {
-    position: absolute; bottom: 10px;
-    font-family: var(--mono); font-size: 10px;
-    color: var(--ink-3); letter-spacing: 0.08em;
-  }
-  .bist-mat-svd {
-    display: flex; gap: 6px; align-items: center; padding: 0 14px;
-  }
-  .bist-block {
-    flex: 1;
-    height: 78px;
+  .bist-mat {
+    width: 130px; height: 130px;
     display: flex; align-items: center; justify-content: center;
-    font-family: var(--serif); font-size: 18px; font-style: italic;
-    color: var(--accent);
-    background: rgba(31,78,108,0.05);
-    border: 0.5px solid rgba(31,78,108,0.25);
+    flex-direction: column; gap: 8px;
+    border: 1px solid var(--line);
     border-radius: 3px;
+    background-color: #F2F1EC;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(20,20,19,0.05) 0 1px, transparent 1px 18px),
+      repeating-linear-gradient(90deg, rgba(20,20,19,0.05) 0 1px, transparent 1px 18px);
+    font-family: var(--serif); font-size: 34px;
+    font-style: italic; color: var(--ink);
   }
-  .bist-block.u { transform: scaleY(1.0); }
-  .bist-block.s { transform: scaleX(0.45); flex: 0 0 22px;
-                  background: rgba(31,78,108,0.12); }
-  .bist-block.v { transform: scaleY(0.55); }
-  .bist-delta {
-    background: linear-gradient(135deg, #FBF4ED 0%, #F4E8DA 100%);
-    border-color: rgba(155,90,40,0.30);
+  .bist-mat-delta {
+    background-image:
+      repeating-linear-gradient(0deg, rgba(139,79,31,0.06) 0 1px, transparent 1px 18px),
+      repeating-linear-gradient(90deg, rgba(139,79,31,0.06) 0 1px, transparent 1px 18px);
+    border-color: rgba(139,79,31,0.30);
+    color: #8B4F1F; font-size: 26px;
   }
-  .bist-delta-symbol {
-    font-family: var(--serif); font-size: 30px;
-    color: #8B4F1F; font-style: italic;
+  .bist-drop { width: 80px; height: 38px; color: #8B4F1F; }
+  .bist-glyph-factors { gap: 6px; }
+  .bist-fac {
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(31,78,108,0.30);
+    border-radius: 3px;
+    background-color: rgba(31,78,108,0.05);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(31,78,108,0.06) 0 1px, transparent 1px 16px),
+      repeating-linear-gradient(90deg, rgba(31,78,108,0.06) 0 1px, transparent 1px 16px);
+    font-family: var(--serif); font-size: 17px;
+    font-style: italic; color: var(--accent);
   }
-  .bist-stage-cap {
-    display: flex; flex-direction: column; gap: 6px;
-    max-width: 200px;
+  /* Real proportions: U tall-narrow, Σ small square, Vᵀ short-wide */
+  .bist-fac-u { width: 40px;  height: 130px; }
+  .bist-fac-s { width: 40px;  height: 40px;  background-color: rgba(31,78,108,0.12); }
+  .bist-fac-v { width: 78px;  height: 40px;  }
+  .bist-dot { color: var(--ink-4); font-size: 16px; }
+  .bist-cap {
+    margin: 0; max-width: 230px;
+    font-family: var(--mono); font-size: 11.5px;
+    color: var(--ink-3); line-height: 1.6;
   }
-  .bist-stage-cap strong {
-    font-family: var(--serif); font-size: 16px;
-    font-weight: 500; color: var(--ink); letter-spacing: -0.005em;
-  }
-  .bist-stage-cap em { font-style: italic; }
-  .bist-stage-cap > span {
-    font-family: var(--mono); font-size: 11px;
-    color: var(--ink-3); line-height: 1.55;
-  }
+  .bist-cap em { font-style: normal; color: var(--ink-2); }
   .bist-arrow {
     display: flex; flex-direction: column;
     justify-content: center; align-items: center;
-    gap: 6px; min-width: 80px;
-    padding-top: 36px;
+    gap: 8px; min-width: 78px;
+    padding-top: 86px;
   }
   .bist-arrow-lbl {
-    font-family: var(--mono); font-size: 10.5px;
+    font-family: var(--mono); font-size: 10px;
     color: var(--accent); letter-spacing: 0.08em;
     text-transform: uppercase;
   }
-  .bist-arrow-lbl sub {
-    font-size: 9px; vertical-align: -0.2em; margin-left: 1px;
-  }
+  .bist-arrow-lbl sub { font-size: 8px; vertical-align: -0.2em; }
   .bist-arrow-line {
-    width: 60px; height: 1px;
-    background: var(--ink-4);
-    position: relative;
+    width: 100%; max-width: 64px; height: 1px;
+    background: var(--ink-4); position: relative;
   }
   .bist-arrow-line::after {
     content: ""; position: absolute; right: -1px; top: -3px;
@@ -901,14 +899,13 @@
     border-left: 7px solid var(--ink-4);
   }
   .bist-thesis {
-    grid-column: 1 / -1;
-    margin-top: 16px;
-    padding-top: 22px;
+    padding-top: 26px;
     border-top: 0.5px solid var(--line);
     text-align: center;
-    font-family: var(--serif); font-size: 18px;
+    font-family: var(--serif); font-size: 19px;
     font-style: italic; color: var(--ink-2);
-    line-height: 1.5;
+    line-height: 1.55;
+    max-width: 760px; margin: 0 auto;
   }
   .bist-thesis strong {
     font-weight: 500; color: var(--accent); font-style: normal;
@@ -1074,42 +1071,40 @@
 
   /* — Diagram 08.1 · Cinco predicciones — */
   .diagram-predicciones { color: var(--ink); }
-  .pred-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 22px;
-  }
-  .pred-card {
-    position: relative;
-    padding: 24px 22px 22px 22px;
-    background: var(--bg-2);
-    border: 0.5px solid var(--line);
-    border-top: 2px solid var(--accent);
-    border-radius: 2px;
+  .pred-list {
     display: flex; flex-direction: column;
-    gap: 12px;
+    border-top: 0.5px solid var(--line);
+  }
+  .pred-row {
+    display: grid;
+    grid-template-columns: 150px minmax(180px, 1.1fr) 1.6fr 1.4fr;
+    gap: 28px;
+    padding: 22px 4px;
+    border-bottom: 0.5px solid var(--line);
+    align-items: start;
+  }
+  .pred-idx {
+    display: flex; flex-direction: column; gap: 8px;
   }
   .pred-num {
-    position: absolute; top: 14px; right: 18px;
-    font-family: var(--serif); font-size: 32px;
+    font-family: var(--serif); font-size: 34px;
     font-weight: 300; color: var(--ink-4);
-    line-height: 1; letter-spacing: -0.02em;
+    line-height: 0.9; letter-spacing: -0.02em;
   }
   .pred-tag {
     font-family: var(--mono); font-size: 10px;
-    letter-spacing: 0.18em; text-transform: uppercase;
+    letter-spacing: 0.16em; text-transform: uppercase;
     color: var(--accent);
   }
   .pred-title {
     margin: 0;
-    font-family: var(--serif); font-size: 18px;
+    font-family: var(--serif); font-size: 19px;
     font-weight: 500; letter-spacing: -0.012em;
-    line-height: 1.18; color: var(--ink);
-    max-width: 80%;
+    line-height: 1.2; color: var(--ink);
   }
   .pred-block {
     display: flex; flex-direction: column;
-    gap: 4px;
+    gap: 5px;
     font-family: var(--serif); font-size: 14px;
     line-height: 1.5; color: var(--ink-2);
   }
@@ -1118,54 +1113,64 @@
     letter-spacing: 0.16em; text-transform: uppercase;
     color: var(--ink-3);
   }
-  .pred-block em {
-    color: var(--accent); font-style: italic;
-  }
-  .pred-falsify {
-    padding-top: 10px;
-    border-top: 0.5px dashed var(--line);
-    font-style: italic; color: var(--ink-2);
-  }
+  .pred-block em { color: var(--accent); font-style: italic; }
+  .pred-falsify { font-style: italic; color: var(--ink-2); }
   .pred-falsify .pred-block-lbl { font-style: normal; }
   .pred-coda {
-    margin-top: 26px;
+    margin-top: 28px;
     padding: 16px 20px;
     background: var(--bg-3);
     border-left: 2px solid var(--ink-3);
-    font-family: var(--serif); font-size: 14px;
+    font-family: var(--serif); font-size: 14.5px;
     line-height: 1.55; color: var(--ink-2);
   }
+  @media (max-width: 880px) {
+    .pred-row {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .pred-idx { flex-direction: row; align-items: baseline; gap: 14px; }
+  }
 
-  /* Concept blocks in presentation mode: fill the figure column with
-     the diagram instead of an iframe. Scroll if it overflows. */
+  /* Concept blocks in presentation mode: the diagram fills the figure
+     column and is vertically centred (no big blank area). Scrolls only
+     if it genuinely overflows. */
   body.present-mode section.chapter.concept .diagram-wrap {
     grid-area: fig;
     height: 100%;
     width: 100%;
-    padding: 24px 32px;
+    padding: 28px 36px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     overflow-y: auto;
     align-self: stretch;
     border-radius: 4px;
   }
-  body.present-mode section.chapter.concept .diagram-bisturi {
-    grid-template-columns: 1fr auto 1fr auto 1fr;
-    gap: 14px;
+  body.present-mode section.chapter.concept .diagram {
+    margin: auto 0;
+    width: 100%;
   }
-  body.present-mode section.chapter.concept .bist-stage-glyph {
-    width: 110px; height: 96px;
-  }
-  body.present-mode section.chapter.concept .pred-grid {
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 14px;
+  body.present-mode section.chapter.concept .bist-glyph { height: 130px; }
+  body.present-mode section.chapter.concept .bist-arrow { padding-top: 74px; }
+  body.present-mode section.chapter.concept .pred-row { padding: 14px 4px; }
+  body.present-mode section.chapter.concept .pred-num { font-size: 28px; }
+  body.present-mode section.chapter.concept .pred-coda { margin-top: 18px; }
+  body.present-mode section.chapter.concept .bist-thesis,
+  body.present-mode section.chapter.concept .tri-coda,
+  body.present-mode section.chapter.concept .conv-coda {
+    font-size: 16px;
   }
 
   /* Responsive collapse for the tripartita and convergencia diagrams */
   @media (max-width: 880px) {
-    .diagram-bisturi {
+    .bist-flow {
       grid-template-columns: 1fr;
+      row-gap: 8px;
     }
     .bist-arrow {
       flex-direction: row; padding-top: 0;
+      justify-content: center;
     }
     .bist-arrow-line { width: 1px; height: 36px; }
     .bist-arrow-line::after {
@@ -1184,6 +1189,113 @@
     .tri-col:last-child { border-bottom: none; }
     .conv-grid { grid-template-columns: 1fr; }
     .conv-grid > div { border-right: none; }
+  }
+
+  /* ─── PROSE (reading-first sections) ───────────────────────────── */
+  section.prose {
+    padding: 15vh var(--pad-x);
+    background: var(--bg);
+  }
+  .prose-inner {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  .prose-eyebrow {
+    display: flex; align-items: center; gap: 16px;
+    font-family: var(--mono); font-size: 11px;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 26px;
+  }
+  .prose-eyebrow::before {
+    content: ""; width: 40px; height: 1px;
+    background: var(--accent); flex-shrink: 0;
+  }
+  .prose-title {
+    font-family: var(--serif);
+    font-size: clamp(30px, 4vw, 46px);
+    font-weight: 400; line-height: 1.08;
+    letter-spacing: -0.02em; color: var(--ink);
+    margin: 0 0 34px 0;
+  }
+  .prose-title em { font-style: italic; }
+  .prose-body p {
+    font-family: var(--serif);
+    font-size: 19px; line-height: 1.78;
+    color: var(--ink-2);
+    margin: 0 0 22px 0;
+  }
+  .prose-body p:last-child { margin-bottom: 0; }
+  .prose-body p.lead {
+    font-size: 22px; line-height: 1.66; color: var(--ink);
+  }
+  .prose-body p.lead::first-letter {
+    font-family: var(--serif);
+    font-size: 3.5em; line-height: 0.78;
+    float: left; padding: 8px 12px 0 0;
+    color: var(--accent);
+  }
+  .prose-body em { font-style: italic; color: var(--ink); }
+  .prose-body strong { font-weight: 600; color: var(--ink); }
+  .prose-pull {
+    margin: 42px 0 0 0;
+    padding: 4px 0 4px 26px;
+    border-left: 2px solid var(--accent);
+    font-family: var(--serif);
+    font-size: 24px; font-style: italic;
+    line-height: 1.46; color: var(--ink);
+  }
+  .prose-stats {
+    display: flex; flex-wrap: wrap; gap: 28px 52px;
+    margin-top: 50px; padding-top: 30px;
+    border-top: 0.5px solid var(--line);
+  }
+  .prose-stat { display: flex; flex-direction: column; gap: 7px; }
+  .prose-stat .n {
+    font-family: var(--serif); font-size: 34px;
+    color: var(--accent); letter-spacing: -0.02em; line-height: 1;
+  }
+  .prose-stat .l {
+    font-family: var(--mono); font-size: 10.5px;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--ink-3); max-width: 170px; line-height: 1.55;
+  }
+
+  /* Prose in presentation mode: a centred statement slide. */
+  body.present-mode section.prose {
+    min-height: 100vh; height: 100vh;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 10vh max(28px, 9vw);
+    scroll-snap-align: start; scroll-snap-stop: always;
+    margin: 0; position: relative; overflow: hidden;
+  }
+  body.present-mode section.prose .prose-inner {
+    max-width: 940px; margin: 0 auto;
+    max-height: 80vh; overflow-y: auto;
+  }
+  body.present-mode section.prose .prose-title {
+    font-size: clamp(28px, 3.6vw, 50px);
+    margin-bottom: 28px;
+  }
+  body.present-mode section.prose .prose-body p {
+    font-size: clamp(15px, 1.55vw, 22px);
+    margin-bottom: 16px;
+  }
+  body.present-mode section.prose .prose-body p.lead {
+    font-size: clamp(17px, 1.8vw, 25px);
+  }
+  body.present-mode section.prose .prose-pull {
+    margin-top: 28px; font-size: clamp(18px, 1.9vw, 26px);
+  }
+  body.present-mode section.prose .prose-stats {
+    margin-top: 32px; padding-top: 22px; gap: 20px 42px;
+  }
+  body.present-mode section.prose .prose-stat .n { font-size: 28px; }
+
+  @media (max-width: 880px) {
+    .prose-body p { font-size: 18px; }
+    .prose-body p.lead { font-size: 20px; }
+    .prose-pull { font-size: 21px; }
   }
 
   /* ─── OUTRO ────────────────────────────────────────────────────── */
@@ -1598,56 +1710,83 @@
     <div class="diagram-wrap">
       
 <div class="diagram diagram-bisturi">
-  <div class="bist-stage">
-    <div class="bist-stage-num"><span>01</span></div>
-    <div class="bist-stage-glyph bist-mat-full" aria-hidden="true">
-      <span class="lbl">W</span>
-      <span class="sub">m × n</span>
+  <div class="bist-flow">
+    <div class="bist-stage">
+      <div class="bist-stage-top">
+        <span class="bist-stage-num">01</span>
+        <span class="bist-stage-name">
+          <span lang="es">Matriz original</span>
+          <span lang="en">Original matrix</span>
+        </span>
+      </div>
+      <div class="bist-glyph" aria-hidden="true">
+        <div class="bist-mat bist-mat-w"><span>W</span></div>
+      </div>
+      <p class="bist-cap">
+        <span lang="es">Una de las 72 matrices lineales del encoder de BERT. Rango completo.</span>
+        <span lang="en">One of BERT's 72 linear encoder matrices. Full rank.</span>
+      </p>
     </div>
-    <div class="bist-stage-cap">
-      <strong lang="es">Matriz original</strong>
-      <strong lang="en">Original matrix</strong>
-      <span lang="es">Una de las 72 del encoder<br>de BERT.</span>
-      <span lang="en">One of BERT's 72 encoder<br>matrices.</span>
+
+    <div class="bist-arrow">
+      <span class="bist-arrow-lbl">SVD<sub>k</sub></span>
+      <span class="bist-arrow-line" aria-hidden="true"></span>
+    </div>
+
+    <div class="bist-stage">
+      <div class="bist-stage-top">
+        <span class="bist-stage-num">02</span>
+        <span class="bist-stage-name">
+          <span lang="es">Truncada al rango <em>k</em></span>
+          <span lang="en">Truncated to rank <em>k</em></span>
+        </span>
+      </div>
+      <div class="bist-glyph bist-glyph-factors" aria-hidden="true">
+        <div class="bist-fac bist-fac-u"><span>U<sub>k</sub></span></div>
+        <span class="bist-dot">·</span>
+        <div class="bist-fac bist-fac-s"><span>Σ<sub>k</sub></span></div>
+        <span class="bist-dot">·</span>
+        <div class="bist-fac bist-fac-v"><span>V<sub>k</sub><sup>⊤</sup></span></div>
+      </div>
+      <p class="bist-cap">
+        <span lang="es">La mejor aproximación de rango <em>k</em> en norma de Frobenius. Eckart-Young, 1936.</span>
+        <span lang="en">The optimal rank-<em>k</em> approximation in Frobenius norm. Eckart-Young, 1936.</span>
+      </p>
+    </div>
+
+    <div class="bist-arrow">
+      <span class="bist-arrow-lbl"><span lang="es">al modelo</span><span lang="en">to model</span></span>
+      <span class="bist-arrow-line" aria-hidden="true"></span>
+    </div>
+
+    <div class="bist-stage">
+      <div class="bist-stage-top">
+        <span class="bist-stage-num">03</span>
+        <span class="bist-stage-name">
+          <span lang="es">Medida funcional</span>
+          <span lang="en">Functional measurement</span>
+        </span>
+      </div>
+      <div class="bist-glyph" aria-hidden="true">
+        <div class="bist-mat bist-mat-delta">
+          <span>Δ F1</span>
+          <svg viewBox="0 0 90 44" class="bist-drop">
+            <polyline points="6,10 26,12 46,11 62,30 78,38"
+              fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </div>
+      </div>
+      <p class="bist-cap">
+        <span lang="es">La caída de F1 al aplicar el modelo comprimido cuantifica la importancia de <em>W</em>.</span>
+        <span lang="en">The F1 drop when applying the compressed model quantifies the importance of <em>W</em>.</span>
+      </p>
     </div>
   </div>
-  <div class="bist-arrow">
-    <span class="bist-arrow-lbl">SVD<sub><em>k</em></sub></span>
-    <span class="bist-arrow-line"></span>
-  </div>
-  <div class="bist-stage">
-    <div class="bist-stage-num"><span>02</span></div>
-    <div class="bist-stage-glyph bist-mat-svd" aria-hidden="true">
-      <span class="bist-block u">U<sub>k</sub></span>
-      <span class="bist-block s">Σ<sub>k</sub></span>
-      <span class="bist-block v">V<sub>k</sub><sup>T</sup></span>
-    </div>
-    <div class="bist-stage-cap">
-      <strong lang="es">Truncada al rango <em>k</em></strong>
-      <strong lang="en">Truncated to rank <em>k</em></strong>
-      <span lang="es">Pérdida controlada de información.<br>Eckart-Young, 1936.</span>
-      <span lang="en">Controlled information loss.<br>Eckart-Young, 1936.</span>
-    </div>
-  </div>
-  <div class="bist-arrow">
-    <span class="bist-arrow-lbl"><span lang="es">aplicar al modelo</span><span lang="en">apply to model</span></span>
-    <span class="bist-arrow-line"></span>
-  </div>
-  <div class="bist-stage">
-    <div class="bist-stage-num"><span>03</span></div>
-    <div class="bist-stage-glyph bist-delta" aria-hidden="true">
-      <span class="bist-delta-symbol">Δ F1</span>
-    </div>
-    <div class="bist-stage-cap">
-      <strong lang="es">Medida funcional</strong>
-      <strong lang="en">Functional measurement</strong>
-      <span lang="es">La caída de F1 cuantifica<br>la importancia de <em>W</em>.</span>
-      <span lang="en">The F1 drop quantifies the<br>importance of <em>W</em>.</span>
-    </div>
-  </div>
+
   <div class="bist-thesis">
-    <span lang="es">Lo que se rompe al quitarlo <strong>mide</strong> lo que importaba.</span>
-    <span lang="en">What breaks when you remove it <strong>measures</strong> what mattered.</span>
+    <span lang="es">Una técnica de reducción se convierte en instrumento de medida: lo que se rompe al quitarlo <strong>mide</strong> lo que importaba.</span>
+    <span lang="en">A reduction technique becomes a measurement instrument: what breaks when you remove it <strong>measures</strong> what mattered.</span>
   </div>
 </div>
 
@@ -2656,11 +2795,13 @@
     <div class="diagram-wrap">
       
 <div class="diagram diagram-predicciones">
-  <div class="pred-grid">
-    <article class="pred-card">
-      <div class="pred-num">01</div>
-      <div class="pred-tag">
-        <span lang="es">Arquitectónica</span><span lang="en">Architectural</span>
+  <div class="pred-list">
+    <article class="pred-row">
+      <div class="pred-idx">
+        <span class="pred-num">01</span>
+        <span class="pred-tag">
+          <span lang="es">Arquitectónica</span><span lang="en">Architectural</span>
+        </span>
       </div>
       <h3 class="pred-title">
         <span lang="es">Asimetría espectral en BERT-large</span>
@@ -2681,10 +2822,12 @@
         <span lang="en">A ratio near 1 falsifies the generalisability.</span>
       </div>
     </article>
-    <article class="pred-card">
-      <div class="pred-num">02</div>
-      <div class="pred-tag">
-        <span lang="es">Geométrica</span><span lang="en">Geometric</span>
+    <article class="pred-row">
+      <div class="pred-idx">
+        <span class="pred-num">02</span>
+        <span class="pred-tag">
+          <span lang="es">Geométrica</span><span lang="en">Geometric</span>
+        </span>
       </div>
       <h3 class="pred-title">
         <span lang="es">Decoder-only ≠ encoder-only en patching</span>
@@ -2705,10 +2848,12 @@
         <span lang="en">If a single layer recovers 100 %, the [CLS]-based geometric explanation falls.</span>
       </div>
     </article>
-    <article class="pred-card">
-      <div class="pred-num">03</div>
-      <div class="pred-tag">
-        <span lang="es">Semántica</span><span lang="en">Semantic</span>
+    <article class="pred-row">
+      <div class="pred-idx">
+        <span class="pred-num">03</span>
+        <span class="pred-tag">
+          <span lang="es">Semántica</span><span lang="en">Semantic</span>
+        </span>
       </div>
       <h3 class="pred-title">
         <span lang="es">Cristalización robusta a arquitectura</span>
@@ -2729,10 +2874,12 @@
         <span lang="en">If the order changes much, pre-training corpus drives it, not semantics.</span>
       </div>
     </article>
-    <article class="pred-card">
-      <div class="pred-num">04</div>
-      <div class="pred-tag">
-        <span lang="es">Estadística</span><span lang="en">Statistical</span>
+    <article class="pred-row">
+      <div class="pred-idx">
+        <span class="pred-num">04</span>
+        <span class="pred-tag">
+          <span lang="es">Estadística</span><span lang="en">Statistical</span>
+        </span>
       </div>
       <h3 class="pred-title">
         <span lang="es">Regularización en clases raras</span>
@@ -2753,10 +2900,12 @@
         <span lang="en">Absence of the effect refutes the implicit SVD regularisation.</span>
       </div>
     </article>
-    <article class="pred-card">
-      <div class="pred-num">05</div>
-      <div class="pred-tag">
-        <span lang="es">Metodológica</span><span lang="en">Methodological</span>
+    <article class="pred-row">
+      <div class="pred-idx">
+        <span class="pred-num">05</span>
+        <span class="pred-tag">
+          <span lang="es">Metodológica</span><span lang="en">Methodological</span>
+        </span>
       </div>
       <h3 class="pred-title">
         <span lang="es">Heurística cualitativa = baseline ciego</span>
@@ -2779,8 +2928,8 @@
     </article>
   </div>
   <div class="pred-coda">
-    <span lang="es">Las cinco predicciones son ortogonales. La confirmación conjunta es un test estricto del framework; la refutación individual delimita qué parte del análisis pertenece a este caso.</span>
-    <span lang="en">The five predictions are orthogonal. Joint confirmation is a strict test of the framework; individual refutation marks off which part of the analysis belongs to this case.</span>
+    <span lang="es">Las cinco predicciones son ortogonales: cada una falla bajo condiciones distintas. La confirmación conjunta es un test estricto del framework; la refutación individual delimita qué parte del análisis pertenece a este caso.</span>
+    <span lang="en">The five predictions are orthogonal: each fails under different conditions. Joint confirmation is a strict test of the framework; individual refutation marks off which part of the analysis belongs to this case.</span>
   </div>
 </div>
 
@@ -3123,7 +3272,8 @@
 
     function getSlides() {
       return Array.from(document.querySelectorAll(
-        'main > section.hero, main > section.part, main > section.chapter'
+        'main > section.hero, main > section.part, ' +
+        'main > section.chapter, main > section.prose'
       ));
     }
     let slides = getSlides();
