@@ -38,7 +38,13 @@ def load_goemotions(tokenizer_name=MODEL_NAME, max_length=MAX_LENGTH, exclude_em
 
     Returns train, validation, test splits, emotion names, and a data collator.
     """
-    dataset = load_dataset("go_emotions", "simplified")
+    # Versiones recientes de huggingface_hub exigen namespace/name.
+    # "go_emotions" sin namespace falla con HfUriError.
+    try:
+        dataset = load_dataset("google-research-datasets/go_emotions", "simplified")
+    except Exception:
+        # Fallback para versiones antiguas que aún aceptan el alias corto.
+        dataset = load_dataset("go_emotions", "simplified")
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
 
     exclude_emotions = set(exclude_emotions or [])
