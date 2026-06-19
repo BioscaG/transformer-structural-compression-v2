@@ -1,196 +1,189 @@
 # Anatomía Emocional de un Modelo Transformer
 
-TFG · Compresión selectiva e interpretabilidad mecánica de BERT-base sobre GoEmotions.
-Guido Biosca Lasa · FIB-UPC · 2026 · Director: Lluís Padró Cirera.
+**Compresión selectiva e interpretabilidad mecánica de BERT-base sobre GoEmotions, mediante SVD.**
+
+Trabajo de Fin de Grado · Guido Biosca Lasa · Facultat d'Informàtica de Barcelona (FIB-UPC) · 2026
+Director: Lluís Padró Cirera.
+
+| Recurso | Enlace |
+| --- | --- |
+| 📄 **Memoria final (PDF)** | [`TFG___Final.pdf`](TFG___Final.pdf) |
+| 🌐 **Web interactiva** | <https://anatomy.guidobiosca.com> |
+| 📝 **Fuente LaTeX de la memoria** | [`deliver/`](deliver/) |
 
 ---
 
-## Estructura del proyecto en una página
+## De qué va
+
+El proyecto persigue dos objetivos encadenados sobre **BERT-base-uncased**
+fine-tuneado en **GoEmotions** (28 emociones, clasificación multi-etiqueta):
+
+1. **Interpretabilidad mecánica** — entender *dónde* y *cómo* procesa el
+   modelo cada emoción: probes lineales por capa, *activation patching*,
+   ablación de las 144 cabezas de atención y análisis de las neuronas FFN.
+2. **Compresión informada** — usar ese conocimiento para comprimir el modelo
+   vía **SVD** protegiendo los componentes críticos para la emoción, en lugar
+   de comprimir a ciegas.
+
+La descomposición SVD reemplaza cada `nn.Linear` por dos capas de rango bajo
+(`Vh_k` → `U_k·diag(S_k)`), con rangos uniformes, adaptativos por energía
+espectral o seleccionados por una búsqueda greedy informada.
+
+---
+
+## Estructura del repositorio
 
 ```
 transformer-structural-compression-v2/
 │
-├── src/                            código compartido
-│   ├── data/                         carga GoEmotions, tokenización
-│   ├── models/                       BERT con cabeza multi-label
-│   ├── compression/                  SVD, ranks adaptativos, greedy
-│   └── utils/                        métricas (F1 macro/micro)
+├── TFG___Final.pdf                 ← la memoria final
+├── deliver/                        ← fuente LaTeX de la memoria (capítulos, .bib)
 │
-├── notebooks/                      LA INVESTIGACIÓN
-│   ├── 01_finetuning.ipynb           entrena el modelo
-│   ├── 02_spectral_analysis.ipynb    SVD, k95, frontera Pareto
+├── src/                            código compartido (instalable como paquete)
+│   ├── data/                         carga GoEmotions, tokenización, multi-hot
+│   ├── models/                       BERT con cabeza multi-label (BCEWithLogits)
+│   ├── compression/                  SVD, rangos adaptativos, greedy informado
+│   └── utils/                        métricas (F1 macro/micro/por emoción)
+│
+├── notebooks/                      LA INVESTIGACIÓN (ejecutar en orden)
+│   ├── 01_finetuning.ipynb           entrena el baseline
+│   ├── 02_spectral_analysis.ipynb    SVD, k95, frontera de Pareto
 │   ├── 03_compression_sensitivity.ipynb
 │   ├── 04_probing.ipynb              probes lineales por capa
-│   ├── 05_activation_patching.ipynb
+│   ├── 05_activation_patching.ipynb  localización causal
 │   ├── 06_head_analysis.ipynb        ablación de las 144 cabezas
-│   ├── 07_neuron_analysis.ipynb      36 864 neuronas FFN
-│   ├── 08_emotional_map.ipynb
-│   └── 09_informed_compression.ipynb
+│   ├── 07_neuron_analysis.ipynb      neuronas FFN especializadas
+│   ├── 08_emotional_map.ipynb        lesiones + genealogía emocional
+│   ├── 09_informed_compression.ipynb informada vs ciega, recuperación, benchmarks
+│   └── archive/                      versiones antiguas
 │
 ├── results/                        SALIDAS DE LOS NOTEBOOKS
-│   ├── checkpoints/23emo-final/      el modelo (gitignored, en Drive)
-│   ├── csvs/notebookN/               61 tablas de resultados
+│   ├── checkpoints/                  el modelo, 418 MB (gitignored, en Drive)
+│   ├── csvs/notebookN/               tablas de resultados
 │   └── figures/notebookN/            PNGs preliminares
 │
-├── latex_figures/                  PDF DE LA MEMORIA
-│   ├── tfg_plot_style.py             estilo matplotlib (Pagella)
-│   ├── generate_cap4_figures.ipynb   ← genera figuras del cap. 4
-│   ├── generate_cap5_figures.ipynb   ← genera figuras del cap. 5
-│   └── figures/cap{N}_*_{es,en}.png  ← PNGs finales para LaTeX
+├── latex_figures/                  FIGURAS DEL PDF (matplotlib)
+│   ├── tfg_plot_style.py             estilo matplotlib (tipografía Pagella)
+│   ├── generate_cap4_figures.ipynb   figuras del cap. 4
+│   ├── generate_cap5_figures.ipynb   figuras del cap. 5
+│   ├── generate_extra_figures.py     figuras sueltas adicionales
+│   └── figures/cap{N}_*_{es,en}.png  PNGs finales para LaTeX
 │
-└── viz/                            WEB INTERACTIVA
-    ├── data/cache/*.npz              caches del modelo (gitignored)
-    ├── extractors/                   genera los caches
-    ├── interactive/, plots/          27 figuras Plotly
-    ├── site/                         pipeline del site editorial
-    │   ├── index.html, sobre.html      la web final
-    │   ├── figures/                    figuras Plotly site-mode
-    │   ├── _site_mode.py               estilo Plotly del site
-    │   ├── build_figures.py            genera figuras del site
-    │   ├── build_index.py              genera index.html
-    │   └── build_pdf_figures.py        web → PDF (figuras estáticas)
-    └── output/                       outputs originales (no del site)
+├── viz/                            PIPELINE DE FIGURAS (Plotly + extractores)
+│   ├── data/, extractors/            caches del modelo y cómo generarlos
+│   ├── interactive/, plots/          figuras Plotly
+│   └── style.py                      estilo común
+│
+└── web/                            WEB INTERACTIVA (el site editorial)
+    ├── index.html, sobre.html        la web publicada
+    ├── _site_mode.py                 estilo Plotly del site
+    ├── build_figures.py              genera las figuras (importa de viz/)
+    ├── build_index.py                ensambla index.html
+    ├── build_pdf_figures.py          puente web → PNG estáticos del PDF
+    └── build_all.py                  todo de golpe
 ```
 
 ---
 
-## El modelo mental: **dos productos, una fuente de verdad**
+## El modelo mental: dos productos, una fuente de verdad
 
 ```
                       notebooks/  →  results/csvs/  + checkpoint
-                          ↓ (los ejecutas, una sola vez)
-                          ▼
-                          ▼
+                          │  (los ejecutas una sola vez)
         ┌─────────────────┴─────────────────┐
         ▼                                   ▼
-
   PDF DE LA MEMORIA                    WEB INTERACTIVA
   ════════════════════                ════════════════════
-  latex_figures/                      viz/
-    + matplotlib                        + plotly
+  latex_figures/  (matplotlib)        viz/ + web/  (Plotly)
     + tfg_plot_style.py                 + _site_mode.py
-    + generate_cap{N}.ipynb             + build_figures.py
     ↓                                   ↓
-  latex_figures/figures/              web/figures/
-    cap{N}_*_es.png                     *.html
-    cap{N}_*_en.png                   web/index.html
+  latex_figures/figures/              web/figures/*.html
+    cap{N}_*_{es,en}.png              web/index.html
 ```
 
-**Y un puente opcional**: `web/build_pdf_figures.py` exporta figuras
-Plotly como PNG estáticos directamente en `latex_figures/figures/` con el
-naming `cap{N}_{name}_es.png`. Lo usas si una figura existe en la web pero
-no quieres redibujarla en matplotlib.
+**Puente opcional**: `web/build_pdf_figures.py` exporta figuras Plotly como
+PNG estáticos en `latex_figures/figures/` con el naming `cap{N}_{name}_es.png`.
+Útil cuando una figura existe en la web y no quieres redibujarla en matplotlib.
 
 ---
 
-## Workflows (lo que tú haces día a día)
-
-### 1. Cuando quieres editar / añadir una figura del PDF
-
-Es matplotlib, vive en el notebook correspondiente:
-
-```bash
-jupyter notebook latex_figures/generate_cap{4,5}_figures.ipynb
-```
-
-Editas la celda. La ejecutas. Aparece en `latex_figures/figures/cap{N}_*_{es,en}.png`.
-
-### 2. Cuando quieres editar / añadir una figura de la web
-
-Es Plotly, vive en `viz/interactive/X.py` o `viz/plots/X.py`. Editas el
-fichero. Luego:
-
-```bash
-python web/build_figures.py     # regenera todas
-python web/build_index.py       # actualiza el index
-```
-
-O todo de golpe:
-
-```bash
-python web/build_all.py
-```
-
-Aparece en `web/figures/X.html`.
-
-### 3. Cuando quieres una figura de la web también en el PDF
-
-Sin redibujarla en matplotlib:
-
-```bash
-python web/build_pdf_figures.py
-```
-
-Aparece en `latex_figures/figures/cap{N}_{name}_es.png` (mismo naming
-convention que el notebook).
-
-### 4. Cuando ejecutas en Colab y los datos están en Drive
-
-Los notebooks de `latex_figures/` y `notebooks/` detectan Colab al inicio
-(`IN_COLAB = 'google.colab' in sys.modules`) y montan Drive
-automáticamente. La estructura de paths se calcula.
-
----
-
-## Convenciones (lo que NO tienes que pensar)
-
-- **Tipografía**: Pagella en TODO (PDF y web). Misma cadena de fallback en
-  `tfg_plot_style.py` y `web/_site_mode.py`.
-- **Paleta**: misma en ambos. `INK #1A1A1A · TERRA #C1553A · BLUE #3A6EA5
-  · SAGE #5A8F7B · SAND #D4A843` (definidos a la vez en los dos archivos
-  de estilo, bit a bit idénticos).
-- **Naming de figuras del PDF**: `cap{N}_{name}_{es,en}.png` siempre. Da
-  igual si la generó matplotlib o Plotly.
-- **Naming en la web**: `web/figures/{name}.html` (sin capítulo,
-  sin idioma).
-- **Etiquetas**: `Emb · L0 · L1 · … · L11` para las 13 capas. Siempre.
-
----
-
-## Lo que está gitignored y por qué
-
-- `results/checkpoints/` — el modelo, 455 MB. Vive en Drive.
-- `viz/data/cache/*.npz` — caches del modelo, regenerables. El más grande
-  (`activations.npz`) pesa 212 MB.
-- `.viz_venv/` — virtualenv local (Plotly + kaleido).
-
-Cualquiera que clone el repo puede regenerar el cache:
-
-```bash
-python viz/extractors/extract_real.py
-python viz/extractors/extract_compression_decay.py
-python viz/extractors/extract_neuron_activations.py
-python viz/extractors/extract_token_trajectories.py
-```
-
----
-
-## Independencia de los notebooks de `latex_figures/`
-
-Las figuras del cap. 5 (lens vs probe, U-curve agregada) **no dependen
-del cache de `viz/`**. Cargan GoEmotions desde HuggingFace, ejecutan el
-checkpoint y computan todo desde cero. La separación entre la pipeline
-del PDF y la de la web es estricta.
-
----
-
-## Para abrir la web localmente
-
-```bash
-python -m http.server -d web 8080
-# luego abre http://localhost:8080
-```
-
----
-
-## Setup mínimo
+## Setup
 
 ```bash
 pip install -r requirements.txt
-# Para regenerar la web:
-.viz_venv/bin/python web/build_all.py
-# Para regenerar las figuras del PDF:
-jupyter notebook latex_figures/
-# Para una figura específica de la web hacia el PDF:
-.viz_venv/bin/python web/build_pdf_figures.py NOMBRE
 ```
+
+Los notebooks corren tanto en local como en Google Colab Pro: detectan Colab
+al inicio (`IN_COLAB = 'google.colab' in sys.modules`) y montan Drive
+automáticamente. Los checkpoints se guardan en `results/checkpoints/`.
+
+### API de Python
+
+```python
+from src.data import load_goemotions
+from src.models import load_bert_classifier
+from src.compression import apply_svd_compression, compute_singular_value_energy
+from src.utils import compute_metrics
+```
+
+---
+
+## Workflows
+
+**Editar una figura del PDF** (matplotlib, vive en el notebook):
+
+```bash
+jupyter notebook latex_figures/generate_cap{4,5}_figures.ipynb
+# → latex_figures/figures/cap{N}_*_{es,en}.png
+```
+
+**Editar una figura de la web** (Plotly, vive en `viz/interactive/` o `viz/plots/`):
+
+```bash
+python web/build_all.py          # regenera figuras + index
+# → web/figures/*.html, web/index.html
+```
+
+**Llevar una figura de la web al PDF** sin redibujarla:
+
+```bash
+python web/build_pdf_figures.py  # → latex_figures/figures/cap{N}_{name}_es.png
+```
+
+**Ver la web en local:**
+
+```bash
+python -m http.server -d web 8080   # http://localhost:8080
+```
+
+---
+
+## Convenciones
+
+- **Tipografía**: Pagella en todo (PDF y web). Misma cadena de fallback en
+  `latex_figures/tfg_plot_style.py` y `web/_site_mode.py`.
+- **Paleta**: idéntica en ambos. `INK #1A1A1A · TERRA #C1553A · BLUE #3A6EA5
+  · SAGE #5A8F7B · SAND #D4A843`.
+- **Naming de figuras del PDF**: `cap{N}_{name}_{es,en}.png` siempre, lo
+  genere matplotlib o Plotly.
+- **Naming en la web**: `web/figures/{name}.html` (sin capítulo, sin idioma).
+- **Etiquetas de capa**: `Emb · L0 · L1 · … · L11` para las 13 capas.
+
+---
+
+## Qué está gitignored y por qué
+
+- `results/checkpoints/` — el modelo (418 MB). Vive en Drive.
+- `viz/data/cache/*.npz` — caches del modelo, regenerables (el mayor,
+  `activations.npz`, supera el límite de 100 MB de GitHub).
+- `.viz_venv/` — virtualenv local (Plotly + kaleido).
+- `web/_tmp/`, `viz/output/` — outputs de build intermedios, regenerables.
+
+Cualquiera que clone el repo puede regenerar los caches con los scripts de
+`viz/extractors/`.
+
+---
+
+## Licencia
+
+[MIT](LICENSE) © 2026 Guido Biosca Lasa.
