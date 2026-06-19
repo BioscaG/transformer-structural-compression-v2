@@ -16,11 +16,15 @@ Director: Lluís Padró Cirera.
 ## De qué va
 
 El proyecto persigue dos objetivos encadenados sobre **BERT-base-uncased**
-fine-tuneado en **GoEmotions** (28 emociones, clasificación multi-etiqueta):
+fine-tuneado en **GoEmotions** para clasificación multi-etiqueta. El baseline
+inicial usa las 28 etiquetas del dataset (notebook 01); los análisis finales
+de la memoria trabajan sobre un modelo filtrado a **23 emociones** (notebook
+01b, que excluye *neutral* y cuatro emociones con F1 ≈ 0 en el baseline).
 
 1. **Interpretabilidad mecánica** — entender *dónde* y *cómo* procesa el
-   modelo cada emoción: probes lineales por capa, *activation patching*,
-   ablación de las 144 cabezas de atención y análisis de las neuronas FFN.
+   modelo cada emoción, contrastando **cinco** técnicas complementarias:
+   probing lineal por capa, *logit lens*, *activation patching*, ablación de
+   las 144 cabezas de atención y análisis de selectividad de las neuronas FFN.
 2. **Compresión informada** — usar ese conocimiento para comprimir el modelo
    vía **SVD** protegiendo los componentes críticos para la emoción, en lugar
    de comprimir a ciegas.
@@ -46,15 +50,18 @@ transformer-structural-compression-v2/
 │   └── utils/                        métricas (F1 macro/micro/por emoción)
 │
 ├── notebooks/                      LA INVESTIGACIÓN (ejecutar en orden)
-│   ├── 01_finetuning.ipynb           entrena el baseline
-│   ├── 02_spectral_analysis.ipynb    SVD, k95, frontera de Pareto
-│   ├── 03_compression_sensitivity.ipynb
-│   ├── 04_probing.ipynb              probes lineales por capa
-│   ├── 05_activation_patching.ipynb  localización causal
-│   ├── 06_head_analysis.ipynb        ablación de las 144 cabezas
-│   ├── 07_neuron_analysis.ipynb      neuronas FFN especializadas
-│   ├── 08_emotional_map.ipynb        lesiones + genealogía emocional
-│   ├── 09_informed_compression.ipynb informada vs ciega, recuperación, benchmarks
+│   ├── 01_finetuning.ipynb           baseline 28 emociones
+│   ├── 01b_finetuning_23emotions.ipynb  modelo final (23 emociones)
+│   ├── 02_spectral_analysis.ipynb    SVD, k95, frontera de Pareto    ┐ cap. 5
+│   ├── 03_compression_sensitivity.ipynb  sensibilidad por componente ┘
+│   ├── 04_probing.ipynb              probes lineales por capa         ┐
+│   ├── 05_activation_patching.ipynb  localización causal              │
+│   ├── 06_head_analysis.ipynb        ablación de las 144 cabezas      │ cap. 6
+│   ├── 07_neuron_analysis.ipynb      neuronas FFN especializadas      │
+│   ├── 08_emotional_map.ipynb        lesiones + genealogía emocional  │
+│   ├── 08b_logit_lens.ipynb          logit lens (5ª técnica)          ┘
+│   ├── 09_informed_compression.ipynb informada vs ciega, recuperación ┐ cap. 7
+│   ├── 09b_finetuning_control.ipynb  control de la hipótesis reguladora ┘
 │   └── archive/                      versiones antiguas
 │
 ├── results/                        SALIDAS DE LOS NOTEBOOKS
