@@ -1,5 +1,5 @@
 {
-  "model_name": "/Users/guido.biosca/Personal/transformer-structural-compression-v2/results/checkpoints/23emo-final",
+  "model_name": "results/checkpoints/23emo-final",
   "labels": [
     "admiration",
     "amusement",
