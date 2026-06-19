@@ -48,6 +48,7 @@ viz/output/
 
 # Claude Code per-machine settings
 .claude/
+CLAUDE.md
 
 # Latex figure scratch / comparison artifacts
 latex_figures/figures/_compare/
